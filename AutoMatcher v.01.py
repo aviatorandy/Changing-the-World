@@ -182,6 +182,8 @@ def main():
                         
     os.chdir(directory)
     
+    industry = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6")
+
     #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
     wb = xlrd.open_workbook(xlsFile, on_demand=True)
     sNames = wb.sheet_names()        
@@ -205,7 +207,8 @@ def main():
     
     for x in df['Link ID']:
         row += 1
-    compareData(df)
+    if industry != None:
+        compareData(df)
             
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\Matching Template Output.xlsx")
 

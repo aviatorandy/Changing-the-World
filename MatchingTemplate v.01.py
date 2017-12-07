@@ -176,27 +176,22 @@ def suggestedmatch(df):
     
 def main():    
     
-    """xls = raw_input("Incorrect file path. Enter correct path: ").lstrip("\"").rstrip("\"")
-    try:
-        df = pd.ExcelFile(xls).parse(ws)
-    except xlrd.XLRDError:
-        ws = raw_input("Enter worksheet name: ")
-        df = pd.ExcelFile(xls).parse(ws)
-except xlrd.XLRDError:
-    ws = raw_input("Enter worksheet name: ")
-    df = pd.ExcelFile(xls).parse(ws)
-
-    df = pd.ExcelFile(xls).parse(ws)
-
-    # Get filepath
-    xlsFile = raw_input("\nBefore you begin, "
-                        "please ensure that your file is saved as an XLSX "
+    xlsFile = raw_input("\nPlease input your file for matching. Make sure your file is saved as an XLSX"
                         "\n\nEnter File Path Here: ").replace('""','').lstrip("\"").rstrip("\"")
-    directory = xlsFile[:xlsFile.rindex("\\")]                            
-    os.chdir(directory)"""
-    #probably different criteria for international data
-    xlsFile = r"C:\Users\storres\Desktop\test 3.xlsx"
-    df = pd.ExcelFile(xlsFile).parse("Sheet1")
+    directory = xlsFile[:xlsFile.rindex("\\")]
+                        
+    os.chdir(directory)
+    
+    #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
+    wb = xlrd.open_workbook(xlsFile, on_demand=True)
+    sNames = wb.sheet_names()        
+    wsTitle = "none"
+    for name in sNames:
+         wsTitle = name
+                  
+    row = 0 
+    
+    df = pd.ExcelFile(xlsFile).parse(wsTitle)
 
 
     #wb = xlrd.open_workbook(xlsFile, on_demand=True)
@@ -215,15 +210,84 @@ except xlrd.XLRDError:
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\Matching Template Output.xlsx")
 
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
-    df.to_excel(writer,sheet_name='sheet1', index=False)
+    df.to_excel(writer,sheet_name=wsTitle, index=False)
     workbook  = writer.book
-    worksheet = writer.sheets['sheet1']
+    worksheet = writer.sheets[wsTitle]
 
     headerformat = workbook.add_format({
     'bold': True,
     'text_wrap': True})
     for col_num, value in enumerate(df.columns.values):
         worksheet.write(0, col_num, value, headerformat)
+        
+    # Define column formatting
+    formatBlue = workbook.add_format({'bg_color': '#77e8da', 'border' : 1, 'border_color': '#c0c0c0'}) #
+    formatRed = workbook.add_format({'bg_color': '#f47676', 'border' : 1, 'border_color': '#c0c0c0'}) #
+    formatYellow = workbook.add_format({'bg_color': '#f5cb70', 'border' : 1, 'border_color': '#c0c0c0'}) #
+    formatPurp = workbook.add_format({'bg_color': '#d9b3ff', 'border' : 1, 'border_color': '#c0c0c0'}) #
+    formatOrange = workbook.add_format({'bg_color': '#ffaa80', 'border' : 1, 'border_color': '#c0c0c0'}) #
+   
+    lastgencol = df.columns.get_loc("Match \n1 = yes, 0 = no")
+    cleannamecol = df.columns.get_loc("Cleaned Location Name")
+    namescorecol = df.columns.get_loc("Name Score")
+    addressscorecol = df.columns.get_loc("Address Score")
+    addresscol =  df.columns.get_loc("Cleaned Input Address")
+    robotcol =  df.columns.get_loc("Robot Suggestion")
+    Lat =  df.columns.get_loc("Listing Latitude")
+    LastPostDate=  df.columns.get_loc("Listing Latitude")
+    
+    
+    worksheet.set_row(0, 29.4)
+
+    worksheet.set_column(Lat , LastPostDate, None, None, {'hidden': 1})
+    worksheet.set_column(0, lastcol, None, None, {'hidden': 1})
+    worksheet.set_column(lastcol+2, lastcol+3, None, None, {'hidden': 1})
+    worksheet.set_column(cleannamecol, cleannamecol+1, 45)
+    worksheet.set_column(namescorecol, namescorecol, 7.5)
+    worksheet.set_column(addressscorecol, addressscorecol, 7.5)
+    worksheet.set_column(addresscol, addresscol+1, 27)
+    worksheet.set_column(robotcol, robotcol, 17.33)
+    worksheet.set_column(robotcol+1, robotcol+1, 14.22)
+    
+    worksheet.autofilter(0,0,0,lastgencol)
+
+    # Format Match columns
+    worksheet.conditional_format(0, lastcol, 0, lastgencol, {'type':'text',
+                                'criteria': 'containing',
+                                'value':    "Name",
+                                'format':   formatOrange})
+    worksheet.conditional_format(0, lastcol, 0, lastgencol, {'type':'text',
+                                'criteria': 'containing',
+                                'value':    "Address",
+                                'format':   formatPurp})
+    # Format Score columns
+    worksheet.conditional_format(0, lastcol, 0, lastgencol, {'type':'text',
+                                'criteria': 'containing',
+                                'value':    "Score",
+                                'format':   headerformat })
+    
+    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Match",
+                                        'format':   formatBlue})
+    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Check",
+                                        'format':   formatYellow})
+    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Unique",
+                                        'format':   formatBlue})
+
+    #Not match coloring
+    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "No Match",
+                                        'format':   formatRed})
+    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Same Location",
+                                        'format':   formatRed})
         
     try:
         writer.save()    

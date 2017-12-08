@@ -13,7 +13,7 @@ import xlrd
 import numpy as np
 import re
 import xlsxwriter
-from fuzzywuzzy import fuzz  
+from fuzzywuzzy import fuzz 
 #from mypackages import FunctionToolbox as tbox
 
 
@@ -58,15 +58,40 @@ def cleanCity(city):
     return city
 
 #This function compares the names in the file
-def compareName(df):
+def compareName(df,IndustryType):
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
+    
     averagenamescore = []
-    for index, row in df.iterrows(): 
-        nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-        ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-        average = np.mean([nsr,ntpr])
-        averagenamescore.append(average)
+    average=0
+    #Agent Names matching
+    if IndustryType=='5':
+        inputName2=''
+        busR=0
+        busPR=0
+        businessNames=[]
+        inputName=raw_input("Enter Business Name:")
+        businessNames.append(cleanName(inputName))
+        while inputName2 !='0':
+            inputName2=raw_input("Enter Alternative Business Name.  If no other alternatives, enter 0:\n")
+            businessNames.append(cleanName(inputName2))
+        
+        for index, row in df.iterrows(): 
+            busR=0
+            busPR=0
+            for bName in businessNames:
+                busR=max(busR,fuzz.ratio(bName,row['Cleaned Listing Name']))
+                busPR=max(busPR,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
+            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            average = max(np.mean([busR,busPR]),np.mean([nsr,ntpr]))
+            averagenamescore.append(average)
+    else:       
+        for index, row in df.iterrows(): 
+            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            average = np.mean([nsr,ntpr])
+            averagenamescore.append(average)
     df['Name Score'] = averagenamescore
     
 #This function compares the countries in the file
@@ -75,7 +100,7 @@ def compareStateCountry(df):
     for index, row in df.iterrows(): 
         # Drop different countries
         if (row['Input Location Country'] != row['Duplicate Location Country']):
-            df.drop(index,inplace=True)
+            df.drop(index,inplace=True) 
         else:
             # Flag international locations
             if row['Input Location Country'] != "US":
@@ -112,10 +137,35 @@ def comparePhone(df):
 def compareAddress(df):
     df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
     df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
+    
     averageaddressscore = []
     for index, row in df.iterrows(): 
-        asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-        averageaddressscore.append(asr)
+        
+        #just international?
+        inputStreetNumber=''
+        inputStreetName=''
+        ListingStreetNumber=''
+        ListingStreetName=''
+        if row['Cleaned Input Address'].split()[0].isdigit:    
+            inputStreetNumber=row['Cleaned Input Address'].split()[0]
+            inputStreetName=row['Cleaned Input Address'].split(None,1)[1]
+        elif row['Cleaned Input Address'].split()[-1].isdigit:
+            inputStreetNumber=row['Cleaned Input Address'].split()[-1]
+            inputStreetName=row['Cleaned Input Address'].rsplit(None,1)[0]
+        if (row['Cleaned Listing Address'] !='' and len(row['Cleaned Listing Address'].split())>1):
+            if row['Cleaned Listing Address'].split()[0].isdigit:    
+                ListingStreetNumber=row['Cleaned Listing Address'].split()[0]
+                ListingStreetName=row['Cleaned Listing Address'].split(None,1)[1]
+            elif row['Cleaned Listing Address'].split()[-1].isdigit:
+                ListingStreetNumber=row['Cleaned Listing Address'].split()[-1]
+                ListingStreetName=row['Cleaned Listing Address'].rsplit(None,1)[0]
+        if (inputStreetNumber!=''and inputStreetName!='' and ListingStreetNumber!='' and  ListingStreetName!=''):
+            numberR=fuzz.ratio(inputStreetNumber,ListingStreetNumber)
+            nameR=fuzz.ratio(inputStreetName,ListingStreetName)
+            averageaddressscore.append(np.mean([numberR,nameR]))
+        else:
+            asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+            averageaddressscore.append(asr)
     df['Address Score'] = averageaddressscore            
 
 #This function compares the cities in the file                
@@ -145,10 +195,10 @@ def compareData(IndustryType,df):
     comparePhone(df)
     #compareCountry(df)
     compareZip(df)
-    compareName(df)
+    compareName(df,IndustryType)
     compareAddress(df)
     #compareStateCountry(df)
-    suggestedmatch(df)
+    suggestedmatch(df, IndustryType)
 
 
 #This function provides a suggested match based on certain name/address thresholds
@@ -199,7 +249,7 @@ def main():
                         
     os.chdir(directory)
     
-    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6")
+    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")
 
     #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
     wb = xlrd.open_workbook(xlsFile, on_demand=True)

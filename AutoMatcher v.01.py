@@ -67,9 +67,8 @@ def compareName(df,IndustryType):
     #Agent Names matching
     if IndustryType=='5':
         inputName2=''
-        busR=0
-        busPR=0
         businessNames=[]
+        #Get Business Names      
         inputName=raw_input("Enter Business Name:")
         businessNames.append(cleanName(inputName))
         while inputName2 !='0':
@@ -77,14 +76,17 @@ def compareName(df,IndustryType):
             businessNames.append(cleanName(inputName2))
         
         for index, row in df.iterrows(): 
-            busR=0
-            busPR=0
+            businessRatio=0
+            businessPartalRatio=0
+            #Check listing name against business names
             for bName in businessNames:
-                busR=max(busR,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                busPR=max(busPR,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
+                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
+                businessPartalRatio=max(businessPartalRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
+            #Check listing name against location name
             nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            average = max(np.mean([busR,busPR]),np.mean([nsr,ntpr]))
+            #returns Max of Business Match or Location Name Match
+            average = max(np.mean([businessRatio,businessPartalRatio]),np.mean([nsr,ntpr]))
             averagenamescore.append(average)
     else:       
         for index, row in df.iterrows(): 
@@ -140,30 +142,6 @@ def compareAddress(df):
     
     averageaddressscore = []
     for index, row in df.iterrows(): 
-        
-        #just international?
-        inputStreetNumber=''
-        inputStreetName=''
-        ListingStreetNumber=''
-        ListingStreetName=''
-        if row['Cleaned Input Address'].split()[0].isdigit:    
-            inputStreetNumber=row['Cleaned Input Address'].split()[0]
-            inputStreetName=row['Cleaned Input Address'].split(None,1)[1]
-        elif row['Cleaned Input Address'].split()[-1].isdigit:
-            inputStreetNumber=row['Cleaned Input Address'].split()[-1]
-            inputStreetName=row['Cleaned Input Address'].rsplit(None,1)[0]
-        if (row['Cleaned Listing Address'] !='' and len(row['Cleaned Listing Address'].split())>1):
-            if row['Cleaned Listing Address'].split()[0].isdigit:    
-                ListingStreetNumber=row['Cleaned Listing Address'].split()[0]
-                ListingStreetName=row['Cleaned Listing Address'].split(None,1)[1]
-            elif row['Cleaned Listing Address'].split()[-1].isdigit:
-                ListingStreetNumber=row['Cleaned Listing Address'].split()[-1]
-                ListingStreetName=row['Cleaned Listing Address'].rsplit(None,1)[0]
-        if (inputStreetNumber!=''and inputStreetName!='' and ListingStreetNumber!='' and  ListingStreetName!=''):
-            numberR=fuzz.ratio(inputStreetNumber,ListingStreetNumber)
-            nameR=fuzz.ratio(inputStreetName,ListingStreetName)
-            averageaddressscore.append(np.mean([numberR,nameR]))
-        else:
             asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
             averageaddressscore.append(asr)
     df['Address Score'] = averageaddressscore            

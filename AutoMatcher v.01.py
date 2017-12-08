@@ -140,7 +140,7 @@ def compareZip(df):
      df['Zip Match'] = df.apply(lambda x: '0' if x['Location Zip'] == x['Listing Zip'] else '1', axis=1)
 
 #This function compares the data by calling on all the functions
-def compareData(df):
+def compareData(IndustryType,df):
     #compareId(df)
     comparePhone(df)
     #compareCountry(df)
@@ -152,27 +152,44 @@ def compareData(df):
 
 
 #This function provides a suggested match based on certain name/address thresholds
-def suggestedmatch(df):  
+def suggestedmatch(df, IndustryType):  
     robotmatch = []
-    for index, row in df.iterrows(): 
-     #   print "."
-        #Check to see if matching location IDs
- #       if row['Country'] != "US":
-  #          robotmatch.append("Check - Intl")
-  #      else:
-            #If Same Country and State Check the Names field
-        if row['Name Score'] <= 60:
-            robotmatch.append("No Match - Name")
-        else:
-            if row['Address Score'] < 70:
-                robotmatch.append("No Match - Address")
-            else:
-                if 60 < row['Name Score'] < 80:
-                    robotmatch.append("Check")
+
+    #Hotel Type
+    if IndustryType == '2':
+        for index, row in df.iterrows(): 
+            #If phone matches
+            if df['Phone Match']==1:
+                if row['Address Score'] < 70:
+                    robotmatch.append("No Match - Address")
                 else:
+                    #Need to add excluded words to leave out
                     robotmatch.append("Match Suggested")                                                
-    df['Robot Suggestion'] = robotmatch
-    df['Match \n1 = yes, 0 = no'] = ""
+            else:
+                if row['Address Score'] < 70:
+                    robotmatch.append("No Match - Address")
+                else:
+                    #Need to add certain hotels and excluded words
+                    if 60 < row['Name Score'] < 80:
+                        robotmatch.append("Check")
+                    else:
+                        robotmatch.append("Match Suggested")                                                                    
+        df['Robot Suggestion'] = robotmatch
+        df['Match \n1 = yes, 0 = no'] = ""
+    else:
+        for index, row in df.iterrows(): 
+            if row['Name Score'] <= 60:
+                robotmatch.append("No Match - Name")
+            else:
+                if row['Address Score'] < 70:
+                    robotmatch.append("No Match - Address")
+                else:
+                    if 60 < row['Name Score'] < 80:
+                        robotmatch.append("Check")
+                    else:
+                        robotmatch.append("Match Suggested")                                                
+        df['Robot Suggestion'] = robotmatch
+        df['Match \n1 = yes, 0 = no'] = ""
     
 def main():    
     
@@ -182,7 +199,7 @@ def main():
                         
     os.chdir(directory)
     
-    industry = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6")
+    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6")
 
     #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
     wb = xlrd.open_workbook(xlsFile, on_demand=True)
@@ -207,10 +224,9 @@ def main():
     
     for x in df['Link ID']:
         row += 1
-    if industry != None:
-        compareData(df)
+    compareData(IndustryType,df)
             
-    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\Matching Template Output.xlsx")
+    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
 
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
     df.to_excel(writer,sheet_name=wsTitle, index=False)
@@ -230,12 +246,12 @@ def main():
     formatPurp = workbook.add_format({'bg_color': '#d9b3ff', 'border' : 1, 'border_color': '#c0c0c0'}) #
     formatOrange = workbook.add_format({'bg_color': '#ffaa80', 'border' : 1, 'border_color': '#c0c0c0'}) #
    
-    lastgencol = df.columns.get_loc("Match \n1 = yes, 0 = no")
-    cleannamecol = df.columns.get_loc("Cleaned Location Name")
     namescorecol = df.columns.get_loc("Name Score")
     addressscorecol = df.columns.get_loc("Address Score")
+    cleannamecol = df.columns.get_loc("Cleaned Location Name")
     addresscol =  df.columns.get_loc("Cleaned Input Address")
     robotcol =  df.columns.get_loc("Robot Suggestion")
+    lastgencol = df.columns.get_loc("Match \n1 = yes, 0 = no")
     Lat =  df.columns.get_loc("Listing Latitude")
     LastPostDate=  df.columns.get_loc("Listing Latitude")
     
@@ -295,7 +311,7 @@ def main():
     try:
         writer.save()    
         print "\nDone! Results have been wrizzled to your Excel file. 1love <3"
-        print "\nChannel Conflict Matching here:"
+        print "\nMatching Template here:"
         print FilepathMatch 
     except IOError:
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          

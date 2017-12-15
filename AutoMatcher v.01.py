@@ -64,6 +64,21 @@ def compareName(df,IndustryType):
     
     averagenamescore = []
     average=0
+    
+    #Hotel
+    if IndustryType=='2':
+        
+        HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
+        for index, row in df.iterrows(): 
+            businessRatio=0
+            businessPartalRatio=0
+            for bName in HotelBrands:
+                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
+                businessPartalRatio=max(businessPartalRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))            
+            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            average = max(np.mean([businessRatio,businessPartalRatio]),np.mean([nsr,ntpr]))
+            averagenamescore.append(average)   
     #Agent Names matching
     if IndustryType=='5':
         inputName2=''
@@ -95,7 +110,7 @@ def compareName(df,IndustryType):
             average = np.mean([nsr,ntpr])
             averagenamescore.append(average)
     df['Name Score'] = averagenamescore
-    
+   
 #This function compares the countries in the file
 def compareStateCountry(df):
     statematch = []
@@ -186,24 +201,29 @@ def suggestedmatch(df, IndustryType):
     #Hotel Type
     if IndustryType == '2':
         for index, row in df.iterrows(): 
-            #If phone matches
             if df['Phone Match']==1:
                 if row['Address Score'] < 70:
                     robotmatch.append("No Match - Address")
                 else:
-                    #Need to add excluded words to leave out
-                    robotmatch.append("Match Suggested")                                                
+                    if 60 < row['Name Score'] < 80:
+                        robotmatch.append("Check") 
+                    elif 80 <= row['Name Score']:
+                        robotmatch.append("Match Suggested") 
+                    else: 
+                        robotmatch.append("No Match - Name")                         
             else:
                 if row['Address Score'] < 70:
                     robotmatch.append("No Match - Address")
                 else:
-                    #Need to add certain hotels and excluded words
                     if 60 < row['Name Score'] < 80:
                         robotmatch.append("Check")
-                    else:
+                    elif 80 <= row['Name Score']:
                         robotmatch.append("Match Suggested")                                                                    
+                    else:
+                        robotmatch.append("No Match - Name")                         
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""
+    #All other types
     else:
         for index, row in df.iterrows(): 
             if row['Name Score'] <= 60:

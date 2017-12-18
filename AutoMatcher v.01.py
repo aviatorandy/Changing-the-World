@@ -64,21 +64,32 @@ def compareName(df,IndustryType):
     
     averagenamescore = []
     average=0
+    OtherHotelMatch = []
     
     #Hotel
     if IndustryType=='2':
-        
         HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
         for index, row in df.iterrows(): 
             businessRatio=0
             businessPartalRatio=0
-            for bName in HotelBrands:
-                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                businessPartalRatio=max(businessPartalRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))            
+            OtherHotel = 0
+            for brands in HotelBrands:
+                businessRatio=max(businessRatio,fuzz.ratio(brands, row['Cleaned Listing Name']))
+                businessPartalRatio=max(businessPartalRatio,fuzz.partial_ratio(brands, row['Cleaned Listing Name']))            
+            #Check listing name against location name
             nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+            #returns Max of Business Match or Location Name Match
+
+            #Pass a boolean of if it's part of the brand match
+            if np.mean([businessRatio,businessPartalRatio]) > np.mean([nsr,ntpr]):
+                OtherHotel = 1
+            else:
+                OtherHotel = 0
+            OtherHotelMatch.append(OtherHotel)
             average = max(np.mean([businessRatio,businessPartalRatio]),np.mean([nsr,ntpr]))
-            averagenamescore.append(average)   
+            averagenamescore.append(average)
+    #df['Name Score'] = averagenamescore
     #Agent Names matching
     if IndustryType=='5':
         inputName2=''
@@ -148,8 +159,10 @@ def userMatch(df):
 
 #This function compares the phones in the file                
 def comparePhone(df):
-    df['Phone Match'] = df.apply(lambda x: '0' if x['Location Phone'] == x['Listing Phone'] else '1', axis=1)
-
+    try:
+        df['Phone Match'] = df.apply(lambda x: '0' if x['Location Phone'] == x['Listing Phone'] else '1', axis=1)
+    except:
+        df['Phone Match'] = '0'
 #This function compares the addresses in the file                
 def compareAddress(df):
     df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
@@ -183,7 +196,7 @@ def compareZip(df):
      df['Zip Match'] = df.apply(lambda x: '0' if x['Location Zip'] == x['Listing Zip'] else '1', axis=1)
 
 #This function compares the data by calling on all the functions
-def compareData(IndustryType,df):
+def compareData(df,IndustryType):
     #compareId(df)
     comparePhone(df)
     #compareCountry(df)

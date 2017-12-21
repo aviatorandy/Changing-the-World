@@ -164,15 +164,29 @@ def comparePhone(df):
     except:
         df['Phone Match'] = '0'
 #This function compares the addresses in the file                
-def compareAddress(df):
-    df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
-    df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
-    
-    averageaddressscore = []
-    for index, row in df.iterrows(): 
-            asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-            averageaddressscore.append(asr)
-    df['Address Score'] = averageaddressscore            
+def compareAddress(df,IndustryType):
+    #International 
+    if IndustryType=='6':
+        #Combine Address 1, Address 2
+        df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress)+' '+df['Location Address 2'].apply(cleanAddress) 
+        df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)+' '+df['Listing Address 2'].apply(cleanAddress)
+        #removes extra space where necessary
+        df['Cleaned Input Address']=df['Cleaned Input Address'].apply(cleanAddress)
+        df['Cleaned Listing Address'] =df['Cleaned Listing Address'].apply(cleanAddress)
+        averageaddressscore = []
+        for index, row in df.iterrows(): 
+                #Finds best match between normal ratio, sorted ratio
+                asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+                addressSortRatio=fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+                averageaddressscore.append(max(asr,addressSortRatio))
+    else:
+        df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
+        df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
+        averageaddressscore = []
+        for index, row in df.iterrows(): 
+                asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+                averageaddressscore.append(asr)
+    df['Address Score'] = averageaddressscore
 
 #This function compares the cities in the file                
 def compareCity(df):
@@ -198,12 +212,17 @@ def compareZip(df):
 #This function compares the data by calling on all the functions
 def compareData(df,IndustryType):
     #compareId(df)
+    print 'comparing phones'
     comparePhone(df)
     #compareCountry(df)
+    print 'comparing zips'
     compareZip(df)
+    print 'comparing names'
     compareName(df,IndustryType)
-    compareAddress(df)
+    print 'comparing addresses'
+    compareAddress(df,IndustryType)
     #compareStateCountry(df)
+    print 'suggesting matches'
     suggestedmatch(df, IndustryType)
 
 
@@ -237,6 +256,30 @@ def suggestedmatch(df, IndustryType):
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""
     #All other types
+    elif IndustryType=='6':
+        for index, row in df.iterrows(): 
+            if row['Name Score'] <= 60:
+                robotmatch.append("No Match - Name")
+            else:
+                if row['Country']=='GB':
+                    #if GB zip matches, then address match
+                    if row['Address Score'] < 70 and row['Zip Match']==1:
+                        robotmatch.append("No Match - Address")
+                    else:
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check")
+                        else:
+                            robotmatch.append("Match Suggested")
+                else:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
+                    else:
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check")
+                        else:
+                            robotmatch.append("Match Suggested")                                                
+        df['Robot Suggestion'] = robotmatch
+        df['Match \n1 = yes, 0 = no'] = ""        
     else:
         for index, row in df.iterrows(): 
             if row['Name Score'] <= 60:
@@ -263,17 +306,16 @@ def main():
     IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")
 
     #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
+    print 'reading file'
     wb = xlrd.open_workbook(xlsFile, on_demand=True)
     sNames = wb.sheet_names()        
     wsTitle = "none"
     for name in sNames:
          wsTitle = name
-                  
     row = 0 
     
     df = pd.ExcelFile(xlsFile).parse(wsTitle)
-
-
+    
     #wb = xlrd.open_workbook(xlsFile, on_demand=True)
     #sNames = wb.sheet_names()        
     #for name in sNames:
@@ -281,19 +323,20 @@ def main():
                   
     row = 0 
     # Read in data set
-    lastcol = len(df.columns)
-    
-    for x in df['Link ID']:
-        row += 1
-    compareData(IndustryType,df)
+    lastcol=df.shape[1]
+    row=df.shape[0]
+
+    compareData(df,IndustryType)
             
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
 
+    print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
     df.to_excel(writer,sheet_name=wsTitle, index=False)
     workbook  = writer.book
     worksheet = writer.sheets[wsTitle]
 
+    print 'formatting file'
     headerformat = workbook.add_format({
     'bold': True,
     'text_wrap': True})
@@ -368,7 +411,8 @@ def main():
                                         'criteria': 'begins with',
                                         'value':    "Same Location",
                                         'format':   formatRed})
-        
+     
+    print 'saving'
     try:
         writer.save()    
         print "\nDone! Results have been wrizzled to your Excel file. 1love <3"

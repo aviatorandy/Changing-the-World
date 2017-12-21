@@ -14,6 +14,8 @@ import numpy as np
 import re
 import xlsxwriter
 from fuzzywuzzy import fuzz 
+import MySQLdb
+import xlwings
 #from mypackages import FunctionToolbox as tbox
 
 
@@ -65,7 +67,17 @@ def compareName(df,IndustryType):
     averagenamescore = []
     average=0
     OtherHotelMatch = []
+    inputName2=''
     
+    #Get Business Names  
+    businessNames=[]
+    inputName=raw_input("Enter Business Name:")
+    businessNames.append(cleanName(inputName))
+    while inputName2 !='0':
+        inputName2=raw_input("Enter Alternative Business Name.  If no other alternatives, enter 0:\n")
+        businessNames.append(cleanName(inputName2))
+        
+        
     #Hotel
     if IndustryType=='2':
         HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
@@ -93,14 +105,7 @@ def compareName(df,IndustryType):
     #df['Name Score'] = averagenamescore
     #Agent Names matching
     if IndustryType=='5':
-        inputName2=''
-        businessNames=[]
-        #Get Business Names      
-        inputName=raw_input("Enter Business Name:")
-        businessNames.append(cleanName(inputName))
-        while inputName2 !='0':
-            inputName2=raw_input("Enter Alternative Business Name.  If no other alternatives, enter 0:\n")
-            businessNames.append(cleanName(inputName2))
+        
         
         for index, row in df.iterrows(): 
             businessRatio=0
@@ -161,7 +166,7 @@ def userMatch(df):
 #This function compares the phones in the file                
 def comparePhone(df):
     try:
-        df['Phone Match'] = df.apply(lambda x: '0' if x['Location Phone'] == x['Listing Phone'] else '1', axis=1)
+        df['Phone Match'] = df.apply(lambda x: '0' if x['Location Phone'] != x['Listing Phone'] else '1', axis=1)
     except:
         df['Phone Match'] = '0'
 #This function compares the addresses in the file                
@@ -175,11 +180,19 @@ def compareAddress(df,IndustryType):
         df['Cleaned Input Address']=df['Cleaned Input Address'].apply(cleanAddress)
         df['Cleaned Listing Address'] =df['Cleaned Listing Address'].apply(cleanAddress)
         averageaddressscore = []
+        asrSeries=[]
+        sortSeries=[]
+        aprSeries=[]
         for index, row in df.iterrows(): 
                 #Finds best match between normal ratio, sorted ratio
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 addressSortRatio=fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-                averageaddressscore.append(max(asr,addressSortRatio))
+                apr = fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+
+                #averageaddressscore.append(max(asr,addressSortRatio))
+                asrSeries.append(asr)
+                sortSeries.append(addressSortRatio)
+                aprSeries.append(apr)
     else:
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
         df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
@@ -187,7 +200,9 @@ def compareAddress(df,IndustryType):
         for index, row in df.iterrows(): 
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 averageaddressscore.append(asr)
-    df['Address Score'] = averageaddressscore
+    df['Address Score'] = asrSeries
+    df['Sort'] = sortSeries
+    df['APR'] = aprSeries
 
 #This function compares the cities in the file                
 def compareCity(df):
@@ -204,11 +219,11 @@ def compareCity(df):
 
 #This function compares the Country in the file                        
 def compareCountry(df):
-     df['Country Match'] = df.apply(lambda x: '0' if x['Input Location Country'] == x['Duplicate Location Country'] else '1', axis=1)
+     df['Country Match'] = df.apply(lambda x: '0' if x['Input Location Country'] != x['Duplicate Location Country'] else '1', axis=1)
 
 #This function compares the Zips in the file                   
 def compareZip(df):
-     df['Zip Match'] = df.apply(lambda x: '0' if x['Location Zip'] == x['Listing Zip'] else '1', axis=1)
+     df['Zip Match'] = df.apply(lambda x: '0' if x['Location Zip'] != x['Listing Zip'] else '1', axis=1)
 
 #This function compares the data by calling on all the functions
 def compareData(df,IndustryType):
@@ -319,29 +334,36 @@ def suggestedmatch(df, IndustryType):
     
 def main():    
     
-    xlsFile = raw_input("\nPlease input your file for matching. Make sure your file is saved as an XLSX"
-                        "\n\nEnter File Path Here: ").replace('""','').lstrip("\"").rstrip("\"")
-    directory = xlsFile[:xlsFile.rindex("\\")]
-                        
-    os.chdir(directory)
     
-    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")
-
-    #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
-    print 'reading file'
-    wb = xlrd.open_workbook(xlsFile, on_demand=True)
-    sNames = wb.sheet_names()        
-    wsTitle = "none"
-    for name in sNames:
-         wsTitle = name
-    row = 0 
+    inputChoice=raw_input("Do you want to pull data from SQL or give input file? 0=SQL, 1=File \n")
     
-    df = pd.ExcelFile(xlsFile).parse(wsTitle)
+    if inputChoice=='0':
+        df=pd.DataFrame()
+        sqlPull()
+    else:
+        xlsFile = raw_input("\nPlease input your file for matching. Make sure your file is saved as an XLSX"
+                            "\n\nEnter File Path Here: ").replace('""','').lstrip("\"").rstrip("\"")
+        directory = xlsFile[:xlsFile.rindex("\\")]
+                            
+        os.chdir(directory)
+        
+        
+        #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
+        print 'reading file'
+        wb = xlrd.open_workbook(xlsFile, on_demand=True)
+        sNames = wb.sheet_names()        
+        wsTitle = "none"
+        for name in sNames:
+             wsTitle = name
+        row = 0 
+        
+        df = pd.ExcelFile(xlsFile).parse(wsTitle)
     
     #wb = xlrd.open_workbook(xlsFile, on_demand=True)
     #sNames = wb.sheet_names()        
     #for name in sNames:
     #     wsTitle = name
+    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")
                   
     row = 0 
     # Read in data set
@@ -442,5 +464,118 @@ def main():
         print FilepathMatch 
     except IOError:
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
-            
+   
+def sqlPull():
+    
+    bid = raw_input("Input Business ID: ")
+    
+    
+    #Gets IDs from GMB
+    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
+    splitQueries= inputFile.split(";")
+    SQL_QueryMatches=splitQueries[0]
+    SQL_QueryMatches=SQL_QueryMatches.splitlines()
+    
+    
+    for index, line in enumerate(SQL_QueryMatches):
+        SQL_QueryMatches[index]=line.replace('@bizid', str(bid))
+        
+    SQL_QueryMatches_3 = [x for x in SQL_QueryMatches if x.startswith("--") is False]
+    SQL_QueryMatches_4 = []
+    for x in SQL_QueryMatches_3:
+        if '--' in x:
+            SQL_QueryMatches_4.append(x[0:x.index('-')])
+        else:
+            SQL_QueryMatches_4.append(x)
+        
+        #Convert Query into string from list
+    FinalSQL_QueryMatches = ' '.join(SQL_QueryMatches_4)
+    
+    Yext_Mat_DB = MySQLdb.connect(host="127.0.0.1", port=5009, db="alpha")
+    SQL_DataMatches = pd.read_sql(FinalSQL_QueryMatches, con=Yext_Mat_DB)
+    
+
+    print     SQL_DataMatches['Listing ID']
+    ListingIDs=SQL_DataMatches['Listing ID']
+    print type(ListingIDs)
+    ListingIDs=ListingIDs.map(lambda x: x.lstrip('\''))
+    print ListingIDs
+    
+    #Gets listing IDs for Google Reviews
+    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/2. Pull Listings Data.sql")).read()
+    splitQueries= inputFile.split(";")
+    SQL_QueryListings=splitQueries[0]
+    SQL_QueryListings=SQL_QueryListings.splitlines()
+    
+    for index, line in enumerate(SQL_QueryListings):
+        if line.startswith("where wl.id in ("):
+                SQL_QueryListings[index]=line.replace('@ListingIDs', ','.join(map(str, ListingIDs)) )
+                
+                
+    SQL_QueryListings_3 = [x for x in SQL_QueryListings if x.startswith("--") is False]
+    SQL_QueryListings_4 = []
+    for x in SQL_QueryListings_3:
+        if '--' in x:
+            SQL_QueryListings_4.append(x[0:x.index('-')])
+        else:
+            SQL_QueryListings_4.append(x)
+        
+        #Convert Query into string from list
+    FinalQueryListings = ' '.join(SQL_QueryListings_4)
+    
+    Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
+    SQL_DataListings = pd.read_sql(FinalQueryListings, con=Yext_Prod_DB)    
+    
+    
+    #listingIDs=SQL_Data_713.iloc[:,0:1]
+    #listingIDs.columns=['ID']       
+    #LiDs = listingIDs["ID"].tolist()
+    #LiDs = ','.join(str(e) for e in LiDs)
+    
+    #Gets external IDs for Google Reviews listing IDs
+    
+    
+    
+    df=SQL_DataListings.merge(SQL_DataMatches,on='Listing ID',how='left')
+
+    
+    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\sql Output.xlsx")
+
+    print 'writing file'
+    writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
+    df.to_excel(writer,sheet_name='Sheet 1', index=False)
+    workbook  = writer.book
+    worksheet = writer.sheets['Sheet 1']
+#
+#SQL_Data = pandas.concat([col1, col2], ignore_index=True)
+#SQL_Data = SQL_Data.drop_duplicates()
+#
+#SQL_Data["Live Google External IDs"] = "'" + SQL_Data["Live Google External IDs"].astype(str)
+#    
+#    # SQL_Data.to_excel()
+#newSQL_Data = SQL_Data.set_index('Live Google External IDs')
+#
+#MatchingTemplateWB = xlwings.books.active
+#
+#MatchingTemplateWB.sheets['Ext ID Dedupe'].range('P1').value = newSQL_Data
+#
+#
+##print(newSQL_Data)
+#
+#Yext_Prod_DB.close()
+#
+#print "External IDs populated."
+
+         
 main()
+
+
+
+
+
+
+
+
+
+
+

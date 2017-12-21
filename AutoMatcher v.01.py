@@ -89,6 +89,7 @@ def compareName(df,IndustryType):
             OtherHotelMatch.append(OtherHotel)
             average = max(np.mean([businessRatio,businessPartalRatio]),np.mean([nsr,ntpr]))
             averagenamescore.append(average)
+        df['Other Hotel Match'] = OtherHotelMatch
     #df['Name Score'] = averagenamescore
     #Agent Names matching
     if IndustryType=='5':
@@ -119,7 +120,7 @@ def compareName(df,IndustryType):
             nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             average = np.mean([nsr,ntpr])
-            averagenamescore.append(average)
+            averagenamescore.append(average)            
     df['Name Score'] = averagenamescore
    
 #This function compares the countries in the file
@@ -233,26 +234,47 @@ def suggestedmatch(df, IndustryType):
     #Hotel Type
     if IndustryType == '2':
         for index, row in df.iterrows(): 
-            if df['Phone Match']==1:
-                if row['Address Score'] < 70:
-                    robotmatch.append("No Match - Address")
-                else:
-                    if 60 < row['Name Score'] < 80:
-                        robotmatch.append("Check") 
-                    elif 80 <= row['Name Score']:
-                        robotmatch.append("Match Suggested") 
-                    else: 
-                        robotmatch.append("No Match - Name")                         
-            else:
-                if row['Address Score'] < 70:
-                    robotmatch.append("No Match - Address")
-                else:
-                    if 60 < row['Name Score'] < 80:
-                        robotmatch.append("Check")
-                    elif 80 <= row['Name Score']:
-                        robotmatch.append("Match Suggested")                                                                    
+            #If hotel matches another brand better
+            if df['OtherHotelMatch'] == 1:                
+                if df['Phone Match']==1:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
                     else:
-                        robotmatch.append("No Match - Name")                         
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check") 
+                        elif 80 <= row['Name Score']:
+                            robotmatch.append("Match Suggested") 
+                        else: 
+                            robotmatch.append("No Match - Name")                         
+                else:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
+                    else:
+                        if 60 < row['Name Score']:
+                            robotmatch.append("No Match - Name")                         
+                        else:
+                            robotmatch.append("Check")                         
+            if df['OtherHotelMatch'] == 0:              
+                if df['Phone Match']==1:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
+                    else:
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check") 
+                        elif 80 <= row['Name Score']:
+                            robotmatch.append("Match Suggested") 
+                        else: 
+                            robotmatch.append("No Match - Name")                         
+                else:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
+                    else:
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check")                         
+                        elif 80 <= row['Name Score']:
+                            robotmatch.append("Match Suggested")                                                                    
+                        else:
+                            robotmatch.append("No Match - Name")  
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""
     #All other types

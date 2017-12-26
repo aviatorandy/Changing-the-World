@@ -7,11 +7,13 @@ Created on Wed Oct 25 14:23:11 2017
 
 from time import strftime
 import pandas as pd
+import timeit
 import sys
 import os 
 import xlrd 
 import numpy as np
 import re
+import csv
 import xlsxwriter
 from fuzzywuzzy import fuzz 
 import MySQLdb
@@ -342,7 +344,7 @@ def main():
         df=pd.DataFrame()
         sqlPull()
     else:
-        xlsFile = raw_input("\nPlease input your file for matching. Make sure your file is saved as an XLSX"
+        xlsFile = raw_input("\nPlease input your file for matching."
                             "\n\nEnter File Path Here: ").replace('""','').lstrip("\"").rstrip("\"")
         directory = xlsFile[:xlsFile.rindex("\\")]
                             
@@ -351,14 +353,18 @@ def main():
         
         #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
         print 'reading file'
-        wb = xlrd.open_workbook(xlsFile, on_demand=True)
-        sNames = wb.sheet_names()        
-        wsTitle = "none"
-        for name in sNames:
-             wsTitle = name
+        #wb = xlrd.open_workbook(xlsFile, on_demand=True)
+        #f = open(xlsFile, 'rb')
+        #reader = csv.reader(f)
+        #sNames = wb.sheet_names()        
+        #wsTitle = "none"
+        #for name in sNames:
+        #     wsTitle = name
         row = 0 
         
-        df = pd.ExcelFile(xlsFile).parse(wsTitle)
+        df = pd.read_csv(xlsFile)
+        #timeit.timeit('"-".join(str(n) for n in range(100))', number=10000)
+        #df = pd.ExcelFile(xlsFile).parse(wsTitle)
     
     #wb = xlrd.open_workbook(xlsFile, on_demand=True)
     #sNames = wb.sheet_names()        
@@ -377,9 +383,9 @@ def main():
 
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
-    df.to_excel(writer,sheet_name=wsTitle, index=False)
+    df.to_excel(writer,sheet_name="Result", index=False)
     workbook  = writer.book
-    worksheet = writer.sheets[wsTitle]
+    worksheet = writer.sheets["Result"]
 
     print 'formatting file'
     headerformat = workbook.add_format({

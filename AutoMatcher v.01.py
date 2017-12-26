@@ -18,10 +18,8 @@ import MySQLdb
 import xlwings
 #from mypackages import FunctionToolbox as tbox
 
-
 #This function cleans the names 
-def cleanName(name):
-    
+def cleanName(name):    
     try:
         name = name.strip().lower()
         name = name.replace("&"," and ").replace("professional corporation","")
@@ -66,20 +64,19 @@ def compareName(df,IndustryType):
     
     averagenamescore = []
     average=0
-    OtherHotelMatch = []
-    inputName2=''
+#    inputName2=''
     
     #Get Business Names  
-    businessNames=[]
-    inputName=raw_input("Enter Business Name:")
-    businessNames.append(cleanName(inputName))
-    while inputName2 !='0':
-        inputName2=raw_input("Enter Alternative Business Name.  If no other alternatives, enter 0:\n")
-        businessNames.append(cleanName(inputName2))
-        
-        
+#    businessNames=[]
+ #   inputName=raw_input("Enter Business Name:")
+  #  businessNames.append(cleanName(inputName))
+   # while inputName2 !='0':
+    #    inputName2=raw_input("Enter Alternative Business Name.  If no other alternatives, enter 0:\n")
+     #   businessNames.append(cleanName(inputName2))
+     
     #Hotel
-    if IndustryType=='2':
+    if IndustryType=="2":
+        OtherHotelMatch = []
         HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
         for index, row in df.iterrows(): 
             businessRatio=0
@@ -102,11 +99,13 @@ def compareName(df,IndustryType):
             average = max(np.mean([businessRatio,businessPartalRatio]),np.mean([nsr,ntpr]))
             averagenamescore.append(average)
         df['Other Hotel Match'] = OtherHotelMatch
+        print len(OtherHotelMatch)
+        df['Name Score'] = averagenamescore
+        print len(averagenamescore)
+        return
     #df['Name Score'] = averagenamescore
     #Agent Names matching
-    if IndustryType=='5':
-        
-        
+    if IndustryType=="5":
         for index, row in df.iterrows(): 
             businessRatio=0
             businessPartalRatio=0
@@ -120,14 +119,16 @@ def compareName(df,IndustryType):
             #returns Max of Business Match or Location Name Match
             average = max(np.mean([businessRatio,businessPartalRatio]),np.mean([nsr,ntpr]))
             averagenamescore.append(average)
+        df['Name Score'] = averagenamescore
+        return
     else:       
         for index, row in df.iterrows(): 
             nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             average = np.mean([nsr,ntpr])
             averagenamescore.append(average)            
-    df['Name Score'] = averagenamescore
-   
+        df['Name Score'] = averagenamescore
+        return   
 #This function compares the countries in the file
 def compareStateCountry(df):
     statematch = []
@@ -169,6 +170,7 @@ def comparePhone(df):
         df['Phone Match'] = df.apply(lambda x: '0' if x['Location Phone'] != x['Listing Phone'] else '1', axis=1)
     except:
         df['Phone Match'] = '0'
+        
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
     #International 
@@ -200,9 +202,10 @@ def compareAddress(df,IndustryType):
         for index, row in df.iterrows(): 
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 averageaddressscore.append(asr)
-    df['Address Score'] = asrSeries
-    df['Sort'] = sortSeries
-    df['APR'] = aprSeries
+    df['Address Score'] = averageaddressscore
+    #df['Address Score'] = asrSeries
+    #df['Sort'] = sortSeries
+    #df['APR'] = aprSeries
 
 #This function compares the cities in the file                
 def compareCity(df):
@@ -241,7 +244,6 @@ def compareData(df,IndustryType):
     print 'suggesting matches'
     suggestedmatch(df, IndustryType)
 
-
 #This function provides a suggested match based on certain name/address thresholds
 def suggestedmatch(df, IndustryType):  
     robotmatch = []
@@ -250,8 +252,8 @@ def suggestedmatch(df, IndustryType):
     if IndustryType == '2':
         for index, row in df.iterrows(): 
             #If hotel matches another brand better
-            if df['OtherHotelMatch'] == 1:                
-                if df['Phone Match']==1:
+            if row['Other Hotel Match'] == "1":                
+                if row['Phone Match']==1:
                     if row['Address Score'] < 70:
                         robotmatch.append("No Match - Address")
                     else:
@@ -269,8 +271,8 @@ def suggestedmatch(df, IndustryType):
                             robotmatch.append("No Match - Name")                         
                         else:
                             robotmatch.append("Check")                         
-            if df['OtherHotelMatch'] == 0:              
-                if df['Phone Match']==1:
+            else:              
+                if row['Phone Match']==1:
                     if row['Address Score'] < 70:
                         robotmatch.append("No Match - Address")
                     else:
@@ -334,7 +336,6 @@ def suggestedmatch(df, IndustryType):
     
 def main():    
     
-    
     inputChoice=raw_input("Do you want to pull data from SQL or give input file? 0=SQL, 1=File \n")
     
     if inputChoice=='0':
@@ -364,7 +365,7 @@ def main():
     #for name in sNames:
     #     wsTitle = name
     IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")
-                  
+    print type(IndustryType)                  
     row = 0 
     # Read in data set
     lastcol=df.shape[1]
@@ -565,17 +566,5 @@ def sqlPull():
 #Yext_Prod_DB.close()
 #
 #print "External IDs populated."
-
          
 main()
-
-
-
-
-
-
-
-
-
-
-

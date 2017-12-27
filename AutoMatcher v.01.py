@@ -79,7 +79,10 @@ def compareName(df,IndustryType):
     #Hotel
     if IndustryType=="2":
         OtherHotelMatch = []
-        HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
+        HotelBrands = ["test"]
+        HotelBrands=["Grill", "bar", "starbucks", "electric", "wedding", "gym", "pool", "restaurant", "bistro"]     
+
+        #HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
         for index, row in df.iterrows(): 
             businessRatio=0
             businessPartalRatio=0
@@ -323,16 +326,26 @@ def suggestedmatch(df, IndustryType):
         df['Match \n1 = yes, 0 = no'] = ""        
     else:
         for index, row in df.iterrows(): 
-            if row['Name Score'] <= 60:
-                robotmatch.append("No Match - Name")
-            else:
-                if row['Address Score'] < 70:
-                    robotmatch.append("No Match - Address")
-                else:
-                    if 60 < row['Name Score'] < 80:
-                        robotmatch.append("Check")
+              if row['Phone Match']==1:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
                     else:
-                        robotmatch.append("Match Suggested")                                                
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check") 
+                        elif 80 <= row['Name Score']:
+                            robotmatch.append("Match Suggested") 
+                        else: 
+                            robotmatch.append("No Match - Name")                         
+              else:
+                    if row['Address Score'] < 70:
+                        robotmatch.append("No Match - Address")
+                    else:
+                        if 60 < row['Name Score'] < 80:
+                            robotmatch.append("Check")                         
+                        elif 80 <= row['Name Score']:
+                            robotmatch.append("Match Suggested")                                                                    
+                        else:
+                            robotmatch.append("No Match - Name")                                              
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""
     

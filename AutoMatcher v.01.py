@@ -19,6 +19,7 @@ from fuzzywuzzy import fuzz
 import MySQLdb
 import xlwings
 from math import radians, cos, sin, asin, sqrt
+
 #from mypackages import FunctionToolbox as tbox
 
 #This function cleans the names 
@@ -200,11 +201,25 @@ def userMatch(df):
 
 #This function compares the phones in the file                
 def comparePhone(df):
+    
+    
     try:
-        df['Phone Match'] = df.apply(lambda x: '0' if x['Location Phone'] != x['Listing Phone'] else '1', axis=1)
+        df['Phone Match'] = df.apply(lambda x: '1' if x['Location Phone'] == x['Listing Phone'] else ('1' if x['Location Local Phone']==x['Listing Phone'] else '0'), axis=1)
     except:
-        df['Phone Match'] = '0'
-        
+        df['Phone Match'] = 'x'
+    
+#
+#    for index, row in df.iterrows(): 
+#        try:
+#            if row['Location Phone'] == ['Listing Phone']:
+#                row['Phone Match']='1'
+#            elif row['Local Phone']==['Listing Phone']:
+#                row['Phone Match']='1'
+#            else:
+#                row ['Phone Match']='0'
+#        except:
+#            row['Phone Match'] = '0'  
+
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
     #International 
@@ -308,8 +323,18 @@ def compareData(df,IndustryType,bid):
 #This function provides a suggested match based on certain name/address thresholds
 def suggestedmatch(df, IndustryType):  
     robotmatch = []
-
-
+    
+    df['Address Match'] = df.apply(lambda x: True if x['Address Score'] > 70 else False, axis=1)
+    df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] > 80 else (2 if 80 > x['Name Score'] > 60 else 0), axis=1)
+    df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<200 else False, axis=1)
+    
+    matchText='Match Suggested'
+    noName='No Match - Name'
+    noAddress='No Match - Address'
+    check='Check Name'
+    
+    
+    
     
 
     #Hotel Type
@@ -421,43 +446,50 @@ def suggestedmatch(df, IndustryType):
         df['Match \n1 = yes, 0 = no'] = ""        
     #All other industries
     else:
-        for index, row in df.iterrows(): 
-            if row['Phone Match']=='1':
-                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                    robotmatch.append("Check") 
-                elif 80 <= row['Name Score']:
-                    robotmatch.append("Match Suggested") 
-                else: 
-                    if row['No Name']=='URL for name':
-                        robotmatch.append('Check - URL name')
-                    else:
-                        robotmatch.append("No Match - Name")                         
-            elif row['Address Score'] < 70:
-                if row['Distance (M)']<200:
-                    if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                        robotmatch.append("Check") 
-                    elif 80 <= row['Name Score']:
-                        robotmatch.append("Match Suggested - Geocode") 
-                    else: 
-                        if row['No Name']=='URL for name':
-                            robotmatch.append('Check - URL name')
-                        else:
-                            robotmatch.append("No Match - Name")
-                else:
-                    robotmatch.append("No Match - Address")
-            else:    
-                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                    robotmatch.append("Check") 
-                elif 80 <= row['Name Score']:
-                    robotmatch.append("Match Suggested") 
-                else: 
-                    if row['No Name']=='URL for name':
-                        robotmatch.append('Check - URL name')
-                    else:
-                        robotmatch.append("No Match - Name")                         
         
-        df['Robot Suggestion'] = robotmatch
-        df['Match \n1 = yes, 0 = no'] = ""
+         
+        
+        df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and (x['Phone Match']=='1' or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
+        df['Match \n1 = yes, 0 = no'] = "" 
+        
+        #
+#        for index, row in df.iterrows(): 
+#            if row['Phone Match']=='1':
+#                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
+#                    robotmatch.append("Check") 
+#                elif 80 <= row['Name Score']:
+#                    robotmatch.append("Match Suggested") 
+#                else: 
+#                    if row['No Name']=='URL for name':
+#                        robotmatch.append('Check - URL name')
+#                    else:
+#                        robotmatch.append("No Match - Name")                         
+#            elif row['Address Score'] < 70:
+#                if row['Distance (M)']<200:
+#                    if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
+#                        robotmatch.append("Check") 
+#                    elif 80 <= row['Name Score']:
+#                        robotmatch.append("Match Suggested - Geocode") 
+#                    else: 
+#                        if row['No Name']=='URL for name':
+#                            robotmatch.append('Check - URL name')
+#                        else:
+#                            robotmatch.append("No Match - Name")
+#                else:
+#                    robotmatch.append("No Match - Address")
+#            else:    
+#                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
+#                    robotmatch.append("Check") 
+#                elif 80 <= row['Name Score']:
+#                    robotmatch.append("Match Suggested") 
+#                else: 
+#                    if row['No Name']=='URL for name':
+#                        robotmatch.append('Check - URL name')
+#                    else:
+#                        robotmatch.append("No Match - Name")                         
+#        
+#        df['Robot Suggestion'] = robotmatch
+#        df['Match \n1 = yes, 0 = no'] = ""
     
 def main():    
     

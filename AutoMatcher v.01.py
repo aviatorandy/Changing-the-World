@@ -547,6 +547,12 @@ def main():
     #     wsTitle = name
     row = 0 
     # Read in data set
+    
+    #Gets Providers First and Last name. Saves to column 'Provider Name'
+    DoctorNameDF=getProviderName(df)
+    df=df.merge(DoctorNameDF,on='Location ID', how='left')
+
+
     lastcol=df.shape[1]
     row=df.shape[0]
 
@@ -758,7 +764,42 @@ def getBusIDfromLoc(locationID):
     
     return busID    
 
-    #Finds Listing names that could be good to match to based on prevalence    
+     
+    
+   # 
+def getProviderName(df):
+    
+    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Doctor Name.sql")).read()
+    splitQueries= inputFile.split(";")
+    SQL_DoctorNameQuery=splitQueries[0]
+    SQL_DoctorNameQuery=SQL_DoctorNameQuery.splitlines()
+    
+    
+    locationIDs=df['Location ID']
+    
+    for index, line in enumerate(SQL_DoctorNameQuery):
+        SQL_DoctorNameQuery[index]=line.replace('@locationIDs', ','.join(map(str, locationIDs)))
+        
+    SQL_DoctorNameQuery_3 = [x for x in SQL_DoctorNameQuery if x.startswith("--") is False]
+    SQL_DoctorNameQuery_4 = []
+    for x in SQL_DoctorNameQuery_3:
+        if '--' in x:
+            SQL_DoctorNameQuery_4.append(x[0:x.index('-')])
+        else:
+            SQL_DoctorNameQuery_4.append(x)
+        
+        #Convert Query into string from list
+    FinalSQL_DoctorNameQuery = ' '.join(SQL_DoctorNameQuery_4)
+    
+    Yext_OPS_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
+    DoctorNamesIDs = pd.read_sql(FinalSQL_DoctorNameQuery, con=Yext_OPS_DB)
+
+    print DoctorNamesIDs
+    return DoctorNamesIDs    
+    
+    
+ #Finds Listing names that could be good to match to based on prevalence    
+      
 def matchingQuestions(df,numLinks):
     df=df[df['Robot Suggestion'].isin(['No Match - Name','Check'])]
     pivot=pd.pivot_table(df,values='Link ID',index='Listing Name',aggfunc='count')

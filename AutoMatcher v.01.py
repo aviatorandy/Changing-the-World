@@ -22,6 +22,7 @@ from math import radians, cos, sin, asin, sqrt
 from Tkinter import *   
 import tkFileDialog
 import Tkinter
+import subprocess
 
 #from mypackages import FunctionToolbox as tbox
 
@@ -90,19 +91,26 @@ def compareName(df,IndustryType,bid):
     
     #Populates businessNames with Account Name and alt Name Policies
     inputName=''
+    global businessNames
     businessNames=[]
     businessNames.append(cleanName(getBusName(bid)))
     altNames=getAltName(bid)
     for name in altNames:
         businessNames.append(cleanName(name))
 
-    print '\nCurrent Business Names:'
+    global namesComplete
+ 
     print businessNames
-    #Get additional good match names for business
-    while inputName !='0':
-        inputName=raw_input("Enter additional business name, or 0 to continue:\n")
-        businessNames.append(cleanName(inputName))
-    
+    app.namesWindow(businessNames)
+    app.wait_window(app.nameW)
+    print businessNames
+#    print '\nCurrent Business Names:'
+#    print businessNames
+#    #Get additional good match names for business
+#    while inputName !='0':
+#        inputName=raw_input("Enter additional business name, or 0 to continue:\n")
+#        businessNames.append(cleanName(inputName))
+#    
     #Hotel
     if IndustryType=="2":
         OtherHotelMatch = []
@@ -515,9 +523,15 @@ def getInput():
     else:
         xlsFile = raw_input("\nPlease input your file for matching."
                             "\n\nEnter File Path Here: ").replace('""','').lstrip("\"").rstrip("\"")
-        directory = xlsFile[:xlsFile.rindex("\\")]
+        df,bid=readFile(xlsFile)
+        runProg(df,IndustryType,bid)
+        
+        
+def readFile(xlsFile):
+        
+        #directory = xlsFile[:xlsFile.rindex("\\")]
                             
-        os.chdir(directory)
+        #os.chdir(directory)
         
         
         #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
@@ -546,6 +560,7 @@ def getInput():
         #Finds Business ID
         bid=getBusIDfromLoc(df.loc[0,'Location ID'])
         
+        return df,bid
         
         #timeit.timeit('"-".join(str(n) for n in range(100))', number=10000)
         #df = pd.ExcelFile(xlsFile).parse(wsTitle)
@@ -558,7 +573,6 @@ def getInput():
     
 def runProg(df,IndustryType,bid):    
     print 'runprog'
-    print df
     row = 0 
     # Read in data set
    
@@ -658,14 +672,18 @@ def runProg(df,IndustryType,bid):
                                         'criteria': 'begins with',
                                         'value':    "Same Location",
                                         'format':   formatRed})
-     
+    
     print 'saving'
     try:
-        writer.save()    
+        writer.save()
+        app.AllDone("\nDone! Results have been wrizzled to your Excel file. 1love <3"+"\nMatching Template here:\n"+ FilepathMatch )
         print "\nDone! Results have been wrizzled to your Excel file. 1love <3"
         print "\nMatching Template here:"
-        print FilepathMatch 
+        print FilepathMatch
+        
+        subprocess.Popen(r'explorer /select,'+os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx"))
     except IOError:
+        app.AllDone("\nIOError: Make sure your Excel file is closed before re-running the script.")
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
 
 #Pulls all location and listing match data
@@ -760,7 +778,6 @@ def getBusIDfromLoc(locationID):
    #Pulls First Name, and Last Name for Healthcare Professionals 
 def getProviderName(df):
     print 'getting doctor names'
-    print df
     SQL_DoctorNameQuery = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Doctor Name.sql")).read()    
     locationIDs=df['Location ID']
             
@@ -880,39 +897,63 @@ class MatchingInput(Tkinter.Frame):
         global master1
         master1=master
  def detailsWindow(self):
+        
         if self.dataInput.get()==1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
+            print fname
+            df,bid=readFile(fname)
+            self.master.withdraw()
+            runProg(df,self.IndustryType.get(),bid)
         elif self.dataInput.get()==2:
+            self.detailsW=Tkinter.Toplevel(self)
             vcmd = master1.register(self.validate)
-            self.busIDLabel=Label(master1,text="Enter Business ID").grid(row=6,column=0,sticky=W)
-            self.folderIDLabel=Label(master1,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
-            self.labelIDLabel=Label(master1,text="Enter Label ID").grid(row=8,column=0,sticky=W)
+            self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
+            self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
+            self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)
             
             self.bizID=StringVar()
-            busID=Entry(master1,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.bizID).grid(row=6,column=1,sticky=W)
-            self.folderID=Entry(master1,validate="key", validatecommand=(vcmd, '%P')).grid(row=7,column=1,sticky=W)
-            self.labelID=Entry(master1,validate="key", validatecommand=(vcmd, '%P')).grid(row=8,column=1,sticky=W)
+            busID=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.bizID).grid(row=6,column=1,sticky=W)
+            self.folderID=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P')).grid(row=7,column=1,sticky=W)
+            self.labelID=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P')).grid(row=8,column=1,sticky=W)
         
-            self.pullButton = Button(master1, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
+            self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
             
             
  def pullSQLRun(self):
-        print self.bizID.get()
+        self.master.withdraw()
+        self.detailsW.destroy()
         df=sqlPull(self.bizID.get())
         runProg(df,self.IndustryType.get(),self.bizID.get())
-            
-def namesWindow(self,busNames):
-        self.CurrentNameLabel=Label(master1,text="Current Business Names: "+ busNames).grid(row=10,column=0)
-        self.AddName=Entry(master1,text="Enter additional Business Name:").grid(row=11,column=0)
-        self.AddMore=Button(master1,text="Add more",command=lambda:[busNames.append(cleanName(AddName)),self.AddName.clear_text]).grid(row=12,column=1)
-        self.Done=Button(master1,text="Done!",command=self.Done).grid(row=12,column=2)
-
-def AddMore(self,busNames,AddName):
-        busNames.append(cleanName(AddName))
-        self.AddName.clear_text
+ def AddMore(self):
+        global businessNames
+        for i in self.NewName.get().split(","):
+            businessNames.append(cleanName(i)) 
+        global namesComplete
+        namesComplete = 1
+       # businessNames.append(cleanName(NewName))
+        #AddNameBox.delete(0, END)
+        self.nameW.destroy()
+       # self.namesWindow(businessNames)
  
-def Done(self)        
-def validate(self, new_text):
+ def Done(self): 
+        self.nameW.destroy             
+ def namesWindow(self,busNames):
+        global businessNames
+        global namesComplete
+        self.complete=BooleanVar()
+        self.complete=False
+        self.nameW=Toplevel()
+        self.nameW.minsize(width=300, height=200)
+        self.NewName=StringVar()
+        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
+        self.AddMoreLabel=Label(self.nameW,text="Enter comma separated list of additional business names:").grid(row=11,column=0)
+        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0)
+        self.AddMore=Button(self.nameW,text="Add names",command=self.AddMore).grid(row=13,column=0, sticky=W)
+        self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.nameW.destroy()]).grid(row=13,column=1, sticky=W)  
+         
+
+        
+ def validate(self, new_text):
         if not new_text: # the field is being cleared
             self.entered_number = 0
             return True
@@ -922,6 +963,10 @@ def validate(self, new_text):
             return True
         except ValueError:
             return False
+ def AllDone(self,msg):
+        self.completeWindow=Toplevel()  
+        self.completeMsg=Label(self.completeWindow,text=msg).grid(row=1,column=1)
+        self.DoneButton=Button(self.completeWindow,text="Exit", command= lambda:[root.destroy()]).grid(row=2,column=1)
 
 global df
 df=pd.DataFrame        

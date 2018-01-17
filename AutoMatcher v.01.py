@@ -760,7 +760,7 @@ def runProg(df,IndustryType,bid):
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
 
 #Pulls all location and listing match data
-def sqlPull(bid):
+def sqlPull(bid,folderID,labelID):
     print 'pulling data'
     #Pull Location info and Listing IDs
     SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
@@ -769,7 +769,23 @@ def sqlPull(bid):
     
     for index, line in enumerate(SQL_QueryMatches):
         SQL_QueryMatches[index]=line.replace('@bizid', str(bid))
-        
+    if folderID !=0:
+        for index, line in enumerate(SQL_QueryMatches):
+            SQL_QueryMatches[index]=line.replace('--left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id', 'left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id')
+        for index, line in enumerate(SQL_QueryMatches):  
+            SQL_QueryMatches[index]=line.replace('--and l.treeNode_id=@folderid', 'and l.treeNode_id=@folderid')
+        for index, line in enumerate(SQL_QueryMatches): 
+            SQL_QueryMatches[index]=line.replace('@folderid', str(folderID))
+            
+    if labelID !=0:
+        for index, line in enumerate(SQL_QueryMatches):
+            SQL_QueryMatches[index]=line.replace('--left join alpha.location_labels ll on ll.location_id=l.id', 'left join alpha.location_labels ll on ll.location_id=l.id')
+        for index, line in enumerate(SQL_QueryMatches):   
+            SQL_QueryMatches[index]=line.replace('--and ll.label_id=@labelid', 'and ll.label_id=@labelid')
+        for index, line in enumerate(SQL_QueryMatches):   
+            SQL_QueryMatches[index]=line.replace('@labelid', str(labelID))
+    
+            
     SQL_QueryMatches = [x for x in SQL_QueryMatches if x.startswith("--") is False]
     FinalSQL_QueryMatches = []
     for x in SQL_QueryMatches:
@@ -973,7 +989,6 @@ class MatchingInput(Tkinter.Frame):
         
         if self.dataInput.get()==1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
-            print fname
             df,bid=readFile(fname)
             self.master.withdraw()
             runProg(df,str(self.IndustryType.get()),bid)
@@ -985,18 +1000,32 @@ class MatchingInput(Tkinter.Frame):
             self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)
             
             self.bizID=StringVar()
-            busID=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.bizID).grid(row=6,column=1,sticky=W)
-            self.folderID=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P')).grid(row=7,column=1,sticky=W)
-            self.labelID=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P')).grid(row=8,column=1,sticky=W)
+            self.folderID=StringVar()
+            self.labelID=StringVar()
+            self.busIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.bizID).grid(row=6,column=1,sticky=W)
+            self.folderIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.folderID).grid(row=7,column=1,sticky=W)
+            self.labelIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.labelID).grid(row=8,column=1,sticky=W)
         
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
             
             
  def pullSQLRun(self):
-        self.master.withdraw()
-        self.detailsW.destroy()
-        df=sqlPull(self.bizID.get())
-        runProg(df,self.IndustryType.get(),self.bizID.get())
+        
+        
+        if self.bizID.get():
+            self.master.withdraw()
+            self.detailsW.destroy()
+            if  self.folderID.get():
+                folderID=self.folderID.get()
+            else: 
+                folderID=0
+            if self.labelID.get():
+                labelID=self.labelID.get()
+            else:
+                labelID=0
+            print self.bizID.get(),folderID,labelID
+            df=sqlPull(self.bizID.get(),folderID,labelID)
+            runProg(df,self.IndustryType.get(),self.bizID.get())
  def AddMore(self):
         global businessNames
         for i in self.NewName.get().split(","):

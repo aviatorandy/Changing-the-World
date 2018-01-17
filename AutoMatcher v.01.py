@@ -19,6 +19,9 @@ from fuzzywuzzy import fuzz
 import MySQLdb
 import xlwings
 from math import radians, cos, sin, asin, sqrt
+from Tkinter import *   
+import tkFileDialog
+import Tkinter
 
 #from mypackages import FunctionToolbox as tbox
 
@@ -79,6 +82,8 @@ def compareName(df,IndustryType,bid):
         if cleanName(row['Location City']) in row['Cleaned Listing Name']:
             df.loc[index,'Cleaned Listing Name']=row['Cleaned Listing Name'].replace(cleanName(row['Location City']),'')
             
+    df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
+    df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     
     averagenamescore = []
     average=0
@@ -204,7 +209,7 @@ def comparePhone(df):
     
     
     try:
-        df['Phone Match'] = df.apply(lambda x: '1' if x['Location Phone'] == x['Listing Phone'] else ('1' if x['Location Local Phone']==x['Listing Phone'] else '0'), axis=1)
+        df['Phone Match'] = df.apply(lambda x: True if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone']!="") else (True if (x['Location Local Phone'] == x['Listing Phone']and x['Location Local Phone']!="") else False), axis=1)
     except:
         df['Phone Match'] = 'x'
     
@@ -275,7 +280,7 @@ def compareCountry(df):
 
 #This function compares the Zips in the file                   
 def compareZip(df):
-     df['Zip Match'] = df.apply(lambda x: '0' if x['Location Zip'] != x['Listing Zip'] else '1', axis=1)
+     df['Zip Match'] = df.apply(lambda x: True if x['Location Zip'] == x['Listing Zip'] else False, axis=1)
      
 def calculateDistance(row):
     try: locationLat = float(row['Location Latitude'])
@@ -324,9 +329,9 @@ def compareData(df,IndustryType,bid):
 def suggestedmatch(df, IndustryType):  
     robotmatch = []
     
-    df['Address Match'] = df.apply(lambda x: True if x['Address Score'] > 70 else False, axis=1)
-    df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] > 80 else (2 if 80 > x['Name Score'] > 60 else 0), axis=1)
-    df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<200 else False, axis=1)
+    df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
+    df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] > 60 else 0), axis=1)
+    df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<=200 else False, axis=1)
     
     matchText='Match Suggested'
     noName='No Match - Name'
@@ -342,7 +347,7 @@ def suggestedmatch(df, IndustryType):
         for index, row in df.iterrows(): 
             #If hotel matches another brand better
             if row['Other Hotel Match'] == "1":                
-                if row['Phone Match']==1:
+                if row['Phone Match']:
                     if row['Address Score'] < 70:
                         robotmatch.append("No Match - Address")
                     else:
@@ -361,7 +366,7 @@ def suggestedmatch(df, IndustryType):
                         else:
                             robotmatch.append("Check")                         
             else:              
-                if row['Phone Match']==1:
+                if row['Phone Match']:
                     if row['Address Score'] < 70:
                         robotmatch.append("No Match - Address")
                     else:
@@ -382,14 +387,14 @@ def suggestedmatch(df, IndustryType):
                         else:
                             robotmatch.append("No Match - Name")  
         df['Robot Suggestion'] = robotmatch
-        df['Match \n1 = yes, 0 = no'] = ""
+
     #International
     elif IndustryType=='6':
         for index, row in df.iterrows(): 
             if row['Name Score'] <= 60 and row['No Name']!='URL for name':
                 robotmatch.append("No Match - Name")
             else:
-                if row['Phone Match']=='1':
+                if row['Phone Match']:
                     if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
                         robotmatch.append("Check")
                     elif row['Name Score']<60:
@@ -398,7 +403,7 @@ def suggestedmatch(df, IndustryType):
                         robotmatch.append("Match Suggested") 
                 elif row['Country']=='GB':
                     #if GB zip matches, then address match
-                    if row['Address Score'] < 70 and row['Zip Match']=='0':
+                    if row['Address Score'] < 70 and not row['Zip Match']:
                         if row['Distance (M)']<200:
                             if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
                                 robotmatch.append("Check")
@@ -408,7 +413,7 @@ def suggestedmatch(df, IndustryType):
                                 robotmatch.append("Match Suggested - Geocode")
                         else:
                             robotmatch.append("No Match - Address")
-                    elif row['Zip Match']=='1':
+                    elif row['Zip Match']:
                         if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
                             robotmatch.append("Check")
                         elif row['Name Score']<60:
@@ -442,15 +447,14 @@ def suggestedmatch(df, IndustryType):
                             robotmatch.append('Check - URL Name')
                         else:
                             robotmatch.append("Match Suggested")                                                
-        df['Robot Suggestion'] = robotmatch
-        df['Match \n1 = yes, 0 = no'] = ""        
+        df['Robot Suggestion'] = robotmatch    
     #All other industries
     else:
         
          
         
-        df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and (x['Phone Match']=='1' or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
-        df['Match \n1 = yes, 0 = no'] = "" 
+        df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
+
         
         #
 #        for index, row in df.iterrows(): 
@@ -490,9 +494,14 @@ def suggestedmatch(df, IndustryType):
 #        
 #        df['Robot Suggestion'] = robotmatch
 #        df['Match \n1 = yes, 0 = no'] = ""
+
+
+    df['Match \n1 = yes, 0 = no'] = ""
+def main():
+    getInput()    
+    runProg()
     
-def main():    
-    
+def getInput():    
     #Gets all inputs
     IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")                
     inputChoice=raw_input("Do you want to pull data from SQL or give input file? 0=SQL, 1=File \n")
@@ -500,7 +509,7 @@ def main():
     
     if inputChoice=='0':
         bid = raw_input("Input Business ID: ")
-        print 'pulling data'
+        
         df=pd.DataFrame()
         df=sqlPull(bid)
     else:
@@ -545,9 +554,14 @@ def main():
     #sNames = wb.sheet_names()        
     #for name in sNames:
     #     wsTitle = name
+    
+    
+def runProg(df,IndustryType,bid):    
+    print 'runprog'
+    print df
     row = 0 
     # Read in data set
-    
+   
     #Gets Providers First and Last name. Saves to column 'Provider Name'
     DoctorNameDF=getProviderName(df)
     df=df.merge(DoctorNameDF,on='Location ID', how='left')
@@ -656,27 +670,25 @@ def main():
 
 #Pulls all location and listing match data
 def sqlPull(bid):
-    
+    print 'pulling data'
     #Pull Location info and Listing IDs
-    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
-    splitQueries= inputFile.split(";")
-    SQL_QueryMatches=splitQueries[0]
+    SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
     SQL_QueryMatches=SQL_QueryMatches.splitlines()
     
     
     for index, line in enumerate(SQL_QueryMatches):
         SQL_QueryMatches[index]=line.replace('@bizid', str(bid))
         
-    SQL_QueryMatches_3 = [x for x in SQL_QueryMatches if x.startswith("--") is False]
-    SQL_QueryMatches_4 = []
-    for x in SQL_QueryMatches_3:
+    SQL_QueryMatches = [x for x in SQL_QueryMatches if x.startswith("--") is False]
+    FinalSQL_QueryMatches = []
+    for x in SQL_QueryMatches:
         if '--' in x:
-            SQL_QueryMatches_4.append(x[0:x.index('-')])
+            FinalSQL_QueryMatches.append(x[0:x.index('-')])
         else:
-            SQL_QueryMatches_4.append(x)
+            FinalSQL_QueryMatches.append(x)
         
         #Convert Query into string from list
-    FinalSQL_QueryMatches = ' '.join(SQL_QueryMatches_4)
+    FinalSQL_QueryMatches = ' '.join(FinalSQL_QueryMatches)
     
     Yext_Mat_DB = MySQLdb.connect(host="127.0.0.1", port=5009, db="alpha")
     SQL_DataMatches = pd.read_sql(FinalSQL_QueryMatches, con=Yext_Mat_DB)
@@ -686,26 +698,23 @@ def sqlPull(bid):
     ListingIDs=ListingIDs.map(lambda x: x.lstrip('\''))
     
     #Gets Listing Data from Listing IDs
-    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/2. Pull Listings Data.sql")).read()
-    splitQueries= inputFile.split(";")
-    SQL_QueryListings=splitQueries[0]
+    SQL_QueryListings = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/2. Pull Listings Data.sql")).read()
     SQL_QueryListings=SQL_QueryListings.splitlines()
     
     for index, line in enumerate(SQL_QueryListings):
-        if line.startswith("where wl.id in ("):
-                SQL_QueryListings[index]=line.replace('@ListingIDs', ','.join(map(str, ListingIDs)) )
+        SQL_QueryListings[index]=line.replace('@ListingIDs', ','.join(map(str, ListingIDs)) )
                 
                 
-    SQL_QueryListings_3 = [x for x in SQL_QueryListings if x.startswith("--") is False]
-    SQL_QueryListings_4 = []
-    for x in SQL_QueryListings_3:
+    SQL_QueryListings = [x for x in SQL_QueryListings if x.startswith("--") is False]
+    FinalQueryListings = []
+    for x in SQL_QueryListings:
         if '--' in x:
-            SQL_QueryListings_4.append(x[0:x.index('-')])
+            FinalQueryListings.append(x[0:x.index('-')])
         else:
-            SQL_QueryListings_4.append(x)
+            FinalQueryListings.append(x)
         
         #Convert Query into string from list
-    FinalQueryListings = ' '.join(SQL_QueryListings_4)
+    FinalQueryListings = ' '.join(FinalQueryListings)
     
     Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
     SQL_DataListings = pd.read_sql(FinalQueryListings, con=Yext_Prod_DB)    
@@ -717,28 +726,12 @@ def sqlPull(bid):
 
 #Gets Alt Name policies at business level
 def getAltName(bid):    
-    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Alt Name policies.sql")).read()
-    splitQueries= inputFile.split(";")
-    SQL_AltNameQuery=splitQueries[0]
-    SQL_AltNameQuery=SQL_AltNameQuery.splitlines()
-    
-    
-    for index, line in enumerate(SQL_AltNameQuery):
-        SQL_AltNameQuery[index]=line.replace('@bizid', str(bid))
-        
-    SQL_AltNameQuery_3 = [x for x in SQL_AltNameQuery if x.startswith("--") is False]
-    SQL_AltNameQuery_4 = []
-    for x in SQL_AltNameQuery_3:
-        if '--' in x:
-            SQL_AltNameQuery_4.append(x[0:x.index('-')])
-        else:
-            SQL_AltNameQuery_4.append(x)
-        
-        #Convert Query into string from list
-    FinalSQL_AltNameQuery = ' '.join(SQL_AltNameQuery_4)
+    SQL_AltNameQuery = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Alt Name policies.sql")).read()
+
+    SQL_AltNameQuery=SQL_AltNameQuery.replace('@bizid', str(bid))
     
     Yext_SMS_DB = MySQLdb.connect(host="127.0.0.1", port=5007, db="alpha")
-    AltNames = pd.read_sql(FinalSQL_AltNameQuery, con=Yext_SMS_DB)['policyString']
+    AltNames = pd.read_sql(SQL_AltNameQuery, con=Yext_SMS_DB)['policyString']
 
     BusNames=[]
     for name in AltNames:
@@ -764,37 +757,17 @@ def getBusIDfromLoc(locationID):
     
     return busID    
 
-     
-    
-   # 
+   #Pulls First Name, and Last Name for Healthcare Professionals 
 def getProviderName(df):
-    
-    inputFile = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Doctor Name.sql")).read()
-    splitQueries= inputFile.split(";")
-    SQL_DoctorNameQuery=splitQueries[0]
-    SQL_DoctorNameQuery=SQL_DoctorNameQuery.splitlines()
-    
-    
+    print 'getting doctor names'
+    print df
+    SQL_DoctorNameQuery = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Doctor Name.sql")).read()    
     locationIDs=df['Location ID']
-    
-    for index, line in enumerate(SQL_DoctorNameQuery):
-        SQL_DoctorNameQuery[index]=line.replace('@locationIDs', ','.join(map(str, locationIDs)))
-        
-    SQL_DoctorNameQuery_3 = [x for x in SQL_DoctorNameQuery if x.startswith("--") is False]
-    SQL_DoctorNameQuery_4 = []
-    for x in SQL_DoctorNameQuery_3:
-        if '--' in x:
-            SQL_DoctorNameQuery_4.append(x[0:x.index('-')])
-        else:
-            SQL_DoctorNameQuery_4.append(x)
-        
-        #Convert Query into string from list
-    FinalSQL_DoctorNameQuery = ' '.join(SQL_DoctorNameQuery_4)
-    
+            
+    SQL_DoctorNameQuery=SQL_DoctorNameQuery.replace('@locationIDs', ','.join(map(str, locationIDs)))    
     Yext_OPS_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
-    DoctorNamesIDs = pd.read_sql(FinalSQL_DoctorNameQuery, con=Yext_OPS_DB)
+    DoctorNamesIDs = pd.read_sql(SQL_DoctorNameQuery, con=Yext_OPS_DB)
 
-    print DoctorNamesIDs
     return DoctorNamesIDs    
     
     
@@ -812,7 +785,156 @@ def matchingQuestions(df,numLinks):
     listingNames= listingNames[listingNames['Count'] > 5]  
 
     return listingNames
-    
 
 
-main()
+
+
+from Tkinter import Frame
+from Tkinter import *
+
+#Your app is a subclass of the Tkinter class Frame.
+class MatchingInput(Tkinter.Frame):
+
+    #Constructor for our app.  The master parameter represents the root object
+    #that will hold out application.  It is basically a window, with our application
+    #existing in a frame inside that window.
+ def __init__(self, master):
+        #Call the constructor of the Frame superclass.  The pad options create padding
+        #between the edge of the Frame and the Widgits inside.
+        Tkinter.Frame.__init__(self, master, padx=10, pady=10)
+        #Give our window a title by calling the .title() method on the master object.
+        master.title("AutoMatcher Setup")
+        #Set a minimum size through the master object, just to make our UI a little
+        #nicer to look at.
+        master.minsize(width=1000, height=1000)
+        #.pack() is a necessary method to get our app ready to be displayed.  Packing
+        #objects puts them in a simple column.  For a more complex way to arrange your
+        #widgets, see .grid():
+        #http://effbot.org/tkinterbook/grid.htm
+        #self.pack()
+
+        #Now let's make some buttons using the Tkinter class Button.  The "text" parameter
+        #indicates the text to be displayed in the button and the "command" parameter
+        #specifies a procedure to execute if the button is clicked.  In this app, we will
+        #have buttons that increase and decrease a variable.
+#        self.upButton = Tkinter.Button(self, text="Up", command=self.increment)
+#        self.upButton.pack() #Individual objects also must be packed to appear.
+#        self.downButton = Tkinter.Button(self, text="Down", command=self.decrement)
+#        self.downButton.pack()
+#
+#        #The variable that we'll be incrementing and decrementing.
+#        self.value = 0
+#        #When you want to integrate a variable with your Widgets (eg buttons, labels, etc),
+#        #you make it a special type of Tkinter variable.  In this case, a StringVar.  There
+#        #is also IntVar, DoubleVar, and BooleanVar.  These are essentially mutable versions
+#        #of primitive types.  If we assign a normal string varaible to be the text of a button,
+#        #then change that string variable, the text of the button would be unchanged.  If we
+#        #instead use a StringVar, the button text will update automatically.  You'll see!
+#        self.value_str = Tkinter.StringVar()
+#        self.value_str.set("0") #You set all Tkinter variable objects with the .set() method.
+#
+#        #A Label to display our value.  Labels are like buttons except with no click effect.
+#        #Note that we use the textvariable parameter instead of text so that the text on
+#        #this label will automatically update with our StringVar.
+#        self.valueLabel = Tkinter.Label(self, textvariable=self.value_str)
+#        self.valueLabel.pack()
+#
+#        #Lastly, a quit button, which will call the .create_quit_window() method defined below,
+        #which displays a new window asking whether the user want's to quit.
+        #self.quitButton = Tkinter.Button(master, text="Quit", command=self.quit)
+       
+        self.IndustryType=IntVar()
+        self.IndustryType.set(-1)
+        self.IndustryLabel=Label(master,text="Select Industry Type").grid(row=0,column=0)
+
+        self.Normal=Radiobutton(master, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=0)
+        self.Normal=Radiobutton(master, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1)
+        self.Normal=Radiobutton(master, text="Hotel", variable=self.IndustryType,value=2).grid(row=1,column=2)
+        self.Normal=Radiobutton(master, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=1,column=3)
+        self.Normal=Radiobutton(master, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4)
+        self.Normal=Radiobutton(master, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
+        self.Normal=Radiobutton(master, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
+        
+        
+        
+        
+        
+        
+#        self.quitButton.pack()
+        self.dataInput=IntVar()
+        self.dataInput.set(0)
+        self.inputType=Label(master,text="Select data input type:")
+
+        self.SQL=Radiobutton(master, text="Pull Data from SQL", variable=self.dataInput,value=2)
+        self.file=Radiobutton(master, text="Input File", variable=self.dataInput,value=1)
+        
+        
+        
+        self.nextButton = Button(master, text="Next", command=self.detailsWindow)
+        
+        self.inputType.grid(row=2,column=0)
+        self.SQL.grid(row=3,column=0, sticky=W)
+        self.file.grid(row=4,column=0, sticky=W)
+        self.nextButton.grid(row=5,column=0,sticky=W)
+
+        global master1
+        master1=master
+ def detailsWindow(self):
+        if self.dataInput.get()==1:
+            fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
+        elif self.dataInput.get()==2:
+            vcmd = master1.register(self.validate)
+            self.busIDLabel=Label(master1,text="Enter Business ID").grid(row=6,column=0,sticky=W)
+            self.folderIDLabel=Label(master1,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
+            self.labelIDLabel=Label(master1,text="Enter Label ID").grid(row=8,column=0,sticky=W)
+            
+            self.bizID=StringVar()
+            busID=Entry(master1,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.bizID).grid(row=6,column=1,sticky=W)
+            self.folderID=Entry(master1,validate="key", validatecommand=(vcmd, '%P')).grid(row=7,column=1,sticky=W)
+            self.labelID=Entry(master1,validate="key", validatecommand=(vcmd, '%P')).grid(row=8,column=1,sticky=W)
+        
+            self.pullButton = Button(master1, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
+            
+            
+ def pullSQLRun(self):
+        print self.bizID.get()
+        df=sqlPull(self.bizID.get())
+        runProg(df,self.IndustryType.get(),self.bizID.get())
+            
+def namesWindow(self,busNames):
+        self.CurrentNameLabel=Label(master1,text="Current Business Names: "+ busNames).grid(row=10,column=0)
+        self.AddName=Entry(master1,text="Enter additional Business Name:").grid(row=11,column=0)
+        self.AddMore=Button(master1,text="Add more",command=lambda:[busNames.append(cleanName(AddName)),self.AddName.clear_text]).grid(row=12,column=1)
+        self.Done=Button(master1,text="Done!",command=self.Done).grid(row=12,column=2)
+
+def AddMore(self,busNames,AddName):
+        busNames.append(cleanName(AddName))
+        self.AddName.clear_text
+ 
+def Done(self)        
+def validate(self, new_text):
+        if not new_text: # the field is being cleared
+            self.entered_number = 0
+            return True
+
+        try:
+            self.entered_number = int(new_text)
+            return True
+        except ValueError:
+            return False
+
+global df
+df=pd.DataFrame        
+#We make a Tk object to serve as the root of our interface.  We're making 
+#something to use as an argument for the master parameter, to be the "parent"
+#of our frame.  We can use it to do things like set the size.  Other than
+##that, you don't have to worry too much about this step.
+root = Tkinter.Tk()
+###Initialize our app object and run the Frame method .mainloop() to begin!
+###You should see a small window with up and down buttons, a label displaying
+###a number, and a quit button when you run this program.
+app = MatchingInput(root)
+app.mainloop()
+
+
+#main()

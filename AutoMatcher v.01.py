@@ -100,10 +100,12 @@ def compareName(df,IndustryType,bid):
 
     global namesComplete
  
-
+    #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)
    
+    
+    #now outdated
 #    print '\nCurrent Business Names:'
 #    print businessNames
 #    #Get additional good match names for business
@@ -111,6 +113,8 @@ def compareName(df,IndustryType,bid):
 #        inputName=raw_input("Enter additional business name, or 0 to continue:\n")
 #        businessNames.append(cleanName(inputName))
 #    
+
+#start of comparisons, broken out by industry
     #Hotel
     if IndustryType=="2":
         OtherHotelMatch = []
@@ -235,6 +239,9 @@ def userMatch(df):
 #This function compares the phones in the file                
 def comparePhone(df):
     
+    #compares Location Phone and Location Local Phone to Listing Phone, but only if non-blank
+    
+    #Do we need isnan() here?
     
     try:
         df['Phone Match'] = df.apply(lambda x: True if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone']!="") else (True if (x['Location Local Phone'] == x['Listing Phone']and x['Location Local Phone']!="") else False), axis=1)
@@ -314,7 +321,7 @@ def compareZip(df):
 def compareNPI(df):
      df['NPI Match'] = df.apply(lambda x:True if x['Location NPI'] == x['Listing NPI'] else False, axis=1)
 
-     
+#copied from old template. Calculates metric distance between geocodes     
 def calculateDistance(row):
     try: locationLat = float(row['Location Latitude'])
     except: locationLat = 0.0
@@ -365,6 +372,7 @@ def compareData(df,IndustryType,bid):
 def suggestedmatch(df, IndustryType):  
     robotmatch = []
     
+    #Creates new columns that are easier to read in code, and for users when outputed - Mostly boolean variables
     df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
     df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] > 60 else 0), axis=1)
     df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<=200 else False, axis=1)
@@ -532,9 +540,7 @@ def suggestedmatch(df, IndustryType):
  
      #All other industries
     else:
-        
-         
-        
+        #Applies Match rules based on new columns.
         df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
 
         
@@ -579,10 +585,13 @@ def suggestedmatch(df, IndustryType):
 
     df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 else ('Check' if x['Name Match'] ==2 else 'Bad'), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
+
+#Now not called at all
 def main():
     getInput()    
     runProg()
-    
+
+#Now not called at all.    
 def getInput():    
     #Gets all inputs
     IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")                
@@ -600,9 +609,10 @@ def getInput():
         df,bid=readFile(xlsFile)
         runProg(df,IndustryType,bid)
         
-        
+#Reads CSV or XLSX files        
 def readFile(xlsFile):
         
+    #Is this necessary?  Works without.
         #directory = xlsFile[:xlsFile.rindex("\\")]
                             
         #os.chdir(directory)
@@ -616,6 +626,7 @@ def readFile(xlsFile):
             wsTitle = "none"
 #            for name in sNames:
 #                 wsTitle = name
+      #Takes first sheet name, not last     
             wsTitle=sNames[0]
             df = pd.ExcelFile(xlsFile).parse(wsTitle)
 
@@ -630,7 +641,7 @@ def readFile(xlsFile):
         #wsTitle = "none"
         #for name in sNames:
         #     wsTitle = name
-        row = 0 
+       # row = 0 
        
         #Finds Business ID
         bid=getBusIDfromLoc(df.loc[0,'Location ID'])
@@ -645,11 +656,10 @@ def readFile(xlsFile):
     #for name in sNames:
     #     wsTitle = name
     
-    
+ #New main runtime function - broken out as previous functions now handled in Tkinter   
 def runProg(df,IndustryType,bid):    
     print 'runprog'
     row = 0 
-    # Read in data set
    
     #Gets Providers First and Last name. Saves to column 'Provider Name'
     DoctorNameDF=getProviderName(df)
@@ -658,8 +668,9 @@ def runProg(df,IndustryType,bid):
     lastcol=df.shape[1]
     row=df.shape[0]
 
+#Compares all, suggests matches    
     compareData(df,IndustryType,bid)
-    
+ #Completes Matching Question sheet   
     matchingNameQs=matchingQuestions(df,row)
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
@@ -754,7 +765,7 @@ def runProg(df,IndustryType,bid):
         print "\nDone! Results have been wrizzled to your Excel file. 1love <3"
         print "\nMatching Template here:"
         print FilepathMatch
-        
+   #Opens explorer window to path of output     
         subprocess.Popen(r'explorer /select,'+os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx"))
     except IOError:
         app.AllDone("\nIOError: Make sure your Excel file is closed before re-running the script.")
@@ -767,7 +778,7 @@ def sqlPull(bid,folderID,labelID):
     SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
     SQL_QueryMatches=SQL_QueryMatches.splitlines()
     
-    
+ #Subs out variables for Account ID numbers   
     for index, line in enumerate(SQL_QueryMatches):
         SQL_QueryMatches[index]=line.replace('@bizid', str(bid))
     if folderID !=0:
@@ -896,6 +907,7 @@ def matchingQuestions(df,numLinks):
 
 
 
+    #GUI Tkinter section!
 
 from Tkinter import Frame
 from Tkinter import *
@@ -911,6 +923,8 @@ class MatchingInput(Tkinter.Frame):
 
         master.minsize(width=500, height=300)
         
+        
+#First screen - needs to explain what's going on, get input on where in process they are        
         self.IntroLabel=Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0)
         self.processChoice=IntVar()
         self.processChoice.set(-1)
@@ -920,30 +934,33 @@ class MatchingInput(Tkinter.Frame):
         self.Next=Button(master,text="Next",command=lambda: [self.initialSettingsWindow() if self.processChoice.get()==0 else (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))]).grid(row=2,column=0)
         self.Quit=Button(master,text="Quit",command= lambda: [root.destroy()]).grid(row=3,column=0)
         
-        
+#If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
         self.master.withdraw()
+#Takes in completed matches file with checks filled out
         checkedFile=tkFileDialog.askopenfilename(initialdir = "/",title = "Select completed matching file with Check column filled out",defaultextension="*.xlsx;*.xls", filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
         checkedDF,bid=readFile(checkedFile)
         
-        
+#Checks to see if all rows asking for a check have manual review        
         allChecksComplete=True
         for index, row in checkedDF.iterrows(): 
             if  ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
                 allChecksComplete=False
                 
-                
+#Exits if manual review incomplete                
         if not allChecksComplete:
             self.errorBox=Toplevel()
             self.errorMsg=Label(self.errorBox,text="Please complete all checks first. Bye.").pack()
             self.okButton=Button(self.errorBox,text="OK",command= lambda:[root.destroy()]).pack()
+#If complete, determines matches, creates upload        
         else:
             checkedDF['Match']=checkedDF.apply(lambda x: 'Match' if 'Match Suggeted' in x['Robot Suggestion'] else 'AntiMatch',axis=1)
             checkedDF['Match']=checkedDF.apply(lambda x: 'Match' if x['Match \n1 = yes, 0 = no']==1 else ('AntiMatch' if x['Match \n1 = yes, 0 = no']==0 else x['Match']),axis=1)
             uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','Match']]
             print uploadDF
+       #remove this once we do something here     
             root.destroy()
-            
+ #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):
         self.master.withdraw()
         self.settingWindow=Toplevel()
@@ -981,7 +998,7 @@ class MatchingInput(Tkinter.Frame):
         self.file.grid(row=4,column=0, sticky=W)
         self.nextButton.grid(row=5,column=0,sticky=W)
 
-        
+ #Gets File path or business, folder, and label ids to pull from SQL       
     def detailsWindow(self):
         self.settingWindow.destroy()
         if self.dataInput.get()==1:
@@ -1005,7 +1022,7 @@ class MatchingInput(Tkinter.Frame):
         
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
             
-            
+#Runs SQl Pull            
     def pullSQLRun(self):
         
         
@@ -1022,6 +1039,8 @@ class MatchingInput(Tkinter.Frame):
                 labelID=0
             df=sqlPull(self.bizID.get(),folderID,labelID)
             runProg(df,self.IndustryType.get(),self.bizID.get())
+    
+#button function to ammend businessNames list            
     def AddMore(self):
         global businessNames
         for i in self.NewName.get().split(","):
@@ -1033,8 +1052,7 @@ class MatchingInput(Tkinter.Frame):
         self.nameW.destroy()
        # self.namesWindow(businessNames)
  
-    def Done(self): 
-        self.nameW.destroy             
+  #Prints out current business names, asks for additional names  
     def namesWindow(self,busNames):
         global businessNames
         global namesComplete
@@ -1049,7 +1067,7 @@ class MatchingInput(Tkinter.Frame):
         self.AddMore=Button(self.nameW,text="Add names",command=self.AddMore).grid(row=13,column=0, sticky=W)
         self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.nameW.destroy()]).grid(row=13,column=1, sticky=W)  
          
-
+#Checks if input is a number
     def validate(self, new_text):
         if not new_text: # the field is being cleared
             self.entered_number = 0
@@ -1060,20 +1078,22 @@ class MatchingInput(Tkinter.Frame):
             return True
         except ValueError:
             return False
+
+  #Final screen to close program.          
     def AllDone(self,msg):
         self.completeWindow=Toplevel()  
         self.completeMsg=Label(self.completeWindow,text=msg).grid(row=1,column=1)
         self.DoneButton=Button(self.completeWindow,text="Exit", command= lambda:[root.destroy()]).grid(row=2,column=1)
 
-
+#defining this globally helps being able to call it within the Tkinter class
 global df
 df=pd.DataFrame
 global checkedDF
 global root
 checkedDF=pd.DataFrame     
+#starts Tkinter
 root = Tkinter.Tk()
 app = MatchingInput(root)
 app.mainloop()
 
-#startTkinter()
 #main()

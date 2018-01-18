@@ -18,7 +18,7 @@ import xlsxwriter
 from fuzzywuzzy import fuzz 
 import MySQLdb
 import xlwings
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, asin, sqrt, isnan
 from Tkinter import *   
 import tkFileDialog
 import Tkinter
@@ -614,8 +614,9 @@ def readFile(xlsFile):
             wb = xlrd.open_workbook(xlsFile, on_demand=True)
             sNames = wb.sheet_names()        
             wsTitle = "none"
-            for name in sNames:
-                 wsTitle = name
+#            for name in sNames:
+#                 wsTitle = name
+            wsTitle=sNames[0]
             df = pd.ExcelFile(xlsFile).parse(wsTitle)
 
         elif xlsFile[-3:]=='csv':
@@ -630,7 +631,7 @@ def readFile(xlsFile):
         #for name in sNames:
         #     wsTitle = name
         row = 0 
-        
+       
         #Finds Business ID
         bid=getBusIDfromLoc(df.loc[0,'Location ID'])
         
@@ -858,7 +859,8 @@ def getBusName(bid):
     
 #Gets Business ID from location ID
 def getBusIDfromLoc(locationID):
-    SQL_BusIDQuery='SELECT business_id from alpha.locations where id='+str(locationID)+';'
+    #locationID=locationID.replace("\'","")
+    SQL_BusIDQuery='SELECT business_id from alpha.locations where id='+str(locationID).replace("\'","")+';'
     Yext_OPS_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
     busID = pd.read_sql(SQL_BusIDQuery, con=Yext_OPS_DB)['business_id'][0]
     
@@ -901,65 +903,61 @@ from Tkinter import *
 #Your app is a subclass of the Tkinter class Frame.
 class MatchingInput(Tkinter.Frame):
 
-    #Constructor for our app.  The master parameter represents the root object
-    #that will hold out application.  It is basically a window, with our application
-    #existing in a frame inside that window.
- def __init__(self, master):
-        #Call the constructor of the Frame superclass.  The pad options create padding
-        #between the edge of the Frame and the Widgits inside.
-        Tkinter.Frame.__init__(self, master, padx=10, pady=10)
-        #Give our window a title by calling the .title() method on the master object.
-        master.title("AutoMatcher Setup")
-        #Set a minimum size through the master object, just to make our UI a little
-        #nicer to look at.
-        master.minsize(width=1000, height=1000)
-        #.pack() is a necessary method to get our app ready to be displayed.  Packing
-        #objects puts them in a simple column.  For a more complex way to arrange your
-        #widgets, see .grid():
-        #http://effbot.org/tkinterbook/grid.htm
-        #self.pack()
+    def __init__(self, master):
 
-        #Now let's make some buttons using the Tkinter class Button.  The "text" parameter
-        #indicates the text to be displayed in the button and the "command" parameter
-        #specifies a procedure to execute if the button is clicked.  In this app, we will
-        #have buttons that increase and decrease a variable.
-#        self.upButton = Tkinter.Button(self, text="Up", command=self.increment)
-#        self.upButton.pack() #Individual objects also must be packed to appear.
-#        self.downButton = Tkinter.Button(self, text="Down", command=self.decrement)
-#        self.downButton.pack()
-#
-#        #The variable that we'll be incrementing and decrementing.
-#        self.value = 0
-#        #When you want to integrate a variable with your Widgets (eg buttons, labels, etc),
-#        #you make it a special type of Tkinter variable.  In this case, a StringVar.  There
-#        #is also IntVar, DoubleVar, and BooleanVar.  These are essentially mutable versions
-#        #of primitive types.  If we assign a normal string varaible to be the text of a button,
-#        #then change that string variable, the text of the button would be unchanged.  If we
-#        #instead use a StringVar, the button text will update automatically.  You'll see!
-#        self.value_str = Tkinter.StringVar()
-#        self.value_str.set("0") #You set all Tkinter variable objects with the .set() method.
-#
-#        #A Label to display our value.  Labels are like buttons except with no click effect.
-#        #Note that we use the textvariable parameter instead of text so that the text on
-#        #this label will automatically update with our StringVar.
-#        self.valueLabel = Tkinter.Label(self, textvariable=self.value_str)
-#        self.valueLabel.pack()
-#
-#        #Lastly, a quit button, which will call the .create_quit_window() method defined below,
-        #which displays a new window asking whether the user want's to quit.
-        #self.quitButton = Tkinter.Button(master, text="Quit", command=self.quit)
-       
+        Tkinter.Frame.__init__(self, master, padx=10, pady=10)
+
+        master.title("AutoMatcher Setup")
+
+        master.minsize(width=500, height=300)
+        
+        self.IntroLabel=Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0)
+        self.processChoice=IntVar()
+        self.processChoice.set(-1)
+        self.StartMatch=Radiobutton(master,text="Start AutoMatcher - pull data/enter file",variable=self.processChoice,value=0).grid(row=1,column=0)
+        self.ChecksChoice=Radiobutton(master,text="Input Completed Manual Checks, create upload",variable=self.processChoice,value=1).grid(row=1,column=1)
+        
+        self.Next=Button(master,text="Next",command=lambda: [self.initialSettingsWindow() if self.processChoice.get()==0 else (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))]).grid(row=2,column=0)
+        self.Quit=Button(master,text="Quit",command= lambda: [root.destroy()]).grid(row=3,column=0)
+        
+        
+    def inputChecks(self):
+        self.master.withdraw()
+        checkedFile=tkFileDialog.askopenfilename(initialdir = "/",title = "Select completed matching file with Check column filled out",defaultextension="*.xlsx;*.xls", filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
+        checkedDF,bid=readFile(checkedFile)
+        
+        
+        allChecksComplete=True
+        for index, row in checkedDF.iterrows(): 
+            if  ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
+                allChecksComplete=False
+                
+                
+        if not allChecksComplete:
+            self.errorBox=Toplevel()
+            self.errorMsg=Label(self.errorBox,text="Please complete all checks first. Bye.").pack()
+            self.okButton=Button(self.errorBox,text="OK",command= lambda:[root.destroy()]).pack()
+        else:
+            checkedDF['Match']=checkedDF.apply(lambda x: 'Match' if 'Match Suggeted' in x['Robot Suggestion'] else 'AntiMatch',axis=1)
+            checkedDF['Match']=checkedDF.apply(lambda x: 'Match' if x['Match \n1 = yes, 0 = no']==1 else ('AntiMatch' if x['Match \n1 = yes, 0 = no']==0 else x['Match']),axis=1)
+            uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','Match']]
+            print uploadDF
+            root.destroy()
+            
+    def initialSettingsWindow(self):
+        self.master.withdraw()
+        self.settingWindow=Toplevel()
         self.IndustryType=IntVar()
         self.IndustryType.set(-1)
-        self.IndustryLabel=Label(master,text="Select Industry Type").grid(row=0,column=0)
+        self.IndustryLabel=Label(self.settingWindow,text="Select Industry Type").grid(row=0,column=0)
 
-        self.Normal=Radiobutton(master, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=0)
-        self.Normal=Radiobutton(master, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1)
-        self.Normal=Radiobutton(master, text="Hotel", variable=self.IndustryType,value=2).grid(row=1,column=2)
-        self.Normal=Radiobutton(master, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=1,column=3)
-        self.Normal=Radiobutton(master, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4)
-        self.Normal=Radiobutton(master, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
-        self.Normal=Radiobutton(master, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
+        self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=0)
+        self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1)
+        self.Hotel=Radiobutton(self.settingWindow, text="Hotel", variable=self.IndustryType,value=2).grid(row=1,column=2)
+        self.Doctor=Radiobutton(self.settingWindow, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=1,column=3)
+        self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4)
+        self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
+        self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
         
         
         
@@ -969,32 +967,31 @@ class MatchingInput(Tkinter.Frame):
 #        self.quitButton.pack()
         self.dataInput=IntVar()
         self.dataInput.set(0)
-        self.inputType=Label(master,text="Select data input type:")
+        self.inputType=Label(self.settingWindow,text="Select data input type:")
 
-        self.SQL=Radiobutton(master, text="Pull Data from SQL", variable=self.dataInput,value=2)
-        self.file=Radiobutton(master, text="Input File", variable=self.dataInput,value=1)
+        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2)
+        self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1)
         
         
         
-        self.nextButton = Button(master, text="Next", command=self.detailsWindow)
+        self.nextButton = Button(self.settingWindow, text="Next", command=self.detailsWindow)
         
         self.inputType.grid(row=2,column=0)
         self.SQL.grid(row=3,column=0, sticky=W)
         self.file.grid(row=4,column=0, sticky=W)
         self.nextButton.grid(row=5,column=0,sticky=W)
 
-        global master1
-        master1=master
- def detailsWindow(self):
         
+    def detailsWindow(self):
+        self.settingWindow.destroy()
         if self.dataInput.get()==1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
             df,bid=readFile(fname)
-            self.master.withdraw()
+            
             runProg(df,str(self.IndustryType.get()),bid)
         elif self.dataInput.get()==2:
             self.detailsW=Tkinter.Toplevel(self)
-            vcmd = master1.register(self.validate)
+            vcmd = self.master.register(self.validate)
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
             self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)
@@ -1009,11 +1006,11 @@ class MatchingInput(Tkinter.Frame):
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
             
             
- def pullSQLRun(self):
+    def pullSQLRun(self):
         
         
         if self.bizID.get():
-            self.master.withdraw()
+            
             self.detailsW.destroy()
             if  self.folderID.get():
                 folderID=self.folderID.get()
@@ -1023,10 +1020,9 @@ class MatchingInput(Tkinter.Frame):
                 labelID=self.labelID.get()
             else:
                 labelID=0
-            print self.bizID.get(),folderID,labelID
             df=sqlPull(self.bizID.get(),folderID,labelID)
             runProg(df,self.IndustryType.get(),self.bizID.get())
- def AddMore(self):
+    def AddMore(self):
         global businessNames
         for i in self.NewName.get().split(","):
             businessNames.append(cleanName(i)) 
@@ -1037,9 +1033,9 @@ class MatchingInput(Tkinter.Frame):
         self.nameW.destroy()
        # self.namesWindow(businessNames)
  
- def Done(self): 
+    def Done(self): 
         self.nameW.destroy             
- def namesWindow(self,busNames):
+    def namesWindow(self,busNames):
         global businessNames
         global namesComplete
         self.complete=BooleanVar()
@@ -1054,8 +1050,7 @@ class MatchingInput(Tkinter.Frame):
         self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.nameW.destroy()]).grid(row=13,column=1, sticky=W)  
          
 
-        
- def validate(self, new_text):
+    def validate(self, new_text):
         if not new_text: # the field is being cleared
             self.entered_number = 0
             return True
@@ -1065,23 +1060,20 @@ class MatchingInput(Tkinter.Frame):
             return True
         except ValueError:
             return False
- def AllDone(self,msg):
+    def AllDone(self,msg):
         self.completeWindow=Toplevel()  
         self.completeMsg=Label(self.completeWindow,text=msg).grid(row=1,column=1)
         self.DoneButton=Button(self.completeWindow,text="Exit", command= lambda:[root.destroy()]).grid(row=2,column=1)
 
+
 global df
-df=pd.DataFrame        
-#We make a Tk object to serve as the root of our interface.  We're making 
-#something to use as an argument for the master parameter, to be the "parent"
-#of our frame.  We can use it to do things like set the size.  Other than
-##that, you don't have to worry too much about this step.
+df=pd.DataFrame
+global checkedDF
+global root
+checkedDF=pd.DataFrame     
 root = Tkinter.Tk()
-###Initialize our app object and run the Frame method .mainloop() to begin!
-###You should see a small window with up and down buttons, a label displaying
-###a number, and a quit button when you run this program.
 app = MatchingInput(root)
 app.mainloop()
 
-
+#startTkinter()
 #main()

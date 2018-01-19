@@ -224,26 +224,10 @@ def userMatch(df):
 #This function compares the phones in the file                
 def comparePhone(df):
     
-    #compares Location Phone and Location Local Phone to Listing Phone, but only if non-blank
-    #Do we need isnan() here?
-    #try:
-    #    df['Phone Match'] = df.apply(lambda x: True if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone']!="") else (True if (x['Location Local Phone'] == x['Listing Phone']and x['Location Local Phone']!="") else False), axis=1)
-
     try:
         df['Phone Match'] = df.apply(lambda x: True if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone']!="") else (True if (x['Location Local Phone'] == x['Listing Phone']and x['Location Local Phone']!="") else False), axis=1)
     except:
         df['Phone Match'] = 'x'    
-#
-#    for index, row in df.iterrows(): 
-#        try:
-#            if row['Location Phone'] == ['Listing Phone']:
-#                row['Phone Match']='1'
-#            elif row['Local Phone']==['Listing Phone']:
-#                row['Phone Match']='1'
-#            else:
-#                row ['Phone Match']='0'
-#        except:
-#            row['Phone Match'] = '0'  
 
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
@@ -561,6 +545,10 @@ def suggestedmatch(df, IndustryType):
     df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 else ('Check' if x['Name Match'] ==2 else 'Bad'), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
 
+def ExternalIDDupe(row, dupeLinks):
+    if row['Link ID'] in dupeLinks: return 1
+    else: return 0
+
 #Now not called at all
 def main():
     getInput()    
@@ -862,8 +850,7 @@ def getProviderName(df):
     Yext_OPS_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
     DoctorNamesIDs = pd.read_sql(SQL_DoctorNameQuery, con=Yext_OPS_DB)
 
-    return DoctorNamesIDs    
-    
+    return DoctorNamesIDs        
     
  #Finds Listing names that could be good to match to based on prevalence    
       
@@ -1063,5 +1050,3 @@ checkedDF=pd.DataFrame
 root = Tkinter.Tk()
 app = MatchingInput(root)
 app.mainloop()
-
-#main()

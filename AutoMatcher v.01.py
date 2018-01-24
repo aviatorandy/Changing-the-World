@@ -7,24 +7,17 @@ Created on Wed Oct 25 14:23:11 2017
 
 from time import strftime
 import pandas as pd
-import timeit
-import sys
 import os 
 import xlrd 
 import numpy as np
 import re
-import csv
-import xlsxwriter
 from fuzzywuzzy import fuzz 
 import MySQLdb
-import xlwings
 from math import radians, cos, sin, asin, sqrt, isnan
 from Tkinter import *   
 import tkFileDialog
 import Tkinter
 import subprocess
-
-#from mypackages import FunctionToolbox as tbox
 
 #This function cleans the names 
 def cleanName(name):    
@@ -104,16 +97,6 @@ def compareName(df,IndustryType,bid):
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)
    
-    
-    #now outdated
-#    print '\nCurrent Business Names:'
-#    print businessNames
-#    #Get additional good match names for business
-#    while inputName !='0':
-#        inputName=raw_input("Enter additional business name, or 0 to continue:\n")
-#        businessNames.append(cleanName(inputName))
-#    
-
 #start of comparisons, broken out by industry
     #Hotel
     if IndustryType=="2":
@@ -158,6 +141,10 @@ def compareName(df,IndustryType,bid):
         df['Name Score'] = ProviderScore
         print 'Is this working for HC professionals?'
         return
+        
+    #Healthcare Facility matching
+    if IndustryType=="4":
+        return
 
     #Agent Names matching
     if IndustryType=="5":
@@ -176,6 +163,12 @@ def compareName(df,IndustryType,bid):
             averagenamescore.append(average)
         df['Name Score'] = averagenamescore
         return
+
+    #Auto Name Matching
+    if IndustryType=="6":
+        return
+        
+    #Normal/International    
     else:       
         for index, row in df.iterrows(): 
             businessRatio=0
@@ -192,6 +185,7 @@ def compareName(df,IndustryType,bid):
             averagenamescore.append(average)
         df['Name Score'] = averagenamescore
         return   
+        
 #This function compares the countries in the file
 def compareStateCountry(df):
     statematch = []
@@ -221,15 +215,6 @@ def compareId(df):
             IDmatch.append("Unique Pair")                
     df['Location ID Match'] = IDmatch
 
-#def compareNPI(df):
-#    NPImatch = []
-#    for index, row in df.iterrows(): 
-#        if (row['Location NPI'] == row['Listing NPI']):
-#            NPImatch.append("Match")
-#        else:
-#            NPImatch.append("No Match")
-#    df['NPI Match'] = NPImatch
-
 #This function removes matches that are not 1
 def userMatch(df):
     for index, row in df.iterrows(): 
@@ -239,26 +224,10 @@ def userMatch(df):
 #This function compares the phones in the file                
 def comparePhone(df):
     
-    #compares Location Phone and Location Local Phone to Listing Phone, but only if non-blank
-    
-    #Do we need isnan() here?
-    
     try:
         df['Phone Match'] = df.apply(lambda x: True if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone']!="") else (True if (x['Location Local Phone'] == x['Listing Phone']and x['Location Local Phone']!="") else False), axis=1)
     except:
-        df['Phone Match'] = 'x'
-    
-#
-#    for index, row in df.iterrows(): 
-#        try:
-#            if row['Location Phone'] == ['Listing Phone']:
-#                row['Phone Match']='1'
-#            elif row['Local Phone']==['Listing Phone']:
-#                row['Phone Match']='1'
-#            else:
-#                row ['Phone Match']='0'
-#        except:
-#            row['Phone Match'] = '0'  
+        df['Phone Match'] = 'x'    
 
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
@@ -271,9 +240,6 @@ def compareAddress(df,IndustryType):
         df['Cleaned Input Address']=df['Cleaned Input Address'].apply(cleanAddress)
         df['Cleaned Listing Address'] =df['Cleaned Listing Address'].apply(cleanAddress)
         averageaddressscore = []
-#        asrSeries=[]
-#        sortSeries=[]
-#        aprSeries=[]
         for index, row in df.iterrows(): 
                 #Finds best match between normal ratio, sorted ratio
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
@@ -281,9 +247,8 @@ def compareAddress(df,IndustryType):
                 apsr = fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
 
                 averageaddressscore.append(max(asr,addressSortRatio,apsr))
-#                asrSeries.append(asr)
-#                sortSeries.append(addressSortRatio)
-#                aprSeries.append(apr)
+
+    #All other industries
     else:
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
         df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
@@ -292,9 +257,6 @@ def compareAddress(df,IndustryType):
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 averageaddressscore.append(asr)
     df['Address Score'] = averageaddressscore
-    #df['Address Score'] = asrSeries
-    #df['Sort'] = sortSeries
-    #df['APR'] = aprSeries
 
 #This function compares the cities in the file                
 def compareCity(df):
@@ -345,8 +307,6 @@ def calculateDistance(row):
     c = 2 * asin(sqrt(a))
     r = 6371 # Radius of earth in kilometers. Use 3956 for miles
     return c * r * 1000
-
-    
 
 #This function compares the data by calling on all the functions
 def compareData(df,IndustryType,bid):
@@ -542,9 +502,8 @@ def suggestedmatch(df, IndustryType):
     else:
         #Applies Match rules based on new columns.
         df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
-
         
-        #
+        #OLD below
 #        for index, row in df.iterrows(): 
 #            if row['Phone Match']=='1':
 #                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
@@ -585,6 +544,10 @@ def suggestedmatch(df, IndustryType):
 
     df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 else ('Check' if x['Name Match'] ==2 else 'Bad'), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
+
+def ExternalIDDupe(row, dupeLinks):
+    if row['Link ID'] in dupeLinks: return 1
+    else: return 0
 
 #Now not called at all
 def main():
@@ -890,8 +853,7 @@ def getProviderName(df):
     Yext_OPS_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
     DoctorNamesIDs = pd.read_sql(SQL_DoctorNameQuery, con=Yext_OPS_DB)
 
-    return DoctorNamesIDs    
-    
+    return DoctorNamesIDs        
     
  #Finds Listing names that could be good to match to based on prevalence    
       
@@ -912,8 +874,6 @@ def matchingQuestions(df,numLinks):
         return listingNames
     else:
         return pd.DataFrame([{'Listing Name' : 'None', 'Count' : '0'}])
-
-
 
     #GUI Tkinter section!
 
@@ -988,8 +948,7 @@ class MatchingInput(Tkinter.Frame):
         self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4)
         self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
         self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
-        
-        
+
 #        self.quitButton.pack()
         self.dataInput=IntVar()
         self.dataInput.set(0)
@@ -1035,8 +994,7 @@ class MatchingInput(Tkinter.Frame):
             
 #Runs SQl Pull            
     def pullSQLRun(self):
-        
-        
+                
         if self.bizID.get():
             
             self.detailsW.destroy()
@@ -1096,15 +1054,14 @@ class MatchingInput(Tkinter.Frame):
         self.completeMsg=Label(self.completeWindow,text=msg).grid(row=1,column=1)
         self.DoneButton=Button(self.completeWindow,text="Exit", command= lambda:[root.destroy()]).grid(row=2,column=1)
 
-#defining this globally helps being able to call it within the Tkinter class
+#Defining this globally helps being able to call it within the Tkinter class
 global df
 df=pd.DataFrame
 global checkedDF
 global root
 checkedDF=pd.DataFrame     
+
 #starts Tkinter
 root = Tkinter.Tk()
 app = MatchingInput(root)
 app.mainloop()
-
-#main()

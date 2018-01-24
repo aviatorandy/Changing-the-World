@@ -660,10 +660,10 @@ def readFile(xlsFile):
 def runProg(df,IndustryType,bid):    
     print 'runprog'
     row = 0 
-   
+    if IndustryType =='3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'
-    DoctorNameDF=getProviderName(df)
-    df=df.merge(DoctorNameDF,on='Location ID', how='left')
+        DoctorNameDF=getProviderName(df)
+        df=df.merge(DoctorNameDF,on='Location ID', how='left')
 
     lastcol=df.shape[1]
     row=df.shape[0]
@@ -672,9 +672,11 @@ def runProg(df,IndustryType,bid):
     compareData(df,IndustryType,bid)
  #Completes Matching Question sheet   
     matchingNameQs=matchingQuestions(df,row)
+     
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
-
+    
+    df.sort_values('Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
     df.to_excel(writer,sheet_name="Result", index=False)
@@ -781,6 +783,7 @@ def sqlPull(bid,folderID,labelID):
  #Subs out variables for Account ID numbers   
     for index, line in enumerate(SQL_QueryMatches):
         SQL_QueryMatches[index]=line.replace('@bizid', str(bid))
+        
     if folderID !=0:
         for index, line in enumerate(SQL_QueryMatches):
             SQL_QueryMatches[index]=line.replace('--left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id', 'left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id')
@@ -894,16 +897,21 @@ def getProviderName(df):
       
 def matchingQuestions(df,numLinks):
     df=df[df['Robot Suggestion'].isin(['No Match - Name','Check'])]
-    pivot=pd.pivot_table(df,values='Link ID',index='Listing Name',aggfunc='count')
+   
+    pivot=pd.pivot_table(df,values=0,index='Listing Name',aggfunc='count')
     listingNames=pd.DataFrame(pivot)
-    listingNames.columns=['Count']    
-    listingNames=listingNames.sort_values(by=['Count'],ascending=False)
-    listingNames=listingNames.reset_index() 
-    listingNames['Listing Name']=listingNames['Listing Name'].apply(cleanName)
-
-    listingNames= listingNames[listingNames['Count'] > 5]  
-
-    return listingNames
+    #print df[0]
+    if not listingNames.empty:
+        listingNames.columns=['Count']    
+        listingNames=listingNames.sort_values(by=['Count'],ascending=False)
+        listingNames=listingNames.reset_index() 
+        listingNames['Listing Name']=listingNames['Listing Name'].apply(cleanName)
+    
+        listingNames= listingNames[listingNames['Count'] > 5]  
+    
+        return listingNames
+    else:
+        return pd.DataFrame([{'Listing Name' : 'None', 'Count' : '0'}])
 
 
 
@@ -960,6 +968,11 @@ class MatchingInput(Tkinter.Frame):
             print uploadDF
        #remove this once we do something here     
             root.destroy()
+            
+            
+            
+            
+            
  #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):
         self.master.withdraw()
@@ -975,10 +988,6 @@ class MatchingInput(Tkinter.Frame):
         self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4)
         self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
         self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
-        
-        
-        
-        
         
         
 #        self.quitButton.pack()
@@ -1001,11 +1010,13 @@ class MatchingInput(Tkinter.Frame):
  #Gets File path or business, folder, and label ids to pull from SQL       
     def detailsWindow(self):
         self.settingWindow.destroy()
+        #File pull
         if self.dataInput.get()==1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
             df,bid=readFile(fname)
             
             runProg(df,str(self.IndustryType.get()),bid)
+        #SQL
         elif self.dataInput.get()==2:
             self.detailsW=Tkinter.Toplevel(self)
             vcmd = self.master.register(self.validate)

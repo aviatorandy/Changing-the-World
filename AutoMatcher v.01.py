@@ -818,7 +818,7 @@ def runProg(df,IndustryType,bid):
      
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
-    
+
     df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
@@ -1059,6 +1059,17 @@ def matchingQuestions(df,numLinks):
 #from Tkinter import *
 
 #Your app is a subclass of the Tkinter class Frame.
+
+
+def writeUploadFile(uploadDF):
+    filePath =  os.path.expanduser("~\Documents\Python Scripts\UploadLinkages.csv")
+
+    print 'writing file'
+    #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
+    uploadDF.to_csv(filePath, encoding='utf-8',index=False)
+    
+    
+    
 class MatchingInput(Tkinter.Frame):
 
     def __init__(self, master):
@@ -1103,14 +1114,22 @@ class MatchingInput(Tkinter.Frame):
             self.okButton=Button(self.errorBox,text="OK",command= lambda:[root.destroy()]).pack()
 #If complete, determines matches, creates upload        
         else:
-            checkedDF['Match']=checkedDF.apply(lambda x: 1 if 'Match Suggeted' in x['Robot Suggestion'] else 'AntiMatch',axis=1)
+            checkedDF['Match']=checkedDF.apply(lambda x: 1 if 'Match Suggested' in x['Robot Suggestion'] else 0,axis=1)
             checkedDF['Match']=checkedDF.apply(lambda x: 1 if x['Match \n1 = yes, 0 = no']==1 else (0 if x['Match \n1 = yes, 0 = no']==0 else x['Match']),axis=1)
-            checkedDF['override']=checkedDF.apply(lambda x: 'Match' if x['Match']==1 else 'AntiMatch')
+
+            #EXTERNAL ID DEDPUE
+            #print checkedDF
+           # checkedDF['override']=checkedDF.apply(lambda x: 'Match' if x['Match']==1 else 'AntiMatch',axis=1)
+           # checkedDF['PL Status']=checkedDF.apply(lambda x: 'Sync' if x['override']=='Match' else 'NoPowerListing',axis=1)
+               
+           
+           checkedDF=calculateTotalScore(checkedDF)
+           checkedDF=ExternalID_De_Dupe(checkedDF)
+           uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
+
             
-            checkedDF['PL Status']=checkedDF.apply(lambda x: 'Sync' if x['override']=='Match' else 'NoPowerListing')
-            
-                
-            uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
+            writeUploadFile(uploadDF)
+
             print uploadDF
        #remove this once we do something here     
             root.destroy()

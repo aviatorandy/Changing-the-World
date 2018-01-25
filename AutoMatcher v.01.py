@@ -15,9 +15,13 @@ from fuzzywuzzy import fuzz
 import MySQLdb
 from math import radians, cos, sin, asin, sqrt, isnan
 from Tkinter import *   
+from ttk import *
 import tkFileDialog
 import Tkinter
 import subprocess
+import time
+import datetime
+
 
 #This function cleans the names 
 def cleanName(name):    
@@ -65,6 +69,7 @@ def compareName(df,IndustryType,bid):
     
     df['No Name']=''
     for index,row in df.iterrows():
+        
         #If name is blank, fills in last part of URL
         if row['Listing Name']==None and row['Listing URL']!=None:
             df.loc[index,'Cleaned Listing Name']=cleanName(row['Listing URL'].split('/')[-1])
@@ -241,6 +246,7 @@ def compareAddress(df,IndustryType):
         df['Cleaned Listing Address'] =df['Cleaned Listing Address'].apply(cleanAddress)
         averageaddressscore = []
         for index, row in df.iterrows(): 
+                
                 #Finds best match between normal ratio, sorted ratio
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 addressSortRatio=fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
@@ -248,12 +254,14 @@ def compareAddress(df,IndustryType):
 
                 averageaddressscore.append(max(asr,addressSortRatio,apsr))
 
-    #All other industries
+    #All other industries    
     else:
+        
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
         df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
         averageaddressscore = []
         for index, row in df.iterrows(): 
+               
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 averageaddressscore.append(asr)
     df['Address Score'] = averageaddressscore
@@ -723,7 +731,7 @@ def runProg(df,IndustryType,bid):
                                         'value':    "Same Location",
                                         'format':   formatRed})
 
-    print 'saving'
+    print 'saving'    
     try:
         writer.save()
         app.AllDone("\nDone! Results have been wrizzled to your Excel file. 1love <3"+"\nMatching Template here:\n"+ FilepathMatch )
@@ -749,11 +757,9 @@ def sqlPull(bid,folderID,labelID):
         
     if folderID !=0:
         for index, line in enumerate(SQL_QueryMatches):
-            SQL_QueryMatches[index]=line.replace('--left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id', 'left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id')
-        for index, line in enumerate(SQL_QueryMatches):  
-            SQL_QueryMatches[index]=line.replace('--and l.treeNode_id=@folderid', 'and l.treeNode_id=@folderid')
-        for index, line in enumerate(SQL_QueryMatches): 
-            SQL_QueryMatches[index]=line.replace('@folderid', str(folderID))
+            SQL_QueryMatches[index]=line.replace('--left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id',\
+                    'left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id')\
+                    .replace('--and l.treeNode_id=@folderid', 'and l.treeNode_id=@folderid').replace('@folderid', str(folderID))
             
     if labelID !=0:
         for index, line in enumerate(SQL_QueryMatches):
@@ -877,8 +883,8 @@ def matchingQuestions(df,numLinks):
 
     #GUI Tkinter section!
 
-from Tkinter import Frame
-from Tkinter import *
+#from Tkinter import Frame
+#from Tkinter import *
 
 #Your app is a subclass of the Tkinter class Frame.
 class MatchingInput(Tkinter.Frame):
@@ -890,6 +896,9 @@ class MatchingInput(Tkinter.Frame):
         master.title("AutoMatcher Setup")
 
         master.minsize(width=500, height=300)
+        
+       # style = Style()
+       # style.theme_use('classic')
         
         
 #First screen - needs to explain what's going on, get input on where in process they are        
@@ -922,9 +931,14 @@ class MatchingInput(Tkinter.Frame):
             self.okButton=Button(self.errorBox,text="OK",command= lambda:[root.destroy()]).pack()
 #If complete, determines matches, creates upload        
         else:
-            checkedDF['Match']=checkedDF.apply(lambda x: 'Match' if 'Match Suggeted' in x['Robot Suggestion'] else 'AntiMatch',axis=1)
-            checkedDF['Match']=checkedDF.apply(lambda x: 'Match' if x['Match \n1 = yes, 0 = no']==1 else ('AntiMatch' if x['Match \n1 = yes, 0 = no']==0 else x['Match']),axis=1)
-            uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','Match']]
+            checkedDF['Match']=checkedDF.apply(lambda x: 1 if 'Match Suggeted' in x['Robot Suggestion'] else 'AntiMatch',axis=1)
+            checkedDF['Match']=checkedDF.apply(lambda x: 1 if x['Match \n1 = yes, 0 = no']==1 else (0 if x['Match \n1 = yes, 0 = no']==0 else x['Match']),axis=1)
+            checkedDF['override']=checkedDF.apply(lambda x: 'Match' if x['Match']==1 else 'AntiMatch')
+            
+            checkedDF['PL Status']=checkedDF.apply(lambda x: 'Sync' if x['override']=='Match' else 'NoPowerListing')
+            
+                
+            uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
             print uploadDF
        #remove this once we do something here     
             root.destroy()
@@ -935,6 +949,7 @@ class MatchingInput(Tkinter.Frame):
             
  #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):
+        
         self.master.withdraw()
         self.settingWindow=Toplevel()
         self.IndustryType=IntVar()
@@ -1050,8 +1065,13 @@ class MatchingInput(Tkinter.Frame):
 
   #Final screen to close program.          
     def AllDone(self,msg):
+        global t0
+        t1=time.time()
+        print "start: "+datetime.datetime.fromtimestamp(t0).strftime('%Y-%m-%d %H:%M:%S')
+        print "end: "+ datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
+        print str(t1-t0)+" seconds"
         self.completeWindow=Toplevel()  
-        self.completeMsg=Label(self.completeWindow,text=msg).grid(row=1,column=1)
+        self.completeMsg=Label(self.completeWindow,text="time to complete: "+str(t1-t0)+"  "+msg).grid(row=1,column=1)
         self.DoneButton=Button(self.completeWindow,text="Exit", command= lambda:[root.destroy()]).grid(row=2,column=1)
 
 #Defining this globally helps being able to call it within the Tkinter class
@@ -1060,7 +1080,8 @@ df=pd.DataFrame
 global checkedDF
 global root
 checkedDF=pd.DataFrame     
-
+global t0
+t0=time.time()
 #starts Tkinter
 root = Tkinter.Tk()
 app = MatchingInput(root)

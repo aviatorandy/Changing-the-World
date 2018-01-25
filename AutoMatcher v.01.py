@@ -584,7 +584,7 @@ def readFile(xlsFile):
         #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
         print 'reading file'
         if xlsFile[-4:]=='xlsx':
-            wb = xlrd.open_workbook(xlsFile, on_demand=True)
+            wb = xlrd.open_workbook(xlsFile, on_demand=True,encoding_override="utf-8")
             sNames = wb.sheet_names()        
             wsTitle = "none"
 #            for name in sNames:
@@ -594,7 +594,7 @@ def readFile(xlsFile):
             df = pd.ExcelFile(xlsFile).parse(wsTitle)
 
         elif xlsFile[-3:]=='csv':
-            df = pd.read_csv(xlsFile)
+            df = pd.read_csv(xlsFile, encoding ='utf-8')
         else:
             raise Exception('What kind of file did you give me, bro?')
         #wb = xlrd.open_workbook(xlsFile, on_demand=True)
@@ -639,7 +639,7 @@ def runProg(df,IndustryType,bid):
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
     
-    df.sort_values('Robot Suggestion')
+    df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
     df.to_excel(writer,sheet_name="Result", index=False)

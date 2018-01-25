@@ -550,6 +550,7 @@ def compareData(df, IndustryType, bid):
     #compareStateCountry(df)
     df['Distance (M)'] = df.apply(lambda row: calculateDistance(row), axis=1) 
     print 'suggesting matches'
+    calculateTotalScore(df)
     suggestedmatch(df, IndustryType)
 
 #This function provides a suggested match based on certain name/address thresholds
@@ -730,18 +731,29 @@ def suggestedmatch(df, IndustryType):
     df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 else ('Check' if x['Name Match'] ==2 else 'Bad'), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
 
-#def ExternalIDDupe(row):    
-    #If Listing ID is matched to more than one location 
-#    if row['Match \n1 = yes, 0 = no'] == 1 and row['Listing ID'] #count of listing ID is >1:
-#        ['Total Score']  = df.apply(lambda x: 'Good' if x['Name Match']* x['Name Match']* else "Nothing" ), axis=1)
- #   if  in dupeLinks:     
-  #  else: return 0
-    #['Listing ID'] 
-   # 
-        
-    #Calculate the total score and sort first by the ID then the score 
-    #
+def calculateTotalScore(df):
+#GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
+    totalscore= []
+    for index,row in df.iterrows():
+        totalscore.append(row['Name Score']*.7 + row['Address Score']*.3)
+    df['Total Score'] = totalscore
+    return df
+
+#def calculateListingMatchCount(df):
+#    ListingMatchedCount = [] 
+#    for index,row in df.iterrows():
+#        if row['Match'] == 1 and row['Listing Matched Count'] > 1: #count of listing ID is >1
+#    df['Listing Matched Count']  = ListingMatchedCount 
     
+def ExternalID_De_Dupe(df):    
+    #If Listing ID is matched to more than one location 
+    df=df.sort_values(by='Match','Listing ID','Total Score', ascending=[False, True, False] )
+    for index,row in df.iterrows():
+        while row['Match'] == 1 and df.at[index+1]['Match'] ==1:
+            if row['Listing ID'] == df.at[index+1]['Listing ID']:
+                df.at[index+1]['Match'] = 0
+    return df
+
 #Now not called at all
 def main():
     getInput()    

@@ -80,7 +80,8 @@ def compareName(df,IndustryType,bid):
     for index,row in df.iterrows():    
         #Removes City name if in Listing name
         if cleanName(row['Location City']) in row['Cleaned Listing Name']:
-            df.loc[index,'Cleaned Listing Name']=row['Cleaned Listing Name'].replace(cleanName(row['Location City']),'')
+            df.loc[index,'Cleaned Listing Name']=row['Cleaned Listing Name']\
+            .replace(cleanName(row['Location City']),'')
             
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
@@ -108,7 +109,8 @@ def compareName(df,IndustryType,bid):
     if IndustryType=="2":
         OtherHotelMatch = []
         HotelBrands = ["test"]
-        HotelBrands=["Grill", "bar", "starbucks", "electric", "wedding", "gym", "pool", "restaurant", "bistro"]     
+        HotelBrands=["Grill", "bar", "starbucks", "electric", "wedding", "gym",\
+                     "pool", "restaurant", "bistro"]     
 
         #HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
         for index, row in df.iterrows(): 
@@ -191,136 +193,6 @@ def compareName(df,IndustryType,bid):
             averagenamescore.append(average)
         df['Name Score'] = averagenamescore
         return   
-
-#This function compares the names in the file
-def compareName2(row, IndustryType, cleanLoc, cleanLis, bid):
-    row['Cleaned Location Name'] = cleanName(row['Location Name']) 
-    row['Cleaned Listing Name'] = cleanName(row['Listing Name'])
-    
-    df['No Name']=''
-    for index,row in df.iterrows():
-        #If name is blank, fills in last part of URL
-        if row['Listing Name']==None and row['Listing URL']!=None:
-            df.loc[index,'Cleaned Listing Name']=cleanName(row['Listing URL'].split('/')[-1])
-            df.loc[index,'No Name']='URL for name'
-        elif row['Listing Name']==None:
-            df.loc[index,'No Name']='No Name'
-    for index,row in df.iterrows():    
-        #Removes City name if in Listing name
-        if cleanName(row['Location City']) in row['Cleaned Listing Name']:
-            df.loc[index,'Cleaned Listing Name']=row['Cleaned Listing Name'].replace(cleanName(row['Location City']),'')
-            
-    df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
-    df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
-    
-    averagenamescore = []
-    average=0
-    
-    #Populates businessNames with Account Name and alt Name Policies
-    inputName=''
-    global businessNames
-    businessNames=[]
-    businessNames.append(cleanName(getBusName(bid)))
-    altNames=getAltName(bid)
-    for name in altNames:
-        businessNames.append(cleanName(name))
-
-    global namesComplete
- 
-    #calls Tkinter input window for more business names. Waits for it to complete
-    app.namesWindow(businessNames)
-    app.wait_window(app.nameW)
-   
-#start of comparisons, broken out by industry
-    #Hotel
-    if IndustryType=="2":
-        OtherHotelMatch = []
-        HotelBrands = ["test"]
-        HotelBrands=["Grill", "bar", "starbucks", "electric", "wedding", "gym", "pool", "restaurant", "bistro"]     
-
-        #HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
-        for index, row in df.iterrows(): 
-            businessRatio=0
-            businessPartialRatio=0
-            OtherHotel = 0
-            for brands in HotelBrands:
-                businessRatio=max(businessRatio,fuzz.ratio(brands, row['Cleaned Listing Name']))
-                businessPartialRatio=max(businessPartialRatio,fuzz.partial_ratio(brands, row['Cleaned Listing Name']))            
-            #Check listing name against location name
-            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            #returns Max of Business Match or Location Name Match
-
-            #Pass a boolean of if it's part of the brand match
-            if np.mean([businessRatio,businessPartialRatio]) > np.mean([nsr,ntpr]):
-                OtherHotel = 1
-            else:
-                OtherHotel = 0
-            OtherHotelMatch.append(OtherHotel)
-            average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-            averagenamescore.append(average)
-        df['Other Hotel Match'] = OtherHotelMatch
-        print len(OtherHotelMatch)
-        df['Name Score'] = averagenamescore
-        print len(averagenamescore)
-        return
-
-        #df['Name Score'] = averagenamescore
-    
-    #Healthcare Professional matching
-    if IndustryType=="3":
-        ProviderScore = []
-        for index, row in df.iterrows():
-            ntpr = fuzz.partial_ratio(row['Provider Name'], row['Cleaned Listing Name'])
-            ProviderScore.append(ntpr)
-        df['Name Score'] = ProviderScore
-        print 'Is this working for HC professionals?'
-        return
-        
-    #Healthcare Facility matching
-    if IndustryType=="4":
-        return
-
-    #Agent Names matching
-    if IndustryType=="5":
-        for index, row in df.iterrows(): 
-            businessRatio=0
-            businessPartialRatio=0
-            #Check listing name against business names
-            for bName in businessNames:
-                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                businessPartialRatio=max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
-            #Check listing name against location name
-            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            #returns Max of Business Match or Location Name Match
-            average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-            averagenamescore.append(average)
-        df['Name Score'] = averagenamescore
-        return
-
-    #Auto Name Matching
-    if IndustryType=="6":
-        return
-        
-    #Normal/International    
-    else:       
-        for index, row in df.iterrows(): 
-            businessRatio=0
-            businessPartialRatio=0
-            #Check listing name against business names
-            for bName in businessNames:
-                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                businessPartialRatio=max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
-            #Check listing name against location name
-            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            #returns Max of Business Match or Location Name Match
-            average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-            averagenamescore.append(average)
-        df['Name Score'] = averagenamescore
-        return   
-
         
 #This function compares the countries in the file
 def compareStateCountry(df):
@@ -368,14 +240,6 @@ def comparePhone(df):
     except:
         df['Phone Match'] = 'x'    
 
-def comparePhone2(row,array):    
-    if (['Location Phone'] != "" and row['Location Phone'] == row['Listing Phone']):
-        array.append(True)
-    elif (row['Location Local Phone'] != "" and row['Location Local Phone'] == row['Listing Phone']): 
-        array.append(True)
-    else:
-        array.append(False)
-
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
     #International 
@@ -408,31 +272,6 @@ def compareAddress(df,IndustryType):
                 averageaddressscore.append(asr)
     df['Address Score'] = averageaddressscore
 
-#This function compares the addresses in the file                
-def compareAddress2(row, compareaddress, cleanlocArray, cleanlistArray, IndustryType):
-    #International 
-    
-    if IndustryType=='6':
-        #Combine Address 1, Address 2
-        row['Cleaned Input Address'] = cleanAddress(row['Location Address']) + ' ' + cleanAddress(row['Location Address 2'])
-        row['Cleaned Listing Address'] = cleanAddress(row['Listing Address']) + ' ' + cleanAddress(row['Listing Address 2'])
-        #removes extra space where necessary
-        row['Cleaned Input Address'] = cleanAddress(row['Cleaned Input Address'])
-        row['Cleaned Listing Address'] = cleanAddress(row['Cleaned Listing Address'])
-
-        #Finds best match between normal ratio, sorted ratio
-        asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-        addressSortRatio = fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-        apsr = fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-        compareaddress.append(max(asr,addressSortRatio,apsr))
-        
-    #All other industries
-    else:
-        cleanlocArray.append(cleanAddress(row['Location Address']))
-        cleanlistArray.append(row['Listing Address'])
-        asr = fuzz.ratio(row[cleanlocArray], row[cleanlistArray])
-        compareaddress.append(asr)
-
 #This function compares the cities in the file                
 def compareCity(df):
     df['Cleaned Input City'] = df['Location City'].apply(cleanCity) 
@@ -448,29 +287,19 @@ def compareCity(df):
 
 #This function compares the Country in the file                        
 def compareCountry(df):
-     df['Country Match'] = df.apply(lambda x: '0' if x['Input Location Country'] != x['Duplicate Location Country'] else '1', axis=1)
+     df['Country Match'] = df.apply(lambda x: '0' if x['Input Location Country'] != x['Duplicate Location Country']\
+                                     else '1', axis=1)
 
 #This function compares the Zips in the file                   
 def compareZip(df):
-     df['Zip Match'] = df.apply(lambda x: True if x['Location Zip'] == x['Listing Zip'] else False, axis=1)
-
-def compareZip2(row):
-    if row['Location Zip'] == row['Listing Zip']:
-        row['Zip Match'] = True 
-    else:
-        row['Zip Match'] = False
+     df['Zip Match'] = df.apply(lambda x: True if x['Location Zip'] == x['Listing Zip']\
+                                 else False, axis=1)
      
 #This function compares the NPIs in the file
 def compareNPI(row):
-     df['NPI Match'] = df.apply(lambda x:True if x['Location NPI'] == x['Listing NPI'] else False, axis=1)
+     df['NPI Match'] = df.apply(lambda x:True if x['Location NPI'] == x['Listing NPI']\
+                                 else False, axis=1)
 
-#This function compares the NPIs in the file
-def compareNPI2(row, array):
-    if row['Location NPI'] == row['Listing NPI']:
-        array.append(True)
-    else: 
-        array.append(False)
-     
 #copied from old template. Calculates metric distance between geocodes     
 def calculateDistance(row):
     try: locationLat = float(row['Location Latitude'])
@@ -496,6 +325,7 @@ def calculateDistance(row):
     r = 6371 # Radius of earth in kilometers. Use 3956 for miles
     return c * r * 1000
     
+#Potential Speed Optimizer of Passing in Rows instead of dataframes.    
 #def compareEverything(df,IndustryType, bid):
 #    averageaddressscore = []
 #    phonescore = []
@@ -506,31 +336,6 @@ def calculateDistance(row):
 #         NPIscore = []   
 #    #    averagenamescore = []
 #    for index, row in df.iterrows(): 
-#        print index
-#        #compareId(df)
-##       print 'comparing phones'
-#        comparePhone2(row,phonescore)
-#        #compareCountry(df)
-#        #print 'comparing zips'
-#        compareZip2(row)
-#        if IndustryType=='3':
-#            #print 'comparing NPIs'
-#            compareNPI2(row, NPIscore)
-#        #print 'comparing names'
-#        #        compareName2(row,IndustryType,averagenamescore, bid)
-#        #print 'comparing addresses'
-#        compareAddress2(row,averageaddressscore,cleanedlocadd, cleanedlistingadd, IndustryType)
-##        #compareStateCountry(df)
-#    print "comparing names"
-#    compareName(df,IndustryType, bid)
-#    df['Cleaned Input Address'] =  cleanedlocadd
-#    df['Cleaned Listing Address'] = cleanedlistingadd 
-#    df['Address Score'] = averageaddressscore
-#    df['Distance (M)'] = df.apply(lambda row: calculateDistance(row), axis=1) 
-##    df['Name Score'] = averagenamescore
-#    df['Phone Match'] = phonescore
-#    print 'suggesting matches'
-#    suggestedmatch(df, IndustryType)
 
 def compareData(df, IndustryType, bid):
     
@@ -738,12 +543,6 @@ def calculateTotalScore(df):
         totalscore.append(row['Name Score']*.7 + row['Address Score']*.3)
     df['Total Score'] = totalscore
     return df
-
-#def calculateListingMatchCount(df):
-#    ListingMatchedCount = [] 
-#    for index,row in df.iterrows():
-#        if row['Match'] == 1 and row['Listing Matched Count'] > 1: #count of listing ID is >1
-#    df['Listing Matched Count']  = ListingMatchedCount 
     
 def ExternalID_De_Dupe(df):    
     #If Listing ID is matched to more than one location 
@@ -752,11 +551,9 @@ def ExternalID_De_Dupe(df):
     for index,row in df.iterrows():
       
         if index < df.shape[0]-1:
-  
             if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
                 if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
                     row['Match'] = 0
-
     return df
 
 #Now not called at all
@@ -785,13 +582,6 @@ def getInput():
 #Reads CSV or XLSX files        
 def readFile(xlsFile):
         
-    #Is this necessary?  Works without.
-        #directory = xlsFile[:xlsFile.rindex("\\")]
-                            
-        #os.chdir(directory)
-        
-        
-        #xlsFile = r"C:\Users\achang\Downloads\test.xlsx"
         print 'reading file'
         if xlsFile[-4:]=='xlsx':
             wb = xlrd.open_workbook(xlsFile, on_demand=True,encoding_override="utf-8")
@@ -828,11 +618,9 @@ def runProg(df,IndustryType,bid):
 
 #Compares all, suggests matches    
     compareData(df,IndustryType,bid)
-#    compareEverything(df,IndustryType,bid)
     
  #Completes Matching Question sheet   
-    matchingNameQs=matchingQuestions(df,row)
-     
+    matchingNameQs=matchingQuestions(df,row)     
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
 
@@ -967,7 +755,7 @@ def sqlPull(bid,folderID,labelID):
         else:
             FinalSQL_QueryMatches.append(x)
         
-        #Convert Query into string from list
+    #Convert Query into string from list
     FinalSQL_QueryMatches = ' '.join(FinalSQL_QueryMatches)
     
     Yext_Mat_DB = MySQLdb.connect(host="127.0.0.1", port=5009, db="alpha")

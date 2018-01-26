@@ -734,13 +734,13 @@ def sqlPull(bid,folderID,labelID):
  #Subs out variables for Account ID numbers   
     for index, line in enumerate(SQL_QueryMatches):
         SQL_QueryMatches[index]=line.replace('@bizid', str(bid))
-        
+    
     if folderID !=0:
         for index, line in enumerate(SQL_QueryMatches):
             SQL_QueryMatches[index]=line.replace('--left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id',\
                     'left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id')\
                     .replace('--and l.treeNode_id=@folderid', 'and l.treeNode_id=@folderid').replace('@folderid', str(folderID))
-            
+    
     if labelID !=0:
         for index, line in enumerate(SQL_QueryMatches):
             SQL_QueryMatches[index]=line.replace('--left join alpha.location_labels ll on ll.location_id=l.id', \
@@ -894,15 +894,17 @@ class MatchingInput(Tkinter.Frame):
         
         
 #First screen - needs to explain what's going on, get input on where in process they are        
-        self.IntroLabel=Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0)
+        self.IntroLabel=Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0,pady=10,padx=0)
         self.processChoice=IntVar()
         self.processChoice.set(-1)
-        self.StartMatch=Radiobutton(master,text="Start AutoMatcher - pull data/enter file",variable=self.processChoice,value=0).grid(row=1,column=0)
-        self.ChecksChoice=Radiobutton(master,text="Input Completed Manual Checks, create upload",variable=self.processChoice,value=1).grid(row=1,column=1)
+        self.StartMatch=Radiobutton(master,text="Start AutoMatcher - pull data/enter file",variable=self.processChoice,value=0).grid(row=1,column=0,sticky=W)
+        self.ChecksChoice=Radiobutton(master,text="Input Completed Manual Checks, create upload",variable=self.processChoice,value=1)\
+                                                                .grid(row=1,column=1)
         
         self.Next=Button(master,text="Next",command=lambda: [self.initialSettingsWindow() if self.processChoice.get()==0 else \
-                                                             (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))]).grid(row=2,column=0)
-        self.Quit=Button(master,text="Quit",command= lambda: [root.destroy()]).grid(row=3,column=0)
+                                                             (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))])\
+                                                             .grid(row=2,column=0,sticky=W,pady=25,padx=10)
+        self.Quit=Button(master,text="Quit",command= lambda: [root.destroy()]).grid(row=3,column=0, sticky=W,pady=10,padx=10)
         
 #If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
@@ -956,13 +958,13 @@ class MatchingInput(Tkinter.Frame):
         self.IndustryType.set(-1)
         self.IndustryLabel=Label(self.settingWindow,text="Select Industry Type").grid(row=0,column=0)
 
-        self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=0)
-        self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1)
-        self.Hotel=Radiobutton(self.settingWindow, text="Hotel", variable=self.IndustryType,value=2).grid(row=1,column=2)
-        self.Doctor=Radiobutton(self.settingWindow, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=1,column=3)
-        self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4)
-        self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
-        self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
+        self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=7,sticky=W)
+        self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1,sticky=W)
+        self.Hotel=Radiobutton(self.settingWindow, text="Hotel", variable=self.IndustryType,value=2).grid(row=1,column=2,sticky=W)
+        self.Doctor=Radiobutton(self.settingWindow, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=1,column=3,sticky=W)
+        self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4,sticky=W)
+        self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5,sticky=W)
+        self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6,sticky=W)
 
 #        self.quitButton.pack()
         self.dataInput=IntVar()
@@ -977,9 +979,9 @@ class MatchingInput(Tkinter.Frame):
         self.nextButton = Button(self.settingWindow, text="Next", command=self.detailsWindow)
         
         self.inputType.grid(row=2,column=0)
-        self.SQL.grid(row=3,column=0, sticky=W)
-        self.file.grid(row=4,column=0, sticky=W)
-        self.nextButton.grid(row=5,column=0,sticky=W)
+        self.SQL.grid(row=3,column=1, sticky=W)
+        self.file.grid(row=4,column=1, sticky=W)
+        self.nextButton.grid(row=5,column=0,sticky=W,pady=25)
 
  #Gets File path or business, folder, and label ids to pull from SQL       
     def detailsWindow(self):
@@ -994,6 +996,9 @@ class MatchingInput(Tkinter.Frame):
         elif self.dataInput.get()==2:
             self.detailsW=Tkinter.Toplevel(self)
             vcmd = self.master.register(self.validate)
+            self.InputExplanation=Label(self.detailsW,text="Please enter account info \
+                                        for data to pull. Business ID is required. You can leave blank \
+                                        or put 0 for Folder ID and Label ID if not needed").grid(row=5,column=0)
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
             self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)

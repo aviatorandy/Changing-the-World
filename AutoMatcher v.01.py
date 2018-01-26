@@ -726,7 +726,9 @@ def suggestedmatch(df, IndustryType):
      #All other industries
     else:
         #Applies Match rules based on new columns.
-        df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
+        df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and \
+        (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 \
+        else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
 
     df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 else ('Check' if x['Name Match'] ==2 else 'Bad'), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
@@ -767,7 +769,8 @@ def main():
 #Now not called at all.    
 def getInput():    
     #Gets all inputs
-    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")                
+    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, \
+                            Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")                
     inputChoice=raw_input("Do you want to pull data from SQL or give input file? 0=SQL, 1=File \n")
     
     
@@ -952,7 +955,8 @@ def sqlPull(bid,folderID,labelID):
             
     if labelID !=0:
         for index, line in enumerate(SQL_QueryMatches):
-            SQL_QueryMatches[index]=line.replace('--left join alpha.location_labels ll on ll.location_id=l.id', 'left join alpha.location_labels ll on ll.location_id=l.id')
+            SQL_QueryMatches[index]=line.replace('--left join alpha.location_labels ll on ll.location_id=l.id', \
+            'left join alpha.location_labels ll on ll.location_id=l.id')
         for index, line in enumerate(SQL_QueryMatches):   
             SQL_QueryMatches[index]=line.replace('--and ll.label_id=@labelid', 'and ll.label_id=@labelid')
         for index, line in enumerate(SQL_QueryMatches):   
@@ -1108,14 +1112,16 @@ class MatchingInput(Tkinter.Frame):
         self.StartMatch=Radiobutton(master,text="Start AutoMatcher - pull data/enter file",variable=self.processChoice,value=0).grid(row=1,column=0)
         self.ChecksChoice=Radiobutton(master,text="Input Completed Manual Checks, create upload",variable=self.processChoice,value=1).grid(row=1,column=1)
         
-        self.Next=Button(master,text="Next",command=lambda: [self.initialSettingsWindow() if self.processChoice.get()==0 else (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))]).grid(row=2,column=0)
+        self.Next=Button(master,text="Next",command=lambda: [self.initialSettingsWindow() if self.processChoice.get()==0 else \
+                                                             (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))]).grid(row=2,column=0)
         self.Quit=Button(master,text="Quit",command= lambda: [root.destroy()]).grid(row=3,column=0)
         
 #If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
         self.master.withdraw()
 #Takes in completed matches file with checks filled out
-        checkedFile=tkFileDialog.askopenfilename(initialdir = "/",title = "Select completed matching file with Check column filled out",defaultextension="*.xlsx;*.xls", filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
+        checkedFile=tkFileDialog.askopenfilename(initialdir = "/",title = "Select completed matching file with Check column filled out",\
+                                                 defaultextension="*.xlsx;*.xls", filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
         checkedDF,bid=readFile(checkedFile)
         
 #Checks to see if all rows asking for a check have manual review        

@@ -747,11 +747,14 @@ def calculateTotalScore(df):
     
 def ExternalID_De_Dupe(df):    
     #If Listing ID is matched to more than one location 
-    df=df.sort_values(by='Match','Listing ID','Total Score', ascending=[False, True, False] )
+    df=df.sort_values(['Match','Listing ID','Total Score'], ascending=[True, True, True] )
+    df = df.reset_index(drop=True)
     for index,row in df.iterrows():
-        while row['Match'] == 1 and df.at[index+1]['Match'] ==1:
-            if row['Listing ID'] == df.at[index+1]['Listing ID']:
-                df.at[index+1]['Match'] = 0
+        print index
+        if index != df.shape[0]:
+            if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
+                if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
+                    row['Match'] = 0
     return df
 
 #Now not called at all
@@ -1131,18 +1134,20 @@ class MatchingInput(Tkinter.Frame):
 
             #EXTERNAL ID DEDPUE
             #print checkedDF
-           # checkedDF['override']=checkedDF.apply(lambda x: 'Match' if x['Match']==1 else 'AntiMatch',axis=1)
-           # checkedDF['PL Status']=checkedDF.apply(lambda x: 'Sync' if x['override']=='Match' else 'NoPowerListing',axis=1)
+            checkedDF['override']=checkedDF.apply(lambda x: 'Match' if x['Match']==1 else 'AntiMatch',axis=1)
+            checkedDF['PL Status']=checkedDF.apply(lambda x: 'Sync' if x['override']=='Match' else 'NoPowerListing',axis=1)
                
            
-           checkedDF=calculateTotalScore(checkedDF)
-           checkedDF=ExternalID_De_Dupe(checkedDF)
-           uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
+            #checkedDF=calculateTotalScore(checkedDF)
+            checkedDF=ExternalID_De_Dupe(checkedDF)
+            uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
 
             
             writeUploadFile(uploadDF)
-
-            print uploadDF
+            print t0
+            t1=time.time()
+            print t1
+            print t1-t0
        #remove this once we do something here     
             root.destroy()
                     

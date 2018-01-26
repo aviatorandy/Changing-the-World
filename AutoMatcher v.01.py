@@ -720,13 +720,15 @@ def runProg(df,IndustryType,bid):
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
 
 #Pulls all location and listing match data
-def sqlPull(bid,folderID,labelID):
+def sqlPull(bid,folderID,labelID,ReportType):
     print 'pulling data'
     #Pull Location info and Listing IDs
     #IF LISTINGS:
-    SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
+    if ReportType == 0:
+        SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
     #IF SUPPRESSION:
-    #SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()    
+    else:
+        SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Suppression - Pull Matches.sql")).read()    
     SQL_QueryMatches=SQL_QueryMatches.splitlines()
     
  #Subs out variables for Account ID numbers   
@@ -960,6 +962,20 @@ class MatchingInput(Tkinter.Frame):
         self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5)
         self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6)
 
+        
+        #Report Type Designation
+        self.ReportType=IntVar()
+        self.ReportType.set(-1)
+        self.ReportLabel=Label(self.settingWindow,text="Select report type:").grid(row=2,column=2)
+        
+        self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=3,column=2)
+        self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=3,column=3)
+        #self.FB=Radiobutton(self.settingWindow, text="FB", variable=self.ReportType,value=2).grid(row=1,column=2)
+        #self.Google=Radiobutton(self.settingWindow, text="Google", variable=self.ReportType,value=x).grid(row=1,column=3)
+        
+
+        
+        
 #        self.quitButton.pack()
         self.dataInput=IntVar()
         self.dataInput.set(0)
@@ -1017,7 +1033,7 @@ class MatchingInput(Tkinter.Frame):
                 labelID=self.labelID.get()
             else:
                 labelID=0
-            df=sqlPull(self.bizID.get(),folderID,labelID)
+            df=sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get())
             runProg(df,self.IndustryType.get(),self.bizID.get())
     
 #button function to ammend businessNames list            

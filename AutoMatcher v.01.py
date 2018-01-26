@@ -750,11 +750,13 @@ def ExternalID_De_Dupe(df):
     df=df.sort_values(['Match','Listing ID','Total Score'], ascending=[True, True, True] )
     df = df.reset_index(drop=True)
     for index,row in df.iterrows():
-        print index
-        if index != df.shape[0]:
+      
+        if index < df.shape[0]-1:
+  
             if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
                 if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
                     row['Match'] = 0
+
     return df
 
 #Now not called at all

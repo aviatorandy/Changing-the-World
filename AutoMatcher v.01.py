@@ -144,10 +144,9 @@ def compareName(df,IndustryType,bid):
     if IndustryType=="3":
         ProviderScore = []
         for index, row in df.iterrows():
-            ntpr = fuzz.partial_ratio(row['Provider Name'], row['Cleaned Listing Name'])
+            ntpr = fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'])
             ProviderScore.append(ntpr)
         df['Name Score'] = ProviderScore
-        print 'Is this working for HC professionals?'
         return
         
     #Healthcare Facility matching
@@ -296,9 +295,8 @@ def compareZip(df):
                                  else False, axis=1)
      
 #This function compares the NPIs in the file
-def compareNPI(row):
-     df['NPI Match'] = df.apply(lambda x:True if x['Location NPI'] == x['Listing NPI']\
-                                 else False, axis=1)
+def compareNPI(df):
+     df['NPI Match'] = df.apply(lambda x: True if x['Location NPI'] == x['Listing NPI'] else False, axis=1)
 
 #copied from old template. Calculates metric distance between geocodes     
 def calculateDistance(row):
@@ -427,9 +425,9 @@ def suggestedmatch(df, IndustryType):
             if row ['NPI Match'] :
                 robotmatch.append("Match - NPI")
             elif row['Phone Match']=='1':
-                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
+                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
                     robotmatch.append("Check") 
-                elif 80 <= row['Name Score']:
+                elif 76 <= row['Name Score']:
                     robotmatch.append("Match Suggested") 
                 else: 
                     if row['No Name']=='URL for name':
@@ -438,9 +436,9 @@ def suggestedmatch(df, IndustryType):
                         robotmatch.append("No Match - Name")                         
             elif row['Address Score'] < 70:
                 if row['Distance (M)']<200:
-                    if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
+                    if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
                         robotmatch.append("Check") 
-                    elif 80 <= row['Name Score']:
+                    elif 76 <= row['Name Score']:
                         robotmatch.append("Match Suggested - Geocode") 
                     else: 
                         if row['No Name']=='URL for name':
@@ -450,9 +448,9 @@ def suggestedmatch(df, IndustryType):
                 else:
                     robotmatch.append("No Match - Address")
             else:    
-                if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
+                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
                     robotmatch.append("Check") 
-                elif 80 <= row['Name Score']:
+                elif 76 <= row['Name Score']:
                     robotmatch.append("Match Suggested") 
                 else: 
                     if row['No Name']=='URL for name':
@@ -728,7 +726,10 @@ def runProg(df,IndustryType,bid):
 def sqlPull(bid,folderID,labelID):
     print 'pulling data'
     #Pull Location info and Listing IDs
+    #IF LISTINGS:
     SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
+    #IF SUPPRESSION:
+    #SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()    
     SQL_QueryMatches=SQL_QueryMatches.splitlines()
     
  #Subs out variables for Account ID numbers   
@@ -949,7 +950,8 @@ class MatchingInput(Tkinter.Frame):
        #remove this once we do something here     
             root.destroy()
                     
- #Gets user input for how to set up matcher           
+ 
+            #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):
         
         self.master.withdraw()

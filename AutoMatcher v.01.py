@@ -327,6 +327,45 @@ def calculateDistance(row):
     r = 6371 # Radius of earth in kilometers. Use 3956 for miles
     return c * r * 1000
     
+    
+def calculateDoctorMatch(df):
+    
+    commonDoctorWords=['MD','PA','Dr','DO','NP','Phys','LPN','RN','DDS','CNM','MPH','PHD','GP','DPM']
+    doctorSpecialty=pd.read_csv("~\Documents\Changing-the-World\SpecialtyDoctorMatching.csv")
+
+    
+    specialties=[]
+
+    for index, row in df.iterrows(): 
+    
+        locationName = (" " + row['Location Name'] + " ").lower()
+        listingName = (" " + row['Listing Name'] + " ").lower()
+        
+        if any([x for x in commonDoctorWords if x in listingName]): specialties.append( "0-Doctor")
+  #      elif any([x for x in punctuationWords if x in listingName]): specialties.append( "Check-Doctor")
+        else:
+            if any([x for x in ['Pharmacy', 'Gift Shop', 'Cafe'] if x in listingName]): specialties.append( "0-Excluded")
+            else:
+                locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
+                listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
+            
+                if locationNameSpecialties:
+                   if not listingNameSpecialties: specialties.append( "Check-Generic")
+                   elif [locationNameSpecialties & listingNameSpecialties][0]: specialties.append( "1-Specialty")
+                   else: specialties.append( "0-Specialty")
+            
+                else:
+                    if listingNameSpecialties: specialties.append( "1-Specialty")
+                    elif not listingNameSpecialties: specialties.append( "Check-Generic")
+                    
+               #this else seems out of place, but not sure where this goes.     
+                    else:
+                        specialties.append( "Check")
+                    
+        df['Specialty Match']=specialties
+
+
+    
 #Potential Speed Optimizer of Passing in Rows instead of dataframes.    
 #def compareEverything(df,IndustryType, bid):
 #    averageaddressscore = []

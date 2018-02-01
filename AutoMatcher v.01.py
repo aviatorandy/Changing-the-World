@@ -968,22 +968,27 @@ class MatchingInput(Tkinter.Frame):
         self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5,sticky=W)
         self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6,sticky=W)
 
+        
+        
+        
+        
+        
 #        self.quitButton.pack()
         self.dataInput=IntVar()
         self.dataInput.set(0)
-        self.inputType=Label(self.settingWindow,text="Select data input type:")
+        self.inputType=Label(self.settingWindow,text="Select data input type:").grid(row=2,column=0)
 
-        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2)
-        self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1)
+        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2).grid(row=3,column=1, sticky=W)
+        self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1).grid(row=4,column=1, sticky=W)
         
         
         
-        self.nextButton = Button(self.settingWindow, text="Next", command=self.detailsWindow)
+        self.nextButton = Button(self.settingWindow, text="Next", command=self.detailsWindow).grid(row=5,column=0,sticky=W,pady=25)
         
-        self.inputType.grid(row=2,column=0)
-        self.SQL.grid(row=3,column=1, sticky=W)
-        self.file.grid(row=4,column=1, sticky=W)
-        self.nextButton.grid(row=5,column=0,sticky=W,pady=25)
+#        self.inputType.grid(row=2,column=0)
+#        self.SQL.grid(row=3,column=1, sticky=W)
+#        self.file.grid(row=4,column=1, sticky=W)
+#        self.nextButton.grid(row=5,column=0,sticky=W,pady=25)
 
  #Gets File path or business, folder, and label ids to pull from SQL       
     def detailsWindow(self):
@@ -1013,6 +1018,9 @@ class MatchingInput(Tkinter.Frame):
             self.labelIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.labelID).grid(row=8,column=1,sticky=W)
         
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
+            
+            
+            
             
 #Runs SQl Pull            
     def pullSQLRun(self):

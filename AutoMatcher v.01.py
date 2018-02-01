@@ -8,7 +8,6 @@ Created on Wed Oct 25 14:23:11 2017
 from time import strftime
 import pandas as pd
 import os 
-import xlrd 
 import numpy as np
 import re
 from fuzzywuzzy import fuzz 
@@ -74,6 +73,7 @@ def noNames(df):
             df.loc[index,'No Name'] = 'URL for name'
         elif row['Listing Name'] == None:
             df.loc[index,'No Name'] = 'No Name'
+
     for index,row in df.iterrows():    
 #    df.apply()
         #Removes City name if in Listing name
@@ -200,6 +200,9 @@ def compareName(df, IndustryType, bid):
         return        
     #Industry Normal/International    
     else:       
+        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else 
+                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+        
         for index, row in df.iterrows(): 
             businessRatio=0
             businessPartialRatio=0
@@ -222,7 +225,7 @@ def compareStateCountry(df):
     for index, row in df.iterrows(): 
         # Drop different countries
         if (row['Input Location Country'] != row['Duplicate Location Country']):
-            df.drop(index,inplace=True) 
+            df.drop(index,inplace = True) 
         else:
             # Flag international locations
             if row['Input Location Country'] != "US":
@@ -230,71 +233,25 @@ def compareStateCountry(df):
             else:
                 # Drop different states within US
                 if (row['Location State'] != row['Listing State']):
-                    df.drop(index,inplace=True)
+                    df.drop(index,inplace = True)
                 else:
                     statematch.append("US")
     df['US?'] = statematch
-
-def fastercompare(df, IndustryType, bid):
-    
-    comparePhone(df)
-    #compareCountry(df)
-    print 'comparing zips'
-    compareZip(df)
-    if IndustryType == '3':
-        print 'comparing NPIs'
-        compareNPI(df)
-
-    print 'comparing names'
-    compareName(df,IndustryType, bid)
-    print 'comparing addresses'
-    compareAddress(df,IndustryType)
-    #compareStateCountry(df)
-    df['Distance (M)'] = df.apply(lambda row: calculateDistance(row), axis=1) 
-    
-    print 'suggesting matches'
-    calculateTotalScore(df)
-    suggestedmatch(df, IndustryType)
-
-    v1s, v2s, v3s = [], [], []
-
-    for _, row in df.iterrows():
-        df.apply(lambda x: True \
-        if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone'] != "")\
-        else (True if (x['Location Local Phone'] == x['Listing Phone'] \
-                       and x['Location Local Phone'] != "") else False), axis=1)
-        df['Phone Match'] = 'x'    
-
-        PhoneMatch, v2, v3 = complex_computation(row.values)
-        v1s.append(v1)
-        v2s.append(v2)
-        v3s.append(v3)
-    
-    if IndustryType == '3':
-        print 'comparing NPIs'
-        compareNPI(df)
-        
-        
-    df['Phone Match'] = PhoneMatch
-
-    return df
-
 
 #This function compares the locationIds in the file
 def compareId(df):
     IDmatch = []
     for index, row in df.iterrows(): 
         if (row['Input Location Id'] == row['Duplicate Location Id']):
-            df.drop(index,inplace=True)
+            df.drop(index,inplace = True)
         else:
             IDmatch.append("Unique Pair")                
     df['Location ID Match'] = IDmatch
 
 #This function removes matches that are not 1
 def userMatch(df):
-    for index, row in df.iterrows(): 
-        if (row['Match \n1 = yes, 0 = no'] != 1):
-            df.drop(index,inplace=True)
+    print "nothing"
+#    df.apply(lambda row: df.drop(index,inplace=True) if row['Match \n1 = yes, 0 = no'] != 1)
 
 #This function compares the phones in the file                
 def comparePhone(df):
@@ -303,7 +260,7 @@ def comparePhone(df):
         df['Phone Match'] = df.apply(lambda x: True \
             if (x['Location Phone'] == x['Listing Phone'] and x['Location Phone'] != "")\
             else (True if (x['Location Local Phone'] == x['Listing Phone'] \
-                           and x['Location Local Phone'] != "") else False), axis=1)
+                           and x['Location Local Phone'] != "") else False), axis = 1)
     except:
         df['Phone Match'] = 'x'    
 
@@ -317,29 +274,25 @@ def compareAddress(df,IndustryType):
         df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)\
                                     +' '+df['Listing Address 2'].apply(cleanAddress)
         #removes extra space where necessary
-        df['Cleaned Input Address']=df['Cleaned Input Address'].apply(cleanAddress)
-        df['Cleaned Listing Address'] =df['Cleaned Listing Address'].apply(cleanAddress)
+        df['Cleaned Input Address'] = df['Cleaned Input Address'].apply(cleanAddress)
+        df['Cleaned Listing Address'] = df['Cleaned Listing Address'].apply(cleanAddress)
         averageaddressscore = []
         for index, row in df.iterrows(): 
                 
                 #Finds best match between normal ratio, sorted ratio
                 asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-                addressSortRatio=fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+                addressSortRatio = fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
                 apsr = fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
 
                 averageaddressscore.append(max(asr,addressSortRatio,apsr))
+        df['Address Score'] = averageaddressscore
 
     #All other industries    
-    else:
-        
+    else:        
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress) 
         df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
-        averageaddressscore = []
-        for index, row in df.iterrows(): 
-               
-                asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-                averageaddressscore.append(asr)
-    df['Address Score'] = averageaddressscore
+        df['Address Score'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Input Address'], row['Cleaned Listing Address']), axis = 1) 
 
 #This function compares the cities in the file                
 def compareCity(df):
@@ -357,16 +310,16 @@ def compareCity(df):
 #This function compares the Country in the file                        
 def compareCountry(df):
      df['Country Match'] = df.apply(lambda x: '0' if x['Input Location Country'] != x['Duplicate Location Country']\
-                                     else '1', axis=1)
+                                     else '1', axis = 1)
 
 #This function compares the Zips in the file                   
 def compareZip(df):
      df['Zip Match'] = df.apply(lambda x: True if x['Location Zip'] == x['Listing Zip']\
-                                 else False, axis=1)
+                                 else False, axis = 1)
      
 #This function compares the NPIs in the file
 def compareNPI(df):
-     df['NPI Match'] = df.apply(lambda x: True if x['Location NPI'] == x['Listing NPI'] else False, axis=1)
+     df['NPI Match'] = df.apply(lambda x: True if x['Location NPI'] == x['Listing NPI'] else False, axis = 1)
 
 #copied from old template. Calculates metric distance between geocodes     
 def calculateDistance(row):
@@ -397,7 +350,7 @@ def calculateDistance(row):
     
 def calculateDoctorMatch(df):
     
-    commonDoctorWords=['md','pa','dr','do','np','phys','lpn','rn','dds','cnm','mph','phd','gp','dpm']
+    commonDoctorWords = ['md','pa','dr','do','np','phys','lpn','rn','dds','cnm','mph','phd','gp','dpm']
 #    doctorSpecialty=pd.read_csv("~\Documents\Changing-the-World\SpecialtyDoctorMatching.csv")
     excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na = False)
     doctorSpecialty = excelFile.parse('Specialty')
@@ -493,71 +446,85 @@ def suggestedmatch(df, IndustryType):
     df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] > 60 else 0), axis=1)
     df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<=200 else False, axis=1)
     
-    matchText='Match Suggested'
-    noName='No Match - Name'
-    noAddress='No Match - Address'
-    check='Check Name'
-    noSpecialty='No Match - Specialty'
-    checkSpecialty='Check Doctor/Specialty'
+    matchText = 'Match Suggested'
+    noName = 'No Match - Name'
+    noAddress = 'No Match - Address'
+    check = 'Check Name'
+    noSpecialty = 'No Match - Specialty'
+    checkSpecialty = 'Check Doctor/Specialty'
+    npimatch = 'Match - NPI'
+        
     
 
     #Hotel Type
     if IndustryType == '2':
-        df['Robot Suggestion'] = df.apply(lambda x: True if x['Distance (M)']<=200 else False, axis=1)
-
-        for index, row in df.iterrows(): 
-            #If hotel matches another brand better
-            if row['Other Hotel Match'] == "1":                
-                if row['Phone Match']:
-                    if row['Address Score'] < 70:
-                        robotmatch.append("No Match - Address")
-                    else:
-                        if 60 < row['Name Score'] < 80:
-                            robotmatch.append("Check") 
-                        elif 80 <= row['Name Score']:
-                            robotmatch.append("Match Suggested") 
-                        else: 
-                            robotmatch.append("No Match - Name")                         
-                else:
-                    if row['Address Score'] < 70:
-                        robotmatch.append("No Match - Address")
-                    else:
-                        if 60 < row['Name Score']:
-                            robotmatch.append("No Match - Name")                         
-                        else:
-                            robotmatch.append("Check")                         
-            else:              
-                if row['Phone Match']:
-                    if row['Address Score'] < 70:
-                        robotmatch.append("No Match - Address")
-                    else:
-                        if 60 < row['Name Score'] < 80:
-                            robotmatch.append("Check") 
-                        elif 80 <= row['Name Score']:
-                            robotmatch.append("Match Suggested") 
-                        else: 
-                            robotmatch.append("No Match - Name")                         
-                else:
-                    if row['Address Score'] < 70:
-                        robotmatch.append("No Match - Address")
-                    else:
-                        if 60 < row['Name Score'] < 80:
-                            robotmatch.append("Check")                         
-                        elif 80 <= row['Name Score']:
-                            robotmatch.append("Match Suggested")                                                                    
-                        else:
-                            robotmatch.append("No Match - Name")  
-        df['Robot Suggestion'] = robotmatch
-
+        df['Robot Suggestion'] = df.apply(lambda x: noName if x['Name Match'] == 0 \
+            else check if x['Name Match'] == 2 \
+            else matchText if x['Address Match'] == True else\
+             noAddress , axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
+
+#"""
+#        for index, row in df.iterrows(): 
+#            #If hotel matches another brand better
+#            if row['Other Hotel Match'] == "1":                
+#                if row['Phone Match']:
+#                    if row['Address Score'] < 70:
+#                        robotmatch.append("No Match - Address")
+#                    else:
+#                        if 60 < row['Name Score'] < 80:
+#                            robotmatch.append("Check") 
+#                        elif 80 <= row['Name Score']:
+#                            robotmatch.append("Match Suggested") 
+#                        else: 
+#                            robotmatch.append("No Match - Name")                         
+#                else:
+#                    if row['Address Score'] < 70:
+#                        robotmatch.append("No Match - Address")
+#                    else:
+#                        if 60 < row['Name Score']:
+#                            robotmatch.append("No Match - Name")                         
+#                        else:
+#                            robotmatch.append("Check")                         
+#            else:              
+#                if row['Phone Match']:
+#                    if row['Address Score'] < 70:
+#                        robotmatch.append("No Match - Address")
+#                    else:
+#                        if 60 < row['Name Score'] < 80:
+#                            robotmatch.append("Check") 
+#                        elif 80 <= row['Name Score']:
+#                            robotmatch.append("Match Suggested") 
+#                        else: 
+#                            robotmatch.append("No Match - Name")                         
+#                else:
+#                    if row['Address Score'] < 70:
+#                        robotmatch.append("No Match - Address")
+#                    else:
+#                        if 60 < row['Name Score'] < 80:
+#                            robotmatch.append("Check")                         
+#                        elif 80 <= row['Name Score']:
+#                            robotmatch.append("Match Suggested")                                                                    
+#                        else:
+#                            robotmatch.append("No Match - Name")  
+#                            """
+#        df['Robot Suggestion'] = robotmatch
+
    
     #Healthcare Professional
     elif IndustryType == '3': 
+        
+#        df['Robot Suggestion'] = df.apply(lambda row: matchNPI if row ['NPI Match'] \
+#                        else checkname if row['Phone Match'] == '1' and \
+#                                    (66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None)\
+#                        else matchText if 76 <= row['Name Score'] \
+
+        
         for index, row in df.iterrows(): 
             if row ['NPI Match'] :
                 robotmatch.append("Match - NPI")
             elif row['Phone Match'] == '1':
-                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
+                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None:
                     robotmatch.append("Check") 
                 elif 76 <= row['Name Score']:
                     robotmatch.append("Match Suggested") 
@@ -687,11 +654,9 @@ def suggestedmatch(df, IndustryType):
     df['Match \n1 = yes, 0 = no'] = ""
 
 def calculateTotalScore(df):
-#GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
-    totalscore= []
-    for index,row in df.iterrows():
-        totalscore.append(row['Name Score']*.7 + row['Address Score']*.3)
-    df['Total Score'] = totalscore
+    #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
+    df['Total Score'] = df.apply(lambda row: row['Name Score']*.7 + row['Address Score']*.3)
+
     return df
     
 def ExternalID_De_Dupe(df):    
@@ -699,6 +664,7 @@ def ExternalID_De_Dupe(df):
     df = df.sort_values(['Match','Listing ID','Total Score'], ascending = [True, True, True] )
 #    print df['Match']
     df = df.reset_index(drop=True)
+    
     for index,row in df.iterrows():      
         if index < df.shape[0]-1:
             if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
@@ -782,7 +748,7 @@ def runProg(df,IndustryType, bid):
 
     df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
-    writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter')
+    writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter',options={'strings_to_urls': False})
     df.to_excel(writer,sheet_name="Result", index=False)
     matchingNameQs.to_excel(writer,sheet_name="Matching Questions", index=False)
     workbook  = writer.book
@@ -1083,6 +1049,7 @@ class MatchingInput(Tkinter.Frame):
         
 #Checks to see if all rows asking for a check have manual review        
         allChecksComplete = True
+        
         for index, row in checkedDF.iterrows(): 
             if  ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
                 allChecksComplete=False
@@ -1169,7 +1136,7 @@ class MatchingInput(Tkinter.Frame):
         self.settingWindow.destroy()
         #File pull
         if self.dataInput.get() == 1:
-            fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=("Excel or CSV", "*.csv;*.xlsx;*.xls"))
+            fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
             df, bid = readFile(fname)
             
             runProg(df,str(self.IndustryType.get()),bid)

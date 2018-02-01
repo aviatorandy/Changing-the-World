@@ -92,7 +92,7 @@ def compareName(df,IndustryType,bid):
     #Populates businessNames with Account Name and alt Name Policies
     inputName=''
     global businessNames
-    businessNames=[]
+    businessNames = []
     businessNames.append(cleanName(getBusName(bid)))
     altNames=getAltName(bid)
     for name in altNames:
@@ -100,16 +100,17 @@ def compareName(df,IndustryType,bid):
 
     global namesComplete
  
+    
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)
    
 #start of comparisons, broken out by industry
-    #Hotel
-    if IndustryType=="2":
+    #Industry Hotel
+    if IndustryType == "2":
         OtherHotelMatch = []
         HotelBrands = ["test"]
-        HotelBrands=["Grill", "bar", "starbucks", "electric", "wedding", "gym",\
+        HotelBrands = ["Grill", "bar", "starbucks", "electric", "wedding", "gym",\
                      "pool", "restaurant", "bistro"]     
 
         #HotelBrands=["AC hotels", "aloft", "America's Best", "americas best value", "ascend", "autograph", "baymont", "best western", "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio", "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element", "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord", "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt", "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien", "Le Méridien", "Lexington", "luxury collection", "mainstay", "marriott", "microtel", "motel 6", "palace inn", "premier inn", "quality inn", "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz", "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis", "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace", "Value Hotel", "Value Inn", "W hotel", "westin", "wingate", "wyndham"]        
@@ -140,8 +141,8 @@ def compareName(df,IndustryType,bid):
         return
     #df['Name Score'] = averagenamescore
     
-    #Healthcare Professional matching
-    if IndustryType=="3":
+    #Industry Healthcare Professional matching
+    if IndustryType == "3":
         ProviderScore = []
         for index, row in df.iterrows():
             ntpr = fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'])
@@ -149,19 +150,19 @@ def compareName(df,IndustryType,bid):
         df['Name Score'] = ProviderScore
         return
         
-    #Healthcare Facility matching
+    #Industry Healthcare Facility matching
     if IndustryType=="4":
         return
 
     #Agent Names matching
-    if IndustryType=="5":
+    if IndustryType == "5":
         for index, row in df.iterrows(): 
-            businessRatio=0
-            businessPartialRatio=0
+            businessRatio = 0
+            businessPartialRatio = 0
             #Check listing name against business names
             for bName in businessNames:
-                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                businessPartialRatio=max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
+                businessRatio = max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
+                businessPartialRatio = max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
             #Check listing name against location name
             nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
             ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
@@ -172,10 +173,10 @@ def compareName(df,IndustryType,bid):
         return
 
     #Auto Name Matching
-    if IndustryType=="6":
+    if IndustryType == "6":
         return
         
-    #Normal/International    
+    #Industry Normal/International    
     else:       
         for index, row in df.iterrows(): 
             businessRatio=0
@@ -242,10 +243,12 @@ def comparePhone(df):
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
     #International 
-    if IndustryType=='6':
+    if IndustryType == '6':
         #Combine Address 1, Address 2
-        df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress)+' '+df['Location Address 2'].apply(cleanAddress) 
-        df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)+' '+df['Listing Address 2'].apply(cleanAddress)
+        df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress)\
+                                    +' '+df['Location Address 2'].apply(cleanAddress) 
+        df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)\
+                                    +' '+df['Listing Address 2'].apply(cleanAddress)
         #removes extra space where necessary
         df['Cleaned Input Address']=df['Cleaned Input Address'].apply(cleanAddress)
         df['Cleaned Listing Address'] =df['Cleaned Listing Address'].apply(cleanAddress)
@@ -313,7 +316,8 @@ def calculateDistance(row):
     if locationLat == 0.0 or listingLat == 0.0: return "n/a"
 
     # convert decimal degrees to radians
-    locationLat, locationLong, listingLat, listingLong = map(radians, [locationLat, locationLong, listingLat, listingLong])
+    locationLat, locationLong, listingLat, listingLong =\
+                map(radians, [locationLat, locationLong, listingLat, listingLong])
 
     # haversine formula
     dlon = listingLong - locationLong
@@ -330,7 +334,7 @@ def calculateDistance(row):
 #    cleanedlocadd = []
 #    cleanedlistingadd = []
 #    print "working"
-#    if IndustryType=='3':
+#    if IndustryType == '3':
 #         NPIscore = []   
 #    #    averagenamescore = []
 #    for index, row in df.iterrows(): 
@@ -343,11 +347,11 @@ def compareData(df, IndustryType, bid):
     #compareCountry(df)
     print 'comparing zips'
     compareZip(df)
-    if IndustryType=='3':
+    if IndustryType == '3':
         print 'comparing NPIs'
         compareNPI(df)
     print 'comparing names'
-    compareName(df,IndustryType,bid)
+    compareName(df,IndustryType, bid)
     print 'comparing addresses'
     compareAddress(df,IndustryType)
     #compareStateCountry(df)
@@ -424,13 +428,13 @@ def suggestedmatch(df, IndustryType):
         for index, row in df.iterrows(): 
             if row ['NPI Match'] :
                 robotmatch.append("Match - NPI")
-            elif row['Phone Match']=='1':
+            elif row['Phone Match'] == '1':
                 if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
                     robotmatch.append("Check") 
                 elif 76 <= row['Name Score']:
                     robotmatch.append("Match Suggested") 
                 else: 
-                    if row['No Name']=='URL for name':
+                    if row['No Name'] == 'URL for name':
                         robotmatch.append('Check - URL name')
                     else:
                         robotmatch.append("No Match - Name")                         
@@ -441,7 +445,7 @@ def suggestedmatch(df, IndustryType):
                     elif 76 <= row['Name Score']:
                         robotmatch.append("Match Suggested - Geocode") 
                     else: 
-                        if row['No Name']=='URL for name':
+                        if row['No Name'] == 'URL for name':
                             robotmatch.append('Check - URL name')
                         else:
                             robotmatch.append("No Match - Name")
@@ -453,7 +457,7 @@ def suggestedmatch(df, IndustryType):
                 elif 76 <= row['Name Score']:
                     robotmatch.append("Match Suggested") 
                 else: 
-                    if row['No Name']=='URL for name':
+                    if row['No Name'] == 'URL for name':
                         robotmatch.append('Check - URL name')
                     else:
                         robotmatch.append("No Match - Name")                         
@@ -463,7 +467,7 @@ def suggestedmatch(df, IndustryType):
                         
                     
     #International
-    elif IndustryType=='6':
+    elif IndustryType == '6':
         for index, row in df.iterrows(): 
             if row['Name Score'] <= 60 and row['No Name']!='URL for name':
                 robotmatch.append("No Match - Name")
@@ -475,7 +479,7 @@ def suggestedmatch(df, IndustryType):
                         robotmatch.append('Check - URL Name')
                     else:
                         robotmatch.append("Match Suggested") 
-                elif row['Country']=='GB':
+                elif row['Country'] == 'GB':
                     #if GB zip matches, then address match
                     if row['Address Score'] < 70 and not row['Zip Match']:
                         if row['Distance (M)']<200:
@@ -529,11 +533,15 @@ def suggestedmatch(df, IndustryType):
      #All other industries
     else:
         #Applies Match rules based on new columns.
-        df['Robot Suggestion'] = df.apply(lambda x: matchText if x['Name Match']==1 and \
-        (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) else (check if x['Name Match']==2 \
-        else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
 
-    df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 else ('Check' if x['Name Match'] ==2 else 'Bad'), axis=1)
+        df['Robot Suggestion'] = df.apply(lambda x: matchText \
+            if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
+                or x['Geocode Match']) else (check if x['Name Match']==2 \
+                else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
+
+
+    df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 \
+                    else ('Check' if x['Name Match'] == 2 else 'Bad'), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
 
 def calculateTotalScore(df):
@@ -546,45 +554,24 @@ def calculateTotalScore(df):
     
 def ExternalID_De_Dupe(df):    
     #If Listing ID is matched to more than one location 
-    df=df.sort_values(['Match','Listing ID','Total Score'], ascending=[True, True, True] )
+    df = df.sort_values(['Match','Listing ID','Total Score'], ascending = [True, True, True] )
+#    print df['Match']
     df = df.reset_index(drop=True)
-    for index,row in df.iterrows():
-      
+    for index,row in df.iterrows():      
         if index < df.shape[0]-1:
             if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
                 if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
-                    row['Match'] = 0
+#                    row['Match'] = 0
+                    df.set_value(index,'Match',0)
+#    print df['Match']
     return df
 
-#Now not called at all
-def main():
-    getInput()    
-    runProg()
-
-#Now not called at all.    
-def getInput():    
-    #Gets all inputs
-    IndustryType = raw_input("\nPlease input which industry you're matching Normal = 0, Auto = 1, Hotel = 2, \
-                            Healthcare Doctor = 3, Healthcare Facility = 4, Agent = 5, International = 6\n")                
-    inputChoice=raw_input("Do you want to pull data from SQL or give input file? 0=SQL, 1=File \n")
-    
-    
-    if inputChoice=='0':
-        bid = raw_input("Input Business ID: ")
-        
-        df=pd.DataFrame()
-        df=sqlPull(bid)
-    else:
-        xlsFile = raw_input("\nPlease input your file for matching."
-                            "\n\nEnter File Path Here: ").replace('""','').lstrip("\"").rstrip("\"")
-        df,bid=readFile(xlsFile)
-        runProg(df,IndustryType,bid)
         
 #Reads CSV or XLSX files        
 def readFile(xlsFile):
         
         print 'reading file'
-        if xlsFile[-4:]=='xlsx':
+        if xlsFile[-4:] == 'xlsx':
             wb = xlrd.open_workbook(xlsFile, on_demand=True,encoding_override="utf-8")
             sNames = wb.sheet_names()        
             wsTitle = "none"
@@ -594,34 +581,57 @@ def readFile(xlsFile):
             wsTitle=sNames[0]
             df = pd.ExcelFile(xlsFile).parse(wsTitle)
 
-        elif xlsFile[-3:]=='csv':
+        elif xlsFile[-3:] == 'csv':
             df = pd.read_csv(xlsFile, encoding ='utf-8')
         else:
             raise Exception('What kind of file did you give me, bro?')
        
         #Finds Business ID
         bid=getBusIDfromLoc(df.loc[0,'Location ID'])
-        
+#        return df
         return df,bid
+
+#Reads CSV or XLSX files        
+def readMatchedFile(xlsFile):
+        
+        print 'reading file'
+        if xlsFile[-4:] == 'xlsx':
+            wb = xlrd.open_workbook(xlsFile, on_demand=True,encoding_override="utf-8")
+            sNames = wb.sheet_names()        
+            wsTitle = "none"
+#            for name in sNames:
+#                 wsTitle = name
+      #Takes first sheet name, not last     
+            wsTitle=sNames[0]
+            df = pd.ExcelFile(xlsFile).parse(wsTitle)
+
+        elif xlsFile[-3:] == 'csv':
+            df = pd.read_csv(xlsFile, encoding ='utf-8')
+        else:
+            raise Exception('What kind of file did you give me, bro?')
+        return df
+#        return df,bid
     
+
+        
     
  #New main runtime function - broken out as previous functions now handled in Tkinter   
-def runProg(df,IndustryType,bid):    
+def runProg(df,IndustryType, bid):    
     print 'runprog'
     row = 0 
-    if IndustryType =='3':
+    if IndustryType == '3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'
-        DoctorNameDF=getProviderName(df)
+        DoctorNameDF = getProviderName(df)
         df=df.merge(DoctorNameDF,on='Location ID', how='left')
 
     lastcol=df.shape[1]
     row=df.shape[0]
 
 #Compares all, suggests matches    
-    compareData(df,IndustryType,bid)
+    compareData(df,IndustryType, bid)
     
  #Completes Matching Question sheet   
-    matchingNameQs=matchingQuestions(df,row)     
+    matchingNameQs = matchingQuestions(df,row)     
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
 
@@ -723,13 +733,15 @@ def runProg(df,IndustryType,bid):
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
 
 #Pulls all location and listing match data
-def sqlPull(bid,folderID,labelID):
+def sqlPull(bid,folderID,labelID,ReportType):
     print 'pulling data'
     #Pull Location info and Listing IDs
     #IF LISTINGS:
-    SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
+    if ReportType == 0:
+        SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
     #IF SUPPRESSION:
-    #SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()    
+    else:
+        SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Suppression - Pull Matches.sql")).read()    
     SQL_QueryMatches=SQL_QueryMatches.splitlines()
     
  #Subs out variables for Account ID numbers   
@@ -835,7 +847,7 @@ def getBusIDfromLoc(locationID):
 def getProviderName(df):
     print 'getting doctor names'
     SQL_DoctorNameQuery = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Doctor Name.sql")).read()    
-    locationIDs=df['Location ID']
+    locationIDs = df['Location ID']
             
     SQL_DoctorNameQuery=SQL_DoctorNameQuery.replace('@locationIDs', ','.join(map(str, locationIDs)))    
     Yext_OPS_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
@@ -845,7 +857,7 @@ def getProviderName(df):
     
  #Finds Listing names that could be good to match to based on prevalence    
       
-def matchingQuestions(df,numLinks):
+def matchingQuestions(df, numLinks):
     df=df[df['Robot Suggestion'].isin(['No Match - Name','Check'])]
    
     pivot=pd.pivot_table(df,values=0,index='Listing Name',aggfunc='count')
@@ -863,7 +875,7 @@ def matchingQuestions(df,numLinks):
     else:
         return pd.DataFrame([{'Listing Name' : 'None', 'Count' : '0'}])
 
-    #GUI Tkinter section!
+#GUI Tkinter section!
 
 #from Tkinter import Frame
 #from Tkinter import *
@@ -893,30 +905,34 @@ class MatchingInput(Tkinter.Frame):
        # style = Style()
        # style.theme_use('classic')
         
-        
 #First screen - needs to explain what's going on, get input on where in process they are        
-        self.IntroLabel=Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0,pady=10,padx=0)
-        self.processChoice=IntVar()
+
+        self.IntroLabel = Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0)
+        self.processChoice = IntVar()
         self.processChoice.set(-1)
-        self.StartMatch=Radiobutton(master,text="Start AutoMatcher - pull data/enter file",variable=self.processChoice,value=0).grid(row=1,column=0,sticky=W)
-        self.ChecksChoice=Radiobutton(master,text="Input Completed Manual Checks, create upload",variable=self.processChoice,value=1)\
-                                                                .grid(row=1,column=1)
+        self.StartMatch = Radiobutton(master,text="Start AutoMatcher - pull data/enter file",\
+                                      variable = self.processChoice,value = 0).grid(row = 1,column = 0)
+        self.ChecksChoice = Radiobutton(master,text="Input Completed Manual Checks, create upload",\
+                                        variable=self.processChoice,value=1).grid(row = 1,column = 1)
         
-        self.Next=Button(master,text="Next",command=lambda: [self.initialSettingsWindow() if self.processChoice.get()==0 else \
-                                                             (self.inputChecks() if self.processChoice.get()==1 else self.processChoice.set(-1))])\
-                                                             .grid(row=2,column=0,sticky=W,pady=25,padx=10)
-        self.Quit=Button(master,text="Quit",command= lambda: [root.destroy()]).grid(row=3,column=0, sticky=W,pady=10,padx=10)
+        self.Next=Button(master,text = "Next",command = lambda: [self.initialSettingsWindow() \
+                                     if self.processChoice.get() == 0 else (self.inputChecks() \
+                                      if self.processChoice.get() == 1 else self.processChoice.set(-1))]).grid(row = 2,column = 0)
+        self.Quit=Button(master,text="Quit",command = lambda: [root.destroy()]).grid(row = 3,column = 0)
         
 #If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
         self.master.withdraw()
 #Takes in completed matches file with checks filled out
-        checkedFile=tkFileDialog.askopenfilename(initialdir = "/",title = "Select completed matching file with Check column filled out",\
-                                                 defaultextension="*.xlsx;*.xls", filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
-        checkedDF,bid=readFile(checkedFile)
+        checkedFile = tkFileDialog.askopenfilename(initialdir = "/",title =\
+                                 "Select completed matching file with Check column filled out",\
+                                 defaultextension="*.xlsx;*.xls", \
+                                 filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
+        checkedDF = readMatchedFile(checkedFile)
+
         
 #Checks to see if all rows asking for a check have manual review        
-        allChecksComplete=True
+        allChecksComplete = True
         for index, row in checkedDF.iterrows(): 
             if  ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
                 allChecksComplete=False
@@ -928,18 +944,18 @@ class MatchingInput(Tkinter.Frame):
             self.okButton=Button(self.errorBox,text="OK",command= lambda:[root.destroy()]).pack()
 #If complete, determines matches, creates upload        
         else:
-            checkedDF['Match']=checkedDF.apply(lambda x: 1 if 'Match Suggested' in x['Robot Suggestion'] else 0,axis=1)
-            checkedDF['Match']=checkedDF.apply(lambda x: 1 if x['Match \n1 = yes, 0 = no']==1 else (0 if x['Match \n1 = yes, 0 = no']==0 else x['Match']),axis=1)
-
+            checkedDF['Match'] = checkedDF.apply(lambda x: 1 if 'Match Suggested' in x['Robot Suggestion'] else 0, axis=1)
+            checkedDF['Match'] = checkedDF.apply(lambda x: 1 if x['Match \n1 = yes, 0 = no'] == 1 else \
+                                                (0 if x['Match \n1 = yes, 0 = no'] == 0 else x['Match']), axis=1)
+            print "external ID  deduping"
+            checkedDF = ExternalID_De_Dupe(checkedDF)
             #EXTERNAL ID DEDPUE
-            #print checkedDF
-            checkedDF['override']=checkedDF.apply(lambda x: 'Match' if x['Match']==1 else 'AntiMatch',axis=1)
-            checkedDF['PL Status']=checkedDF.apply(lambda x: 'Sync' if x['override']=='Match' else 'NoPowerListing',axis=1)
+            print "Creating Upload Overrides"
+            checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'AntiMatch',axis=1)
+            checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Sync' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
                
-           
             #checkedDF=calculateTotalScore(checkedDF)
-            checkedDF=ExternalID_De_Dupe(checkedDF)
-            uploadDF=checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
+            uploadDF = checkedDF[['Publisher ID','Location ID','Listing ID','Match','override','PL Status']]
 
             
             writeUploadFile(uploadDF)
@@ -950,15 +966,14 @@ class MatchingInput(Tkinter.Frame):
        #remove this once we do something here     
             root.destroy()
                     
- 
             #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):
         
         self.master.withdraw()
-        self.settingWindow=Toplevel()
+        self.settingWindow = Toplevel()
         self.IndustryType=IntVar()
         self.IndustryType.set(-1)
-        self.IndustryLabel=Label(self.settingWindow,text="Select Industry Type").grid(row=0,column=0)
+        self.IndustryLabel = Label(self.settingWindow,text="Select Industry Type").grid(row = 0,column = 0)
 
         self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=7,sticky=W)
         self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1,sticky=W)
@@ -970,7 +985,16 @@ class MatchingInput(Tkinter.Frame):
 
         
         
+      
+        #Report Type Designation
+        self.ReportType=IntVar()
+        self.ReportType.set(-1)
+        self.ReportLabel = Label(self.settingWindow,text="Select report type:").grid(row=2,column=2)
         
+        self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=3,column=2)
+        self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=3,column=3)
+        #self.FB=Radiobutton(self.settingWindow, text="FB", variable=self.ReportType,value=2).grid(row=1,column=2)
+        #self.Google=Radiobutton(self.settingWindow, text="Google", variable=self.ReportType,value=x).grid(row=1,column=3)
         
         
 #        self.quitButton.pack()
@@ -981,10 +1005,10 @@ class MatchingInput(Tkinter.Frame):
         self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2).grid(row=3,column=1, sticky=W)
         self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1).grid(row=4,column=1, sticky=W)
         
-        
+
         
         self.nextButton = Button(self.settingWindow, text="Next", command=self.detailsWindow).grid(row=5,column=0,sticky=W,pady=25)
-        
+     
 #        self.inputType.grid(row=2,column=0)
 #        self.SQL.grid(row=3,column=1, sticky=W)
 #        self.file.grid(row=4,column=1, sticky=W)
@@ -994,9 +1018,9 @@ class MatchingInput(Tkinter.Frame):
     def detailsWindow(self):
         self.settingWindow.destroy()
         #File pull
-        if self.dataInput.get()==1:
+        if self.dataInput.get() == 1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
-            df,bid=readFile(fname)
+            df, bid = readFile(fname)
             
             runProg(df,str(self.IndustryType.get()),bid)
         #SQL
@@ -1026,17 +1050,16 @@ class MatchingInput(Tkinter.Frame):
     def pullSQLRun(self):
                 
         if self.bizID.get():
-            
             self.detailsW.destroy()
             if  self.folderID.get():
                 folderID=self.folderID.get()
             else: 
-                folderID=0
+                folderID = 0
             if self.labelID.get():
                 labelID=self.labelID.get()
             else:
-                labelID=0
-            df=sqlPull(self.bizID.get(),folderID,labelID)
+                labelID = 0
+            df = sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get())
             runProg(df,self.IndustryType.get(),self.bizID.get())
     
 #button function to ammend businessNames list            
@@ -1060,7 +1083,7 @@ class MatchingInput(Tkinter.Frame):
         self.nameW=Toplevel()
         self.nameW.minsize(width=300, height=200)
         self.NewName=StringVar()
-        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
+#        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
         self.AddMoreLabel=Label(self.nameW,text="Enter comma separated list of additional business names:").grid(row=11,column=0)
         self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0)
         self.AddMore=Button(self.nameW,text="Add names",command=self.AddMore).grid(row=13,column=0, sticky=W)

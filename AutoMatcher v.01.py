@@ -120,7 +120,7 @@ def compareName(df, IndustryType, bid):
 #start of comparisons, broken out by industry
     #Industry Hotel
     if IndustryType == "2":
-        BadHotel = ["Grill", "bar", "starbucks", "electric", "wedding", "gym",\
+        BadHotel = ["Grill", " bar", "starbucks", "electric", "wedding", "gym",\
                      "pool", "restaurant", "bistro"]     
 #                     
 #
@@ -646,7 +646,7 @@ def suggestedmatch(df, IndustryType):
         df['Robot Suggestion'] = df.apply(lambda x: matchText \
             if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match']==2 \
-                else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
+                else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis = 1)
 
 
     df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 \
@@ -655,9 +655,8 @@ def suggestedmatch(df, IndustryType):
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
-    df['Total Score'] = df.apply(lambda row: row['Name Score']*.7 + row['Address Score']*.3)
+    df['Total Score'] = df.apply(lambda row: row['Name Score']*.7 + row['Address Score']*.3, axis = 1)
 
-    return df
     
 def ExternalID_De_Dupe(df):    
     #If Listing ID is matched to more than one location 

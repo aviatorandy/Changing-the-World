@@ -151,8 +151,8 @@ def compareName(df,IndustryType,bid):
         return
         
     #Industry Healthcare Facility matching
-    if IndustryType=="4":
-        return
+#    if IndustryType=="4":
+#        return
 
     #Agent Names matching
     if IndustryType == "5":
@@ -330,39 +330,54 @@ def calculateDistance(row):
     
 def calculateDoctorMatch(df):
     
-    commonDoctorWords=['MD','PA','Dr','DO','NP','Phys','LPN','RN','DDS','CNM','MPH','PHD','GP','DPM']
-    doctorSpecialty=pd.read_csv("~\Documents\Changing-the-World\SpecialtyDoctorMatching.csv")
-
+    commonDoctorWords=['md','pa','dr','do','np','phys','lpn','rn','dds','cnm','mph','phd','gp','dpm']
+#    doctorSpecialty=pd.read_csv("~\Documents\Changing-the-World\SpecialtyDoctorMatching.csv")
+    excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na = False)
+    doctorSpecialty = excelFile.parse('Specialty')
+    doctorSpecialty = doctorSpecialty.fillna("yext123")
+    doctorSpecialty = doctorSpecialty.applymap(lambda x : x.lower())
+    doctorSpecialty = doctorSpecialty.values.tolist()
     
     specialties=[]
 
     for index, row in df.iterrows(): 
-    
-        locationName = (" " + row['Location Name'] + " ").lower()
-        listingName = (" " + row['Listing Name'] + " ").lower()
         
-        if any([x for x in commonDoctorWords if x in listingName]): specialties.append( "0-Doctor")
+        locationNameSpecialties=None
+        listingNameSpecialties=None
+        locationName = (" " + str(row['Cleaned Location Name']) + " ").lower()
+
+        listingName = (" " + str(row['Cleaned Listing Name']) + " ").lower()
+    
+        if any([x for x in commonDoctorWords if x in listingName]): 
+            specialties.append( "No Match - Doctor")
   #      elif any([x for x in punctuationWords if x in listingName]): specialties.append( "Check-Doctor")
         else:
-            if any([x for x in ['Pharmacy', 'Gift Shop', 'Cafe'] if x in listingName]): specialties.append( "0-Excluded")
+            if any([x for x in [ 'Gift Shop', 'Cafe'] if x in listingName]): 
+                specialties.append( "No Match - Excluded")
             else:
                 locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
                 listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
-            
+                
+
                 if locationNameSpecialties:
-                   if not listingNameSpecialties: specialties.append( "Check-Generic")
-                   elif [locationNameSpecialties & listingNameSpecialties][0]: specialties.append( "1-Specialty")
-                   else: specialties.append( "0-Specialty")
+                   if not listingNameSpecialties: 
+                       specialties.append( "Check-Generic")
+                   elif [locationNameSpecialties & listingNameSpecialties][0]: 
+                       specialties.append( "Match-Specialty")
+                   else: 
+                       specialties.append( "No Match-Specialty")
             
                 else:
-                    if listingNameSpecialties: specialties.append( "1-Specialty")
-                    elif not listingNameSpecialties: specialties.append( "Check-Generic")
+                    if listingNameSpecialties: 
+                        specialties.append( "Match-Specialty")
+                    elif not listingNameSpecialties: 
+                        specialties.append( "Check-Generic")
                     
                #this else seems out of place, but not sure where this goes.     
                     else:
                         specialties.append( "Check")
-                    
-        df['Specialty Match']=specialties
+
+    df['Specialty Match']=specialties
 
 
     
@@ -391,6 +406,9 @@ def compareData(df, IndustryType, bid):
         compareNPI(df)
     print 'comparing names'
     compareName(df,IndustryType, bid)
+    if IndustryType == '4':
+        print 'specialty check'
+        calculateDoctorMatch(df)
     print 'comparing addresses'
     compareAddress(df,IndustryType)
     #compareStateCountry(df)
@@ -412,6 +430,8 @@ def suggestedmatch(df, IndustryType):
     noName='No Match - Name'
     noAddress='No Match - Address'
     check='Check Name'
+    noSpecialty='No Match - Specialty'
+    checkSpecialty='Check Doctor/Specialty'
     
 
     #Hotel Type
@@ -463,7 +483,7 @@ def suggestedmatch(df, IndustryType):
         df['Match \n1 = yes, 0 = no'] = ""
    
     #Healthcare Professional
-    if IndustryType == '3': 
+    elif IndustryType == '3': 
         for index, row in df.iterrows(): 
             if row ['NPI Match'] :
                 robotmatch.append("Match - NPI")
@@ -504,7 +524,21 @@ def suggestedmatch(df, IndustryType):
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""
                         
-                    
+    #Healthcare Facilities    
+    elif IndustryType == '4':
+         df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
+                    else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
+                          else (check if x['Name Match']==2 \
+                          else (noName if x['Name Match']==0 \
+                          else (noAddress if not x['Address Match'] else 'uh oh') )))\
+                          if x['Specialty Match'][0:5]=='Match' else \
+                          ('Check Name and Specialty' if x['Name Match']==2 \
+                          else (noName if x['Name Match']==0 \
+                          else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
+         
+
+
+                
     #International
     elif IndustryType == '6':
         for index, row in df.iterrows(): 
@@ -1058,7 +1092,7 @@ class MatchingInput(Tkinter.Frame):
         self.settingWindow.destroy()
         #File pull
         if self.dataInput.get() == 1:
-            fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
+            fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=("Excel or CSV", "*.csv;*.xlsx;*.xls"))
             df, bid = readFile(fname)
             
             runProg(df,str(self.IndustryType.get()),bid)
@@ -1122,7 +1156,7 @@ class MatchingInput(Tkinter.Frame):
         self.nameW=Toplevel()
         self.nameW.minsize(width=300, height=200)
         self.NewName=StringVar()
-#        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
+        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
         self.AddMoreLabel=Label(self.nameW,text="Enter comma separated list of additional business names:").grid(row=11,column=0)
         self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0)
         self.AddMore=Button(self.nameW,text="Add names",command=self.AddMore).grid(row=13,column=0, sticky=W)

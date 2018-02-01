@@ -167,7 +167,7 @@ def compareName(df, IndustryType, bid):
     #df['Name Score'] = averagenamescore
     
     #Industry Healthcare Professional matching
-    if IndustryType == "3":
+    elif IndustryType == "3":
         df['Name Score'] = df.apply(lambda row: \
                 fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
         
@@ -176,7 +176,7 @@ def compareName(df, IndustryType, bid):
 #    if IndustryType=="4":
 #  return
     #Agent Names matching
-    if IndustryType == "5":
+    elif IndustryType == "5":
         for index, row in df.iterrows(): 
             businessRatio = 0
             businessPartialRatio = 0
@@ -190,18 +190,17 @@ def compareName(df, IndustryType, bid):
             #returns Max of Business Match or Location Name Match
             average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
             averagenamescore.append(average)
-        df['Name Score'] = df.apply(lambda row: \
-                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
-            
-#        df['Name Score'] = averagenamescore
-
+#        df['Name Score'] = df.apply(lambda row: \
+#                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
+        df['Name Score'] = averagenamescore
+        return
     #Auto Name Matching
-    if IndustryType == "6":
+    elif IndustryType == "6":
         return        
     #Industry Normal/International    
     else:       
-        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else 
-                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+#        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else \
+#                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
         
         for index, row in df.iterrows(): 
             businessRatio=0
@@ -1143,9 +1142,7 @@ class MatchingInput(Tkinter.Frame):
         elif self.dataInput.get()==2:
             self.detailsW=Tkinter.Toplevel(self)
             vcmd = self.master.register(self.validate)
-            self.InputExplanation=Label(self.detailsW,text="Please enter account info \
-                                        for data to pull. Business ID is required. You can leave blank \
-                                        or put 0 for Folder ID and Label ID if not needed").grid(row=5,column=0)
+            self.InputExplanation=Label(self.detailsW,text = "Please enter account info for data to pull. Business ID is required. You can leave blank or put 0 for Folder ID and Label ID if not needed").grid(row=5,column=0)
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
             self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)

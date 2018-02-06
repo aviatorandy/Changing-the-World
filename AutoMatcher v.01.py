@@ -26,7 +26,7 @@ import datetime
 #This function cleans the names 
 def cleanName(name):    
     try:
-        name = name.strip().lower()
+        name = name.strip().lower().encode('utf-8')
         name = name.replace("&"," and ").replace("professional corporation","")
         name = name.replace(" pc "," ").replace(" lp "," ").replace(" llc "," ")
         name = name.replace("incorporated","").replace(" inc."," ").replace(" inc "," ")
@@ -167,7 +167,7 @@ def compareName(df, IndustryType, bid):
     #df['Name Score'] = averagenamescore
     
     #Industry Healthcare Professional matching
-    if IndustryType == "3":
+    elif IndustryType == "3":
         df['Name Score'] = df.apply(lambda row: \
                 fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
         
@@ -176,7 +176,7 @@ def compareName(df, IndustryType, bid):
 #    if IndustryType=="4":
 #  return
     #Agent Names matching
-    if IndustryType == "5":
+    elif IndustryType == "5":
         for index, row in df.iterrows(): 
             businessRatio = 0
             businessPartialRatio = 0
@@ -196,13 +196,13 @@ def compareName(df, IndustryType, bid):
 #        df['Name Score'] = averagenamescore
 
     #Auto Name Matching
-    if IndustryType == "6":
+    elif IndustryType == "6":
         return        
     #Industry Normal/International    
     else:       
-        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else 
-                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-        
+#        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else \
+#                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+#        
         for index, row in df.iterrows(): 
             businessRatio=0
             businessPartialRatio=0
@@ -741,14 +741,14 @@ def runProg(df,IndustryType, bid):
     compareData(df,IndustryType, bid)
     
  #Completes Matching Question sheet   
-    matchingNameQs = matchingQuestions(df,row)     
+    matchingNameQs = matchingQuestions(df)     
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
 
     df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter',options={'strings_to_urls': False})
-    df.to_excel(writer,sheet_name="Result", index=False)
+    df.to_excel(writer,sheet_name="Result", index=False,  encoding='utf8')
     matchingNameQs.to_excel(writer,sheet_name="Matching Questions", index=False)
     workbook  = writer.book
     worksheet = writer.sheets["Result"]
@@ -850,8 +850,10 @@ def sqlPull(bid,folderID,labelID,ReportType):
     if ReportType == 0:
         SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
     #IF SUPPRESSION:
-    else:
+    elif ReportType==1 :
         SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Suppression - Pull Matches.sql")).read()    
+    else:
+        sys.exit()
     SQL_QueryMatches=SQL_QueryMatches.splitlines()
     
  #Subs out variables for Account ID numbers   
@@ -972,11 +974,14 @@ def getProviderName(df):
     
  #Finds Listing names that could be good to match to based on prevalence    
       
-def matchingQuestions(df, numLinks):
-    df=df[df['Robot Suggestion'].isin(['No Match - Name','Check'])]
-   
-    pivot=pd.pivot_table(df,values=0,index='Listing Name',aggfunc='count')
+def matchingQuestions(df):
+    
+    Qdf=df[df['Robot Suggestion'].isin(['No Match - Name','Check'])]
+
+    pivot=pd.pivot_table(Qdf,values='Link ID',index='Listing Name',aggfunc='count')
+
     listingNames=pd.DataFrame(pivot)
+   
     #print df[0]
     if not listingNames.empty:
         listingNames.columns=['Count']    
@@ -985,7 +990,7 @@ def matchingQuestions(df, numLinks):
         listingNames['Listing Name']=listingNames['Listing Name'].apply(cleanName)
     
         listingNames= listingNames[listingNames['Count'] > 5]  
-    
+ 
         return listingNames
     else:
         return pd.DataFrame([{'Listing Name' : 'None', 'Count' : '0'}])
@@ -1011,6 +1016,8 @@ class MatchingInput(Tkinter.Frame):
 
     def __init__(self, master):
 
+        
+        root.protocol("WM_DELETE_WINDOW", self._delete_window)
         Tkinter.Frame.__init__(self, master, padx=10, pady=10)
 
         master.title("AutoMatcher Setup")
@@ -1087,6 +1094,7 @@ class MatchingInput(Tkinter.Frame):
         
         self.master.withdraw()
         self.settingWindow = Toplevel()
+        self.settingWindow .protocol("WM_DELETE_WINDOW", self._delete_window)
         self.IndustryType=IntVar()
         self.IndustryType.set(-1)
         self.IndustryLabel = Label(self.settingWindow,text="Select Industry Type").grid(row = 0,column = 0)
@@ -1142,10 +1150,9 @@ class MatchingInput(Tkinter.Frame):
         #SQL
         elif self.dataInput.get()==2:
             self.detailsW=Tkinter.Toplevel(self)
+            self.detailsW .protocol("WM_DELETE_WINDOW", self._delete_window)            
             vcmd = self.master.register(self.validate)
-            self.InputExplanation=Label(self.detailsW,text="Please enter account info \
-                                        for data to pull. Business ID is required. You can leave blank \
-                                        or put 0 for Folder ID and Label ID if not needed").grid(row=5,column=0)
+            self.InputExplanation=Label(self.detailsW,text="Please enter account info for data to pull. Business ID is required. \nYou can leave blank or put 0 for Folder ID and Label ID if not needed\n").grid(row=5,column=0)
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
             self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)
@@ -1197,6 +1204,7 @@ class MatchingInput(Tkinter.Frame):
         self.complete=BooleanVar()
         self.complete=False
         self.nameW=Toplevel()
+        self.nameW .protocol("WM_DELETE_WINDOW", self._delete_window) 
         self.nameW.minsize(width=300, height=200)
         self.NewName=StringVar()
         self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
@@ -1225,8 +1233,17 @@ class MatchingInput(Tkinter.Frame):
         print "end: "+ datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
         print str(t1-t0)+" seconds"
         self.completeWindow=Toplevel()  
+        self.completeWindow.protocol("WM_DELETE_WINDOW", self._delete_window) 
         self.completeMsg=Label(self.completeWindow,text="time to complete: "+str(t1-t0)+"  "+msg).grid(row=1,column=1)
         self.DoneButton=Button(self.completeWindow,text="Exit", command= lambda:[root.destroy()]).grid(row=2,column=1)
+    def _delete_window(self):
+        
+        try:
+            root.destroy()
+        except:
+            pass
+        
+
 
 #Defining this globally helps being able to call it within the Tkinter class
 global df
@@ -1239,4 +1256,7 @@ t0=time.time()
 #starts Tkinter
 root = Tkinter.Tk()
 app = MatchingInput(root)
-app.mainloop()
+try:
+    app.mainloop()
+except:
+    pass

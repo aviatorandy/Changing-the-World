@@ -26,7 +26,8 @@ import datetime
 #This function cleans the names 
 def cleanName(name):    
     try:
-        name = name.strip().lower().encode('utf-8')
+      #  name=name.encode('utf-8')           #this is erroring out for some reason. Maybe if blank? nicodeDecodeError: 'charmap' codec can't decode byte 0x81 in position 30: character maps to <undefined>
+        name = name.strip().lower()
         name = name.replace("&"," and ").replace("professional corporation","")
         name = name.replace(" pc "," ").replace(" lp "," ").replace(" llc "," ")
         name = name.replace("incorporated","").replace(" inc."," ").replace(" inc "," ")
@@ -36,6 +37,8 @@ def cleanName(name):
         name = ""
     return name
 
+    
+    
 #This function cleans the addresses
 def cleanAddress(address):
     try:
@@ -44,18 +47,124 @@ def cleanAddress(address):
         address = address.replace(" avenue "," ave ").replace(" boulevard "," blvd ").replace(" bypass "," byp ")
         address = address.replace(" circle "," cir ").replace(" drive "," dr ").replace(" expressway "," expy ")
         address = address.replace(" highway "," hwy ").replace(" parkway "," pkwy ").replace(" road "," rd ")
-        address = address.replace(" street "," st ").replace(" turnpike "," tpke ")
+        address = address.replace(" street "," st ").replace(" turnpike "," tpke ")\
+    .replace(" road"," rd")\
+    .replace(" street"," st")\
+    .replace(" place"," pl")\
+    .replace(" drive"," dr")\
+    .replace(" i-h "," i")\
+    .replace(" ih "," i")\
+    .replace(" interstate "," i")\
+    .replace(" boulevard"," blvd")\
+    .replace(" parkway"," pkwy")\
+    .replace(" lane"," ln")\
+    .replace(" turnpike"," tpke")\
+    .replace(" highway"," hwy")\
+    .replace(" route "," rt ")\
+    .replace(" rte "," rt ")\
+    .replace(" avenue"," ave")\
+    .replace(" freeway"," fwy")\
+    .replace(" court"," ct")\
+    .replace(" expressway"," expy")\
+    .replace(" mount "," mt ")\
+    .replace(" trail"," trl")\
+    .replace("lyndon b johnson","lbj")\
+    .replace(" center"," ctr")\
+    .replace(" centre"," ctr")\
+    .replace(" circle"," cir")\
+    .replace(" bypass"," byp")\
+    .replace(" pike"," pk")\
+    .replace(" saint"," st")\
+    .replace(" terrace"," ter")\
+    .replace(" point"," pt")\
+    .replace(" station"," sta")\
+    .replace(" causeway"," cswy")\
+    .replace(" crossing"," xing")\
+    .replace(" gateway"," gtwy")\
+    .replace(" creek"," ck")\
+    .replace(" village"," vlg")\
+    .replace(" first"," 1st")\
+    .replace(" second"," 2nd")\
+    .replace(" third"," 3rd")\
+    .replace(" fourth"," 4th")\
+    .replace(" fifth"," 5th")\
+    .replace(" sixth"," 6th")\
+    .replace(" seventh"," 7th")\
+    .replace(" eighth"," 8th")\
+    .replace(" ninth"," 9th")\
+    .replace(" tenth"," 10th")\
+    .replace("one","1")\
+    .replace("two","2")\
+    .replace("three","3")\
+    .replace("four","4")\
+    .replace("five","5")\
+    .replace("six","6")\
+    .replace("seven","7")\
+    .replace("eight","8")\
+    .replace("nine","9")\
+    .replace("state road","sr")\
+    .replace("county road","cr")\
+    .replace(" hiway "," hwy ")\
+    .replace("farm to market","fm")\
+    .replace(" northwest"," nw")\
+    .replace(" northeast"," ne")\
+    .replace(" southwest"," sw")\
+    .replace(" southeast"," se")\
+    .replace(" s w "," sw ")\
+    .replace(" n w "," nw ")\
+    .replace(" s e "," se ")\
+    .replace(" n e "," ne ")\
+    .replace(" east "," e ")\
+    .replace(" west "," w ")\
+    .replace(" north "," n ")\
+    .replace(" south "," s ")\
+    .replace(" u s "," us ")\
+    .replace(" u.s. "," us ")\
+    .replace("straße ","str ")\
+    .replace("strasse ","str ")\
+    .replace("str. ","str ")\
+    .replace(" suite "," ste ")\
+    .replace("suite ","ste ")\
+    .replace("ste #","ste ")\
+    .replace("#","ste ")\
+    .replace("building","bldg")\
+    .replace("floor","flr")\
+    .replace(" unit"," ste")\
+    .replace("unit ","ste ")\
+    .replace("=","'")\
+    .replace("  "," ")\
+    .replace("  "," ")\
+    .replace("  "," ")\
+    .replace("  "," ")\
+    .replace("  "," ")\
+    .replace("  "," ")
+
         address = re.sub('[^A-Za-z0-9\s]+', '', address)
         address = re.sub( '\s+', ' ', address)
     except AttributeError:
         address = ""
     return address
     
+    
+    
 #This function cleans the city
 def cleanCity(city):
     try:
         city = city.strip().lower()
-        city = city.replace("&"," and ").replace("saint ","st ")
+        city = city.replace("&"," and ").replace("saint ","st ")\
+    .replace("fort ","ft ")\
+    .replace("saint ","st ")\
+    .replace(".","")\
+    .replace("-"," ")\
+    .replace("north ","n ")\
+    .replace("south ","s ")\
+    .replace("east ","e ")\
+    .replace("west ","w ")\
+    .replace("mount ","mt ")\
+    .replace("spring","spg")\
+    .replace("height","ht")\
+
+
         city = re.sub('[^A-Za-z0-9\s]+', '', city)
         city = re.sub( '\s+', ' ', city)
     except AttributeError:
@@ -111,10 +220,11 @@ def compareName(df, IndustryType, bid):
         businessNames.append(cleanName(name))
 
     global namesComplete
- 
+    global businessNameMatch
     
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
+    
     app.wait_window(app.nameW)
    
 #start of comparisons, broken out by industry
@@ -178,18 +288,26 @@ def compareName(df, IndustryType, bid):
     #Agent Names matching
     elif IndustryType == "5":
         for index, row in df.iterrows(): 
-            businessRatio = 0
-            businessPartialRatio = 0
-            #Check listing name against business names
-            for bName in businessNames:
-                businessRatio = max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                businessPartialRatio = max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
-            #Check listing name against location name
-            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            #returns Max of Business Match or Location Name Match
-            average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-            averagenamescore.append(average)
+            
+            if businessNameMatch==1:
+                businessRatio = 0
+                businessPartialRatio = 0
+                #Check listing name against business names
+                for bName in businessNames:
+                    businessRatio = max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
+                    businessPartialRatio = max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
+                #Check listing name against location name
+                nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                #returns Max of Business Match or Location Name Match
+                average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
+                averagenamescore.append(average)
+            else:
+                nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                #returns Max of Business Match or Location Name Match
+                average = np.mean([nsr,ntpr])
+                averagenamescore.append(average)
 #        df['Name Score'] = df.apply(lambda row: \
 #                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
         df['Name Score'] = averagenamescore
@@ -202,19 +320,25 @@ def compareName(df, IndustryType, bid):
 #        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else \
 #                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
 
-        for index, row in df.iterrows(): 
-            businessRatio=0
-            businessPartialRatio=0
-            #Check listing name against business names
-            for bName in businessNames:
-                businessRatio=max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                businessPartialRatio=max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
-            #Check listing name against location name
-            nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-            #returns Max of Business Match or Location Name Match
-            average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-            averagenamescore.append(average)
+        if businessNameMatch==1:
+                businessRatio = 0
+                businessPartialRatio = 0
+                #Check listing name against business names
+                for bName in businessNames:
+                    businessRatio = max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
+                    businessPartialRatio = max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
+                #Check listing name against location name
+                nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                #returns Max of Business Match or Location Name Match
+                average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
+                averagenamescore.append(average)
+        else:
+                nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                #returns Max of Business Match or Location Name Match
+                average = np.mean([nsr,ntpr])
+                averagenamescore.append(average)
         df['Name Score'] = averagenamescore
         return   
         
@@ -899,8 +1023,16 @@ def sqlPull(bid,folderID,labelID,ReportType):
     
     for index, line in enumerate(SQL_QueryListings):
         SQL_QueryListings[index]=line.replace('@ListingIDs', ','.join(map(str, ListingIDs)) )
-                
-                
+    if ReportType==1 :
+        for index, line in enumerate(SQL_QueryListings):
+            SQL_QueryListings[index]=line.replace('--left join warehouse.listings_additional_google_fields lagf on lagf.listing_id=wl.id', \
+            'left join warehouse.listings_additional_google_fields lagf on lagf.listing_id=wl.id')            
+        for index, line in enumerate(SQL_QueryListings):
+            SQL_QueryListings[index]=line.replace('--AND (lagf.googlePlaceId not in (select tl.externalid from tags_listings tl join tags_listings_unavailable_reasons tlur on tlur.location_id = tl.location_id join alpha.tags_unavailable_reasons tur on tur.id=tlur.tagsunavailablereason_id where tlur.partner_id=715 and tur.showasWarning is false) or lagf.googlePlaceId is null)', \
+            'AND (lagf.googlePlaceId not in (select tl.externalid from tags_listings tl join tags_listings_unavailable_reasons tlur on tlur.location_id = tl.location_id join alpha.tags_unavailable_reasons tur on tur.id=tlur.tagsunavailablereason_id where tlur.partner_id=715 and tur.showasWarning is false) or lagf.googlePlaceId is null)')            
+        
+            
+            
     SQL_QueryListings = [x for x in SQL_QueryListings if x.startswith("--") is False]
     FinalQueryListings = []
     for x in SQL_QueryListings:
@@ -1038,8 +1170,8 @@ class MatchingInput(Tkinter.Frame):
         
         self.Next=Button(master,text = "Next",command = lambda: [self.initialSettingsWindow() \
                                      if self.processChoice.get() == 0 else (self.inputChecks() \
-                                      if self.processChoice.get() == 1 else self.processChoice.set(-1))]).grid(row = 2,column = 0)
-        self.Quit=Button(master,text="Quit",command = lambda: [root.destroy()]).grid(row = 3,column = 0)
+                                      if self.processChoice.get() == 1 else self.processChoice.set(-1))]).grid(row = 2,column = 0,pady=(30,0),sticky=E)
+        self.Quit=Button(master,text="Quit",command = lambda: [root.destroy()]).grid(row = 3,column = 0,sticky=E, pady=25)
         
 #If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
@@ -1073,9 +1205,14 @@ class MatchingInput(Tkinter.Frame):
             checkedDF = ExternalID_De_Dupe(checkedDF)
             #EXTERNAL ID DEDPUE
             print "Creating Upload Overrides"
+            
             checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'AntiMatch',axis=1)
-            checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Sync' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
-               
+            
+            if self.ReportType.get()==0:
+                checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Sync' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
+            elif self.ReportType.get()==1:
+                checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Suppress' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
+           
             #checkedDF=calculateTotalScore(checkedDF)
             uploadDF = checkedDF[['Publisher ID','Location ID','Listing ID','Match','override','PL Status']]
 
@@ -1096,15 +1233,15 @@ class MatchingInput(Tkinter.Frame):
         self.settingWindow .protocol("WM_DELETE_WINDOW", self._delete_window)
         self.IndustryType=IntVar()
         self.IndustryType.set(-1)
-        self.IndustryLabel = Label(self.settingWindow,text="Select Industry Type").grid(row = 0,column = 0)
+        self.IndustryLabel = Label(self.settingWindow,text="Select Industry Type").grid(row = 0,column = 0,pady=(0,10))
 
-        self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=7,sticky=W)
-        self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=1,column=1,sticky=W)
-        self.Hotel=Radiobutton(self.settingWindow, text="Hotel", variable=self.IndustryType,value=2).grid(row=1,column=2,sticky=W)
-        self.Doctor=Radiobutton(self.settingWindow, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=1,column=3,sticky=W)
-        self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=1,column=4,sticky=W)
-        self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=1,column=5,sticky=W)
-        self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=1,column=6,sticky=W)
+        self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=0,sticky=W)
+        self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=2,column=0,sticky=W)
+        self.Hotel=Radiobutton(self.settingWindow, text="Hotel", variable=self.IndustryType,value=2).grid(row=2,column=1,sticky=W)
+        self.Doctor=Radiobutton(self.settingWindow, text="Healthcare Doctor", variable=self.IndustryType,value=3).grid(row=2,column=2,sticky=W)
+        self.Facility=Radiobutton(self.settingWindow, text="Healthcare Facility", variable=self.IndustryType,value=4).grid(row=3,column=2,sticky=W)
+        self.Agent=Radiobutton(self.settingWindow, text="Agent", variable=self.IndustryType,value=5).grid(row=3,column=1,sticky=W)
+        self.International=Radiobutton(self.settingWindow, text="International", variable=self.IndustryType,value=6).grid(row=3,column=0,sticky=W)
 
         
         
@@ -1112,10 +1249,10 @@ class MatchingInput(Tkinter.Frame):
         #Report Type Designation
         self.ReportType=IntVar()
         self.ReportType.set(-1)
-        self.ReportLabel = Label(self.settingWindow,text="Select report type:").grid(row=2,column=2)
+        self.ReportLabel = Label(self.settingWindow,text="Select report type:").grid(row=4,column=2,pady=(30,0),sticky=W)
         
-        self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=3,column=2)
-        self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=3,column=3)
+        self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=2,sticky=W)
+        self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=2, sticky=W)
         #self.FB=Radiobutton(self.settingWindow, text="FB", variable=self.ReportType,value=2).grid(row=1,column=2)
         #self.Google=Radiobutton(self.settingWindow, text="Google", variable=self.ReportType,value=x).grid(row=1,column=3)
         
@@ -1123,14 +1260,17 @@ class MatchingInput(Tkinter.Frame):
         #self.quitButton.pack()
         self.dataInput=IntVar()
         self.dataInput.set(0)
-        self.inputType=Label(self.settingWindow,text="Select data input type:").grid(row=2,column=0)
+        self.inputType=Label(self.settingWindow,text="Select data input type:").grid(row=4,column=0, pady=(30,0))
 
-        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2).grid(row=3,column=1, sticky=W)
-        self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1).grid(row=4,column=1, sticky=W)
+        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2).grid(row=5,column=0, sticky=W)
+        self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1).grid(row=6,column=0, sticky=W)
         
 
         
-        self.nextButton = Button(self.settingWindow, text="Next", command=self.detailsWindow).grid(row=5,column=0,sticky=W,pady=25)
+        self.nextButton = Button(self.settingWindow, text="Next", command=lambda: [self.detailsWindow() \
+                            if (self.IndustryType.get() >-1 and self.ReportType.get() >-1 and self.dataInput.get() >-1)\
+                                                         else self.ReportType.set(self.ReportType.get())])\
+                                                        .grid(row=7,column=0,sticky=W,pady=(35,0))
      
 #        self.inputType.grid(row=2,column=0)
 #        self.SQL.grid(row=3,column=1, sticky=W)
@@ -1152,7 +1292,8 @@ class MatchingInput(Tkinter.Frame):
             self.detailsW .protocol("WM_DELETE_WINDOW", self._delete_window)            
             vcmd = self.master.register(self.validate)
 
-            self.InputExplanation=Label(self.detailsW,text="Please enter account info for data to pull. Business ID is required. \nYou can leave blank or put 0 for Folder ID and Label ID if not needed\n").grid(row=5,column=0)
+            self.InputExplanation=Label(self.detailsW,text=\
+            "Please enter account info for data to pull. Business ID is required. \nYou can leave Folder ID and Label ID blank or put 0 if not needed\n").grid(row=5,column=0)
 
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
@@ -1189,10 +1330,13 @@ class MatchingInput(Tkinter.Frame):
 #button function to ammend businessNames list            
     def AddMore(self):
         global businessNames
-        for i in self.NewName.get().split(","):
-            businessNames.append(cleanName(i)) 
-        global namesComplete
-        namesComplete = 1
+        global businessNameMatch
+        
+        if self.NewName.get() != "":
+            for i in self.NewName.get().split(","):
+                businessNames.append(cleanName(i)) 
+        
+        businessNameMatch=self.busNameMatch.get()
        # businessNames.append(cleanName(NewName))
         #AddNameBox.delete(0, END)
         self.nameW.destroy()
@@ -1201,19 +1345,27 @@ class MatchingInput(Tkinter.Frame):
   #Prints out current business names, asks for additional names  
     def namesWindow(self,busNames):
         global businessNames
-        global namesComplete
+        global businessNameMatch
+        
         self.complete=BooleanVar()
         self.complete=False
         self.nameW=Toplevel()
-        self.nameW .protocol("WM_DELETE_WINDOW", self._delete_window) 
+        self.nameW.protocol("WM_DELETE_WINDOW", self._delete_window) 
         self.nameW.minsize(width=300, height=200)
         self.NewName=StringVar()
+        
+        self.busNameMatch=IntVar()
+        self.busNameMatch.set(-1)
+        self.busMatchLabel=Label(self.nameW,text="Do you want to match to generic business names?").grid(row=0,column=0)
+        self.yesMatch=Radiobutton(self.nameW,text="Yes, match to business names", variable=self.busNameMatch , value=1).grid(row=1,column=0,pady=(0,20))
+        self.noMatch=Radiobutton(self.nameW,text="No, do not match to business names", variable=self.busNameMatch ,value=0).grid(row=1,column=1,pady=(0,20))
         self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
         self.AddMoreLabel=Label(self.nameW,text="Enter comma separated list of additional business names:").grid(row=11,column=0)
         self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0)
-        self.AddMore=Button(self.nameW,text="Add names",command=self.AddMore).grid(row=13,column=0, sticky=W)
-        self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.nameW.destroy()]).grid(row=13,column=1, sticky=W)  
-         
+        self.AddMoreButton=Button(self.nameW,text="Add names",command=(self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1) )).grid(row=13,column=0, sticky=W)
+        self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
+  
+    
 #Checks if input is a number
     def validate(self, new_text):
         if not new_text: # the field is being cleared

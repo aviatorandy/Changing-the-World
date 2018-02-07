@@ -5,15 +5,18 @@ concat("'", "", m.listing_id) as "Listing ID", m.matchType as "SQL Override", m.
 from alpha.locations l
 join matches.match_sets_latest msl on msl.location_id=l.id
 join matches.matches m on m.matchSet_id=msl.matchSet_id
+--left join alpha.location_tree_nodes ltn on ltn.id=l.treeNode_id
+--left join alpha.location_labels ll on ll.location_id=l.id
 WHERE l.dashboardDeleteDate is null
 and (m.powerListing="NoPowerListing" and m.matchType="match")
-and l.id in (3146938, 3146944, 3146969, 3146974, 3146996, 3147001, 3147056, 3147062, 3147087, 3147092, 3147095, 3147128, 3147135, 3147146, 3147156, 3147181, 3147194, 3147197, 3147233, 3147234, 3147257, 3147265, 3147271, 3147285, 3147309, 3147317, 3147323, 3147325, 3147331, 3147344, 3147364, 3147365, 3147371, 3147384, 3147385, 3147396, 3147419, 3147420, 3147423, 3147424, 3147429, 3147476, 3147479, 3147492, 3147494, 3147524, 3147526, 3147558, 3147569, 3147574, 3147575, 3147580, 3147621, 3147644, 3147651, 3147656, 3147658, 3147665, 3147677, 3147680, 3147683, 3147685, 3147726, 3147733, 3147745, 3147746, 3147755, 3147757, 3147773, 3147790, 3147802, 3147813, 3147819, 3147829, 3147845, 3147848, 3147861, 3147885, 3147896, 3147899, 3147928, 3147932, 3147960, 3147971, 3147973, 3147977, 3147991, 3148018, 3148030, 3148071, 3148084, 3148095, 3148104, 3148109, 3148112, 3148119, 3148132, 3148143, 3148144, 3148158
-)
+and l.business_id=@bizid
+--and l.treeNode_id=@folderid
+--and ll.label_id=@labelid
 and msl.partner_id not in (715)
 and msl.partner_id
 IN (
---713, --add if suppressing on google
---559, --add if suppressing on fb
+713, --add if suppressing on google
+559, --add if suppressing on fb
  583, -- 2findlocal
  547, -- 8coupons
  579, -- ABLocal

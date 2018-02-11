@@ -230,7 +230,7 @@ def compareName(df, IndustryType, bid):
 #start of comparisons, broken out by industry
     #Industry Hotel
     if IndustryType == "2":
-        BadHotel = ["Grill", " bar", "starbucks", "electric", "wedding", "gym",\
+        BadHotel = ["grill", " bar", "starbucks", "electric", "wedding", "gym",\
                      "pool", "restaurant", "bistro"]     
 #                     
 #
@@ -582,9 +582,9 @@ def suggestedmatch(df, IndustryType):
     #Hotel Type
     if IndustryType == '2':
         df['Robot Suggestion'] = df.apply(lambda x: noName if x['Name Match'] == 0 \
-            else check if x['Name Match'] == 2 \
-            else matchText if x['Address Match'] == True else\
-             noAddress , axis=1)
+            else (check if x['Name Match'] == 2 \
+            else (matchText if x['Address Match'] == True else\
+             noAddress)) , axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
 #"""

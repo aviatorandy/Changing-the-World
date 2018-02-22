@@ -20,6 +20,7 @@ import Tkinter
 import subprocess
 import time
 import datetime
+from datetime import date
 
 
 
@@ -408,8 +409,8 @@ def compareName(df, IndustryType, bid):
                     #returns Max of Business Match or Location Name Match
                     average = np.mean([nsr,ntpr])
                     averagenamescore.append(average)
-            df['Name Score'] = averagenamescore
-            return   
+        df['Name Score'] = averagenamescore
+        return   
         
 #This function compares the countries in the file
 def compareStateCountry(df):
@@ -673,7 +674,7 @@ def suggestedmatch(df, IndustryType):
              noAddress, axis = 1)
 
             
-            df['Match \n1 = yes, 0 = no'] = ""
+        df['Match \n1 = yes, 0 = no'] = ""
 
 #"""
 #        for index, row in df.iterrows(): 
@@ -954,8 +955,8 @@ def runProg(df,IndustryType, bid):
  #Completes Matching Question sheet   
     matchingNameQs = matchingQuestions(df)     
         
-    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx")
-
+    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(bid)+" AutoMatcher Output "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
+    print FilepathMatch
     df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter',options={'strings_to_urls': False})
@@ -1048,7 +1049,7 @@ def runProg(df,IndustryType, bid):
         print "\nMatching Template here:"
         print FilepathMatch
    #Opens explorer window to path of output     
-        subprocess.Popen(r'explorer /select,'+os.path.expanduser("~\Documents\Python Scripts\AutoMatcher Output.xlsx"))
+        subprocess.Popen(r'explorer /select,'+os.path.expanduser(FilepathMatch))
     except IOError:
         app.AllDone("\nIOError: Make sure your Excel file is closed before re-running the script.")
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
@@ -1195,7 +1196,7 @@ def getProviderName(df):
       
 def matchingQuestions(df):
     
-    Qdf=df[df['Robot Suggestion'].isin(['No Match - Name','Check'])]
+    Qdf=df[df['Robot Suggestion'].isin(['No Match - Name','Check Name'])]
 
     pivot=pd.pivot_table(Qdf,values='Link ID',index='Listing Name',aggfunc='count')
 
@@ -1264,6 +1265,23 @@ class MatchingInput(Tkinter.Frame):
 #If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
         self.master.withdraw()
+        self.UploadSetup=Toplevel()
+        self.UploadSetup .protocol("WM_DELETE_WINDOW", self._delete_window)
+        
+        self.ReportType=IntVar()
+        self.ReportType.set(-1)
+        self.ReportLabel = Label(self.UploadSetup,text="Select report type:").grid(row=4,column=2,pady=(30,0),sticky=W)
+        
+        self.Listings=Radiobutton(self.UploadSetup, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=0,sticky=W)
+        self.Suppression=Radiobutton(self.UploadSetup, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=0, sticky=W)
+    
+        self.nextButton = Button(self.UploadSetup, text="Next", command=lambda: [self.readCheckedFile() \
+                            if (self.ReportType.get() >-1) else self.ReportType.set(self.ReportType.get())])\
+                                                        .grid(row=7,column=0,sticky=W,pady=(35,0))
+        
+        
+    def readCheckedFile (self):         
+        self.UploadSetup.destroy()
 #Takes in completed matches file with checks filled out
         checkedFile = tkFileDialog.askopenfilename(initialdir = "/",title =\
                                  "Select completed matching file with Check column filled out",\
@@ -1294,7 +1312,7 @@ class MatchingInput(Tkinter.Frame):
             #EXTERNAL ID DEDPUE
             print "Creating Upload Overrides"
             
-            checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'AntiMatch',axis=1)
+            checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'Antimatch',axis=1)
             
             if self.ReportType.get()==0:
                 checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Sync' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
@@ -1302,8 +1320,8 @@ class MatchingInput(Tkinter.Frame):
                 checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Suppress' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
            
             #checkedDF=calculateTotalScore(checkedDF)
-            uploadDF = checkedDF[['Publisher ID','Location ID','Listing ID','Match','override','PL Status']]
-
+            uploadDF = checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
+            uploadDF.columns=[ "partnerId","locationId",  "listingId", "override","PL Status"]
             
             writeUploadFile(uploadDF)
             print t0
@@ -1447,7 +1465,7 @@ class MatchingInput(Tkinter.Frame):
         self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
         self.AddMoreLabel=Label(self.nameW,text="Enter comma separated list of additional business names:").grid(row=11,column=0)
         self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0)
-        self.AddMoreButton=Button(self.nameW,text="Add names",command=(self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1) )).grid(row=13,column=0, sticky=W)
+        self.AddMoreButton=Button(self.nameW,text="Add names",command=lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=0, sticky=W)
         self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
   
     

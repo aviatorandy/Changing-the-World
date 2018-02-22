@@ -671,21 +671,14 @@ def suggestedmatch(df, IndustryType):
     #If hotel match another and phone and address         
     #Hotel Type
     if IndustryType == '2':        
-        df['Robot Suggestion'] = df.apply(lambda x: matchText if (x['Name Match'] == 1 \
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+        else (matchText if (x['Name Match'] == 1 \
         and x['Address Match'] == True and x['Other Hotel Match'] == 1)\
-            else noName if x['Name Match'] == 0 \
-            else check if x['Name Match'] == 2 \
-<<<<<<< Updated upstream
-            else matchText if x['Address Match'] == True else\
-             noAddress, axis = 1)
-
-            
-=======
-            else matchText if x['Address Match'] == True 
-            else liveSync if x['Live Sync'] == 1\
-            else noAddress \
-             , axis = 1)
->>>>>>> Stashed changes
+            else (noName if x['Name Match'] == 0 \
+                      else (check if x['Name Match'] == 2 \
+                                else (matchText if x['Address Match'] == True \
+                                              else (noAddress))))) \
+        , axis = 1)
         df['Match \n1 = yes, 0 = no'] = ""
 
 #"""

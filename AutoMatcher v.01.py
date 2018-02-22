@@ -176,6 +176,7 @@ def noNames(df):
     
     df['Name Score'] = df.apply(lambda row: cleanName(row['Location Name']), axis=1) 
 
+    
     for index,row in df.iterrows():        
     #If name is blank, fills in last part of URL
         if row['Listing Name'] == None and row['Listing URL']!=None:
@@ -633,12 +634,14 @@ def compareData(df, IndustryType, bid):
 #This function provides a suggested match based on certain name/address thresholds
 def suggestedmatch(df, IndustryType):  
     robotmatch = []
+
     
     #Creates new columns that are easier to read in code, and for users when outputed - Mostly boolean variables
     df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
     df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] >= 60 else 0), axis=1)
     df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<=200 else False, axis=1)
     
+    liveSync = 'No Match - Live Sync'
     matchText = 'Match Suggested'
     noName = 'No Match - Name'
     noAddress = 'No Match - Address'
@@ -646,6 +649,8 @@ def suggestedmatch(df, IndustryType):
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
     npimatch = 'Match - NPI'
+
+#    df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 else None, axis=1)
     
     #Normal Type
     if IndustryType == '0':        
@@ -666,14 +671,21 @@ def suggestedmatch(df, IndustryType):
     #If hotel match another and phone and address         
     #Hotel Type
     if IndustryType == '2':        
-        df['Robot Suggestion'] = df.apply(lambda x: matchText if (x['Name Match'] == 2 \
+        df['Robot Suggestion'] = df.apply(lambda x: matchText if (x['Name Match'] == 1 \
         and x['Address Match'] == True and x['Other Hotel Match'] == 1)\
             else noName if x['Name Match'] == 0 \
             else check if x['Name Match'] == 2 \
+<<<<<<< Updated upstream
             else matchText if x['Address Match'] == True else\
              noAddress, axis = 1)
 
             
+=======
+            else matchText if x['Address Match'] == True 
+            else liveSync if x['Live Sync'] == 1\
+            else noAddress \
+             , axis = 1)
+>>>>>>> Stashed changes
         df['Match \n1 = yes, 0 = no'] = ""
 
 #"""
@@ -868,6 +880,21 @@ def suggestedmatch(df, IndustryType):
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
     df['Total Score'] = df.apply(lambda row: row['Name Score']*.7 + row['Address Score']*.3, axis = 1)
+
+def determineSync(df):    
+    #If Listing ID is matched to more than one location 
+    df = df.sort_values(['Match','Listing ID','Total Score'], ascending = [True, True, True] )
+#    print df['Match']
+    df = df.reset_index(drop=True)
+    
+    for index,row in df.iterrows():      
+        if index < df.shape[0]-1:
+            if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
+                if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
+#                    row['Match'] = 0
+                    df.set_value(index,'Match',0)
+#    print df['Match']
+    return df
 
     
 def ExternalID_De_Dupe(df):    

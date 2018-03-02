@@ -203,8 +203,8 @@ def compareName(df, IndustryType, bid):
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     
-    #    df['No Name']=''
-    #    df.apply(nonames)
+    df['No Name']=''
+   # df.apply(noNames)
 
     averagenamescore = []
     average=0
@@ -350,7 +350,7 @@ def compareName(df, IndustryType, bid):
     #Industry Healthcare Professional matching
     elif IndustryType == "3":
         df['Name Score'] = df.apply(lambda row: \
-                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
+                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name']), axis=1) 
         
     #Industry Healthcare Facility matching
 
@@ -656,8 +656,8 @@ def suggestedmatch(df, IndustryType):
                 or x['Geocode Match']) else (check if x['Name Match'] == 2 \
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
         
-        df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 \
-                        else ('Check' if x['Name Match'] == 2 else 'Bad'), axis=1)
+        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+                        else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
         return
     
@@ -861,8 +861,8 @@ def suggestedmatch(df, IndustryType):
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis = 1)
 
 
-    df['Name Match'] = df.apply(lambda x: 'Good' if x['Name Match'] == 1 \
-                    else ('Check' if x['Name Match'] == 2 else 'Bad'), axis=1)
+    df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+                    else ('Check' if x['Name Match'] == 2 else False), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
 
 def calculateTotalScore(df):
@@ -956,7 +956,14 @@ def runProg(df,IndustryType, bid):
     matchingNameQs = matchingQuestions(df)     
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(bid)+" AutoMatcher Output "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
-    print FilepathMatch
+
+    columns=df.columns.tolist()
+    reorder=['Location Name', 'Listing Name', \
+    'Name Score', 'Location Address', 'Listing Address', 'Address Score', 'Distance (M)', \
+    'Name Match','Phone Match', 'Address Match', 'Geocode Match', 'Robot Suggestion','Match \n1 = yes, 0 = no']
+    for col in reorder:    
+        columns.append(columns.pop(columns.index(col)))
+    df=df[columns]
     df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter',options={'strings_to_urls': False})
@@ -964,11 +971,15 @@ def runProg(df,IndustryType, bid):
     matchingNameQs.to_excel(writer,sheet_name="Matching Questions", index=False)
     workbook  = writer.book
     worksheet = writer.sheets["Result"]
+    matchingSheet=writer.sheets['Matching Questions']
 
     print 'formatting file'
     headerformat = workbook.add_format({
     'bold': True,
     'text_wrap': True})
+    
+    
+
     for col_num, value in enumerate(df.columns.values):
         worksheet.write(0, col_num, value, headerformat)
         
@@ -978,23 +989,26 @@ def runProg(df,IndustryType, bid):
     formatYellow = workbook.add_format({'bg_color': '#f5cb70', 'border' : 1, 'border_color': '#c0c0c0'}) #
     formatPurp = workbook.add_format({'bg_color': '#d9b3ff', 'border' : 1, 'border_color': '#c0c0c0'}) #
     formatOrange = workbook.add_format({'bg_color': '#ffaa80', 'border' : 1, 'border_color': '#c0c0c0'}) #
+    formatGreen= workbook.add_format({'bg_color': '#c6efce', 'border' : 1, 'border_color': '#c0c0c0'}) #
    
     namescorecol = df.columns.get_loc("Name Score")
     addressscorecol = df.columns.get_loc("Address Score")
-    cleannamecol = df.columns.get_loc("Cleaned Location Name")
-    addresscol =  df.columns.get_loc("Cleaned Input Address")
+    namecol = df.columns.get_loc("Location Name")
+    addresscol =  df.columns.get_loc("Location Address")
     robotcol =  df.columns.get_loc("Robot Suggestion")
     lastgencol = df.columns.get_loc("Match \n1 = yes, 0 = no")
     Lat =  df.columns.get_loc("Listing Latitude")
     LastPostDate=  df.columns.get_loc("Listing Latitude")
-    
+    nameMatchCol=df.columns.get_loc("Name Match")
+    geocodeMatchCol=df.columns.get_loc("Geocode Match")
+
     
     worksheet.set_row(0, 29.4)
 
-    worksheet.set_column(Lat , LastPostDate, None, None, {'hidden': 1})
-    worksheet.set_column(0, lastcol-1, None, None, {'hidden': 1})
-    worksheet.set_column(lastcol+2, lastcol+3, None, None, {'hidden': 1})
-    worksheet.set_column(cleannamecol, cleannamecol+1, 45)
+    #worksheet.set_column(Lat , LastPostDate, None, None, {'hidden': 1})
+    worksheet.set_column(0, namecol-1, None, None, {'hidden': 1})
+    #worksheet.set_column(lastcol+2, lastcol+3, None, None, {'hidden': 1})
+    worksheet.set_column(namecol, namecol+1, 45)
     worksheet.set_column(namescorecol, namescorecol, 7.5)
     worksheet.set_column(addressscorecol, addressscorecol, 7.5)
     worksheet.set_column(addresscol, addresscol+1, 27)
@@ -1004,25 +1018,25 @@ def runProg(df,IndustryType, bid):
     worksheet.autofilter(0,0,0,lastgencol)
 
     # Format Match columns
-    worksheet.conditional_format(0, lastcol, 0, lastgencol, {'type':'text',
+    worksheet.conditional_format(0, namecol, 0, lastgencol, {'type':'text',
                                 'criteria': 'containing',
                                 'value':    "Name",
                                 'format':   formatOrange})
-    worksheet.conditional_format(0, lastcol, 0, lastgencol, {'type':'text',
+    worksheet.conditional_format(0, namecol, 0, lastgencol, {'type':'text',
                                 'criteria': 'containing',
                                 'value':    "Address",
                                 'format':   formatPurp})
     # Format Score columns
-    worksheet.conditional_format(0, lastcol, 0, lastgencol, {'type':'text',
+    worksheet.conditional_format(0, namecol, 0, lastgencol, {'type':'text',
                                 'criteria': 'containing',
                                 'value':    "Score",
                                 'format':   headerformat })
     
-    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+    worksheet.conditional_format(1, robotcol, row, lastgencol, {'type':'text',
                                         'criteria': 'begins with',
                                         'value':    "Match",
                                         'format':   formatBlue})
-    worksheet.conditional_format(1, lastgencol-1, row, lastgencol, {'type':'text',
+    worksheet.conditional_format(1, robotcol-1, row, lastgencol, {'type':'text',
                                         'criteria': 'begins with',
                                         'value':    "Check",
                                         'format':   formatYellow})
@@ -1032,7 +1046,7 @@ def runProg(df,IndustryType, bid):
                                         'format':   formatBlue})
 
     #Not match coloring
-    worksheet.conditional_format(1, lastcol, row, lastgencol, {'type':'text',
+    worksheet.conditional_format(1, robotcol, row, lastgencol, {'type':'text',
                                         'criteria': 'begins with',
                                         'value':    "No Match",
                                         'format':   formatRed})
@@ -1040,7 +1054,31 @@ def runProg(df,IndustryType, bid):
                                         'criteria': 'begins with',
                                         'value':    "Same Location",
                                         'format':   formatRed})
-
+    
+    worksheet.conditional_format(1, nameMatchCol, row, geocodeMatchCol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "TRUE",
+                                        'format':   formatGreen})
+    worksheet.conditional_format(1, nameMatchCol, row, geocodeMatchCol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "FALSE",
+                                        'format':   formatRed})
+    worksheet.conditional_format(1, nameMatchCol, row, geocodeMatchCol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Good",
+                                        'format':   formatGreen})
+    worksheet.conditional_format(1, nameMatchCol, row, geocodeMatchCol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Bad",
+                                        'format':   formatRed})
+    worksheet.conditional_format(1, nameMatchCol, row, geocodeMatchCol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "Check",
+                                        'format':   formatYellow})
+    worksheet.freeze_panes(1, 0)
+    
+    matchingSheet.set_column(0,1,45)
+    
     print 'saving'    
     try:
         writer.save()
@@ -1239,7 +1277,7 @@ class MatchingInput(Tkinter.Frame):
         
         root.protocol("WM_DELETE_WINDOW", self._delete_window)
         Tkinter.Frame.__init__(self, master, padx=10, pady=10)
-
+#        self.grid()
         master.title("AutoMatcher Setup")
 
         master.minsize(width=500, height=300)
@@ -1248,13 +1286,24 @@ class MatchingInput(Tkinter.Frame):
        # style.theme_use('classic')
         
 #First screen - needs to explain what's going on, get input on where in process they are        
-
-        self.IntroLabel = Label(master,text="Welcome to ze AutoMatcher! It be cool. Enjoy. \n Pick what you want to do, man.").grid(row=0,column=0)
+#        for r in range(6):
+#            self.master.rowconfigure(r, weight=1)    
+#        for c in range(5):
+#            self.master.columnconfigure(c, weight=1)
+#                    
+#        Frame1 = Frame(master)
+#        Frame1.grid(row = 0, column = 0, rowspan = 3, columnspan = 3, sticky = W+E+N+S) 
+        
+        self.IntroLabel = Label(master,text="Welcome to the AutoMatcher! This will suggest matches"\
+                                +" based on inputs as well as create a matches upload file"+
+                                "\n To start the process, select the first option. "\
+                                +"After you have reviewed all match suggestions and filled in a match status,"\
+                                +"\n run the program again, and select the second option.").grid(row=0,column=0, columnspan=2,pady=(0,20))
         self.processChoice = IntVar()
         self.processChoice.set(-1)
-        self.StartMatch = Radiobutton(master,text="Start AutoMatcher - pull data/enter file",\
+        self.StartMatch = Radiobutton(master,text="Start AutoMatcher - pull data/enter file and suggest matches",\
                                       variable = self.processChoice,value = 0).grid(row = 1,column = 0)
-        self.ChecksChoice = Radiobutton(master,text="Input Completed Manual Checks, create upload",\
+        self.ChecksChoice = Radiobutton(master,text="Create upload based on reviewed matches file",\
                                         variable=self.processChoice,value=1).grid(row = 1,column = 1)
         
         self.Next=Button(master,text = "Next",command = lambda: [self.initialSettingsWindow() \
@@ -1270,7 +1319,7 @@ class MatchingInput(Tkinter.Frame):
         
         self.ReportType=IntVar()
         self.ReportType.set(-1)
-        self.ReportLabel = Label(self.UploadSetup,text="Select report type:").grid(row=4,column=2,pady=(30,0),sticky=W)
+        self.ReportLabel = Label(self.UploadSetup,text="Select report type:").grid(row=4,column=0,pady=(30,0),sticky=W)
         
         self.Listings=Radiobutton(self.UploadSetup, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=0,sticky=W)
         self.Suppression=Radiobutton(self.UploadSetup, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=0, sticky=W)
@@ -1339,7 +1388,7 @@ class MatchingInput(Tkinter.Frame):
         self.settingWindow .protocol("WM_DELETE_WINDOW", self._delete_window)
         self.IndustryType=IntVar()
         self.IndustryType.set(-1)
-        self.IndustryLabel = Label(self.settingWindow,text="Select Industry Type").grid(row = 0,column = 0,pady=(0,10))
+        self.IndustryLabel = Label(self.settingWindow,text="Select Industry Type").grid(row = 0, column = 0, columnspan=2, pady=(10,10), sticky=W)
 
         self.Normal=Radiobutton(self.settingWindow, text="Normal", variable=self.IndustryType,value=0).grid(row=1,column=0,sticky=W)
         self.Auto=Radiobutton(self.settingWindow, text="Auto", variable=self.IndustryType,value=1).grid(row=2,column=0,sticky=W)
@@ -1352,10 +1401,10 @@ class MatchingInput(Tkinter.Frame):
         #Report Type Designation
         self.ReportType=IntVar()
         self.ReportType.set(-1)
-        self.ReportLabel = Label(self.settingWindow,text="Select report type:").grid(row=4,column=2,pady=(30,0),sticky=W)
+        self.ReportLabel = Label(self.settingWindow,text="Select report type:").grid(row=4,column=2,pady=(30,0),padx=(15,0),sticky=W)
         
-        self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=2,sticky=W)
-        self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=2, sticky=W)
+        self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=2,padx=(15,0),sticky=W)
+        self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=2, padx=(15,0),sticky=W)
         #self.FB=Radiobutton(self.settingWindow, text="FB", variable=self.ReportType,value=2).grid(row=1,column=2)
         #self.Google=Radiobutton(self.settingWindow, text="Google", variable=self.ReportType,value=x).grid(row=1,column=3)
         
@@ -1363,9 +1412,9 @@ class MatchingInput(Tkinter.Frame):
         #self.quitButton.pack()
         self.dataInput=IntVar()
         self.dataInput.set(0)
-        self.inputType=Label(self.settingWindow,text="Select data input type:").grid(row=4,column=0, pady=(30,0))
+        self.inputType=Label(self.settingWindow,text="Select data input type:").grid(row=4,column=0, columnspan=2,pady=(30,0), sticky=W)
 
-        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2).grid(row=5,column=0, sticky=W)
+        self.SQL=Radiobutton(self.settingWindow, text="Pull Data from SQL", variable=self.dataInput,value=2).grid(row=5,column=0, columnspan=2, sticky=W)
         self.file=Radiobutton(self.settingWindow, text="Input File", variable=self.dataInput,value=1).grid(row=6,column=0, sticky=W)
         
 
@@ -1396,7 +1445,7 @@ class MatchingInput(Tkinter.Frame):
             vcmd = self.master.register(self.validate)
 
             self.InputExplanation=Label(self.detailsW,text=\
-            "Please enter account info for data to pull. Business ID is required. \nYou can leave Folder ID and Label ID blank or put 0 if not needed\n").grid(row=5,column=0)
+            "Please enter account info for data to pull. Business ID is required. \nYou can leave Folder ID and Label ID blank or put 0 if not needed\n").grid(row=5,column=0, columnspan=2)
 
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
@@ -1459,14 +1508,14 @@ class MatchingInput(Tkinter.Frame):
         
         self.busNameMatch=IntVar()
         self.busNameMatch.set(-1)
-        self.busMatchLabel=Label(self.nameW,text="Do you want to match to generic business names?").grid(row=0,column=0)
-        self.yesMatch=Radiobutton(self.nameW,text="Yes, match to business names", variable=self.busNameMatch , value=1).grid(row=1,column=0,pady=(0,20))
-        self.noMatch=Radiobutton(self.nameW,text="No, do not match to business names", variable=self.busNameMatch ,value=0).grid(row=1,column=1,pady=(0,20))
-        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0)
-        self.AddMoreLabel=Label(self.nameW,text="Enter comma separated list of additional business names:").grid(row=11,column=0)
-        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0)
-        self.AddMoreButton=Button(self.nameW,text="Add names",command=lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=0, sticky=W)
-        self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
+        self.busMatchLabel=Label(self.nameW,text="Do you want to match to generic business names?").grid(row=0,column=0, sticky=W, columnspan=2)
+        self.yesMatch=Radiobutton(self.nameW,text="Yes, match to business names", variable=self.busNameMatch , value=1).grid(row=1,column=0,pady=(0,20),sticky=W)
+        self.noMatch=Radiobutton(self.nameW,text="No, do not match to business names", variable=self.busNameMatch ,value=0).grid(row=1,column=1,pady=(0,20),sticky=E)
+        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0, columnspan=2)
+        self.AddMoreLabel=Label(self.nameW,text="If needed, enter comma separated list of additional business names to match to:").grid(row=11,column=0, columnspan=2)
+        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0, columnspan=2)
+        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=0, columnspan=2 ,pady=(20,0))
+#        self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
   
     
 #Checks if input is a number

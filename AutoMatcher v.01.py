@@ -809,8 +809,11 @@ def suggestedmatch(df, IndustryType):
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
-    df['Total Score'] = df.apply(lambda row: row['Name Score']*.7 + row['Address Score']*.3, axis = 1)
 
+    df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.7 + float(row['Address Score'])*.3, axis = 1)
+
+    
+ # Where did this come from? Is this used anywhere? I think I just handled this in def readCheckedFile. -PL 3/4   
 def determineSync(df):    
     #If Listing ID is matched to more than one location 
     df = df.sort_values(['Match','Listing ID','Total Score'], ascending = [True, True, True] )
@@ -825,6 +828,30 @@ def determineSync(df):
                     df.set_value(index,'Match',0)
 #    print df['Match']
     return df
+
+
+#Calculates Match vs Anti-Match. Will need to take in FB page ID
+def calculatePLStatus1(row, templateType, keepMatchNPL, BrandPageID, BrandPageVanity):
+    #Antimatch any auto-anti-matched
+    if row['Match Status'] == 1: return "Anti-Match"
+
+    #Antimatch any Brand Page on ID or vanity
+    for x in BrandPageID:
+        if unicode(x) in row['Listing URL']: return "Anti-Match"
+    for x in BrandPageID:
+        if unicode(x) in row['External ID']: return "Anti-Match"    
+    for x in BrandPageVanity:
+        if row['Listing URL'] == "https://www.facebook.com/" + unicode(x): return "Anti-Match"
+    for x in BrandPageVanity:
+        if row['Listing URL'] == "https://www.facebook.com/" + unicode(x) + "/": return "Anti-Match"
+
+    #If Suppression Template: 0 score = Anti-Match, All other = Suppress
+    if templateType == 2:
+        if row['Score'] == 0: return "Anti-Match"
+        else: return "Suppress"
+
+    return "Sync"
+
 
     
 def ExternalID_De_Dupe(df):    
@@ -863,6 +890,7 @@ def readFile(xlsFile):
             df = pd.read_csv(xlsFile, encoding ='utf-8')
         else:
             raise Exception('What kind of file did you give me, bro?')
+            sys.exit()
        
         #Finds Business ID
         bid = getBusIDfromLoc(df.loc[0,'Location ID'])
@@ -887,7 +915,7 @@ def readMatchedFile(xlsFile):
         elif xlsFile[-3:] == 'csv':
             df = pd.read_csv(xlsFile, encoding ='utf-8')
         else:
-            raise Exception('What kind of file did you give me, bro?')
+            raise Exception('Please provide a csv or xlsx file.')
         return df
 #        return df,bid
     
@@ -1041,12 +1069,16 @@ def runProg(df,IndustryType, bid):
     print 'saving'    
     try:
         writer.save()
+
+        os.startfile(FilepathMatch)
+#        os.system('start excel.exe "'+os.path.expanduser(FilepathMatch)+'"' % (sys.path[0], ))
         app.AllDone("\nDone! Results have been wrizzled to your Excel file. 1love <3"+"\nMatching Template here:\n"+ FilepathMatch )
         print "\nDone! Results have been wrizzled to your Excel file. 1love <3"
         print "\nMatching Template here:"
         print FilepathMatch
-   #Opens explorer window to path of output     
+   #Opens explorer window to path of output    
         subprocess.Popen(r'explorer /select,'+os.path.expanduser(FilepathMatch))
+        
     except IOError:
         app.AllDone("\nIOError: Make sure your Excel file is closed before re-running the script.")
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
@@ -1223,12 +1255,12 @@ def matchingQuestions(df):
 
 
 def writeUploadFile(uploadDF):
-    filePath =  os.path.expanduser("~\Documents\Python Scripts\UploadLinkages.csv")
+    filePath =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(getBusIDfromLoc(uploadDF.loc[0,'locationId']))+" Upload Linkages "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".csv")
 
     print 'writing file'
     #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
     uploadDF.to_csv(filePath, encoding='utf-8',index=False)
-    
+    return "\nUpload Linkages available: "+filePath
     
     
 class MatchingInput(Tkinter.Frame):
@@ -1317,29 +1349,48 @@ class MatchingInput(Tkinter.Frame):
             checkedDF['Match'] = checkedDF.apply(lambda x: 1 if 'Match Suggested' in x['Robot Suggestion'] else 0, axis=1)
             checkedDF['Match'] = checkedDF.apply(lambda x: 1 if x['Match \n1 = yes, 0 = no'] == 1 else \
                                                 (0 if x['Match \n1 = yes, 0 = no'] == 0 else x['Match']), axis=1)
-            print "external ID  deduping"
-            checkedDF = ExternalID_De_Dupe(checkedDF)
-            #EXTERNAL ID DEDPUE
-            print "Creating Upload Overrides"
+           
             
+            checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Sync'] == 1 else x['Match'], axis=1)
+            checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)
+
+            checkedDF = checkedDF.sort_values(['Location ID','Publisher ID', 'Total Score'], ascending=[True, True, False])
+            checkedDF = checkedDF.reset_index(drop=True)
             checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'Antimatch',axis=1)
             
             if self.ReportType.get()==0:
                 checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Sync' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
             elif self.ReportType.get()==1:
-                checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Suppress' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
+                checkedDF['Pl Status'] = checkedDF.apply(lambda x: 'Suppress' if x['override'] == 'Match' else 'NoPowerListing',axis=1)    
            
+            
+            if self.ReportType.get() == 0:    
+                for index,row in checkedDF.iterrows():
+                    if index != 0:
+                    #If Listings, Diagnostic. or Facebook Template: if previous listing is a Match of the same Loc/Pub ID combination, then NPL
+                        if row['Location ID'] == checkedDF.iloc[index-1]['Location ID'] and row['Publisher ID'] == checkedDF.iloc[index-1]['Publisher ID'] and checkedDF.iloc[index-1]['PL Status'] == "Sync":
+                            row['PL Status']= "NoPowerListing"
+                        else: row['PL Status']= "Sync"
+
+            print "external ID  deduping"
+            checkedDF = ExternalID_De_Dupe(checkedDF)
+            #EXTERNAL ID DEDPUE
+            print "Creating Upload Overrides"
+            
             #checkedDF=calculateTotalScore(checkedDF)
             uploadDF = checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
             uploadDF.columns=[ "partnerId","locationId",  "listingId", "override","PL Status"]
+
+            uploadDF['listingId']=uploadDF.apply(lambda x: x['listingId'].replace('\'',''),axis=1)
             
-            writeUploadFile(uploadDF)
+            self.AllDone(writeUploadFile(uploadDF))
             print t0
             t1=time.time()
             print t1
             print t1-t0
        #remove this once we do something here     
-            root.destroy()
+               
+            
                     
             #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):

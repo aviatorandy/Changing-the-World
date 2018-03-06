@@ -827,24 +827,6 @@ def calculateTotalScore(df):
     df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
                         + float(row['Phone Score'])*.1 + float(row['Claimed Score']), axis = 1)
 
-    
- # Where did this come from? Is this used anywhere? I think I just handled this in def readCheckedFile. -PL 3/4   
-def determineSync(df):    
-    #If Listing ID is matched to more than one location 
-    df = df.sort_values(['Match','Listing ID','Total Score'], ascending = [True, True, True] )
-#    print df['Match']
-    df = df.reset_index(drop=True)
-    
-    for index,row in df.iterrows():      
-        if index < df.shape[0]-1:
-            if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
-                if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
-#                    row['Match'] = 0
-                    df.set_value(index,'Match',0)
-#    print df['Match']
-    return df
-
-
 #Calculates Match vs Anti-Match. Will need to take in FB page ID
 def calculatePLStatus1(row, templateType, keepMatchNPL, BrandPageID, BrandPageVanity):
     #Antimatch any auto-anti-matched
@@ -1370,26 +1352,31 @@ class MatchingInput(Tkinter.Frame):
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Sync'] == 1 else x['Match'], axis=1)
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)
 
-            checkedDF = checkedDF.sort_values(['Location ID','Publisher ID', 'Total Score'], ascending=[True, True, False])
-            checkedDF = checkedDF.reset_index(drop=True)
+            checkedDF = ExternalID_De_Dupe(checkedDF)
+            
             checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'Antimatch',axis=1)
             
             if self.ReportType.get()==0:
                 checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Sync' if x['override'] == 'Match' else 'NoPowerListing',axis=1)
             elif self.ReportType.get()==1:
-                checkedDF['Pl Status'] = checkedDF.apply(lambda x: 'Suppress' if x['override'] == 'Match' else 'NoPowerListing',axis=1)    
-           
+                checkedDF['PL Status'] = checkedDF.apply(lambda x: 'Suppress' if x['override'] == 'Match' else 'NoPowerListing',axis=1)    
             
+            #Total Score at the top
+            checkedDF = checkedDF.sort_values(['Location ID','Publisher ID', 'Match', 'Total Score']\
+                                                              , ascending=[True, True,False, False])
+            checkedDF = checkedDF.reset_index(drop=True)   
+         
+            #If Listings Type
             if self.ReportType.get() == 0:    
                 for index,row in checkedDF.iterrows():
                     if index != 0:
                     #If Listings, Diagnostic. or Facebook Template: if previous listing is a Match of the same Loc/Pub ID combination, then NPL
-                        if row['Location ID'] == checkedDF.iloc[index-1]['Location ID'] and row['Publisher ID'] == checkedDF.iloc[index-1]['Publisher ID'] and checkedDF.iloc[index-1]['PL Status'] == "Sync":
+                        if row['Location ID'] == checkedDF.iloc[index-1]['Location ID'] and row['Publisher ID']\
+                             == checkedDF.iloc[index-1]['Publisher ID'] and checkedDF.iloc[index-1]['PL Status'] == "Sync":
                             row['PL Status']= "NoPowerListing"
                         else: row['PL Status']= "Sync"
 
             print "external ID  deduping"
-            checkedDF = ExternalID_De_Dupe(checkedDF)
             #EXTERNAL ID DEDPUE
             print "Creating Upload Overrides"
             

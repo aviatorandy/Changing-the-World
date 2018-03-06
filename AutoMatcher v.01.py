@@ -286,28 +286,37 @@ def compareName(df, IndustryType, bid):
     if IndustryType == "2":
 
         BadHotel = ["bakery","grill", "bar", "starbucks", "electric", "wedding", "gym",\
-                     "pool", "restaurant", "bistro", "golf", "sport", "cafe", "salon",\
-                     "lab", "rental", "car", "body", "fitness", "swim", "hertz", "steak", "beauty"]     
+                     "pool", "restaurant", "bistro", "academy", "cafe", "salon",\
+                     "5ten20", "lab", "rental", "car", "body", "fitness", "swim", "hertz", "steak",\
+                     "sip", "zone", "alarm", "limestone", "catering", "room", "âme", "trivium",\
+                     "broughton's", "broscheks", "vmug",\
+                     "beauty","formaggio","gallery", "motors",\
+                     "sports", "formaggiosacramento", "rgs", "brasserie",\
+                     "office", "vaso", "oceana", "yard", "vmware"\
+                     "trivium", "fyve", "steakhouse", "ame", "wellness", "pay", "presentation"\
+                     "presentations", "presentation", "visual",\
+                     "tent", "eno", "copper", "coffee", "leisue","charter", "me", "ticketmaster",\
+                     "swampers", "journeys", "friend", "orchards", "mandara", "camp"]     
 #                     
-        HotelBrands = ["AC hotels", "aloft", "America's Best", \
+        HotelBrands = ["ac hotels", "aloft", "america's best", \
         "americas best value", "ascend", "autograph", "baymont", "best western",\
         "cambria", "canadas best value", "candlewood", "clarion", "comfort inn",\
-        "comfort suites", "Country Hearth", "courtyard", "crowne plaza", "curio",\
-        "days inn", "doubletree", "econo lodge", "econolodge", "edition", "Element",\
-        "embassy", "even", "fairfield inn", "four points", "garden inn", "Gaylord",\
+        "comfort suites", "country hearth", "courtyard", "crowne plaza", "curio",\
+        "days inn", "doubletree", "econo lodge", "econolodge", "edition", "element",\
+        "embassy", "even", "fairfield inn", "four points", "garden inn", "gaylord",\
         "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt",\
-        "indigo", "intercontinental", "Jameson", "JW", "la quinta", "Le Meridien",\
+        "indigo", "intercontinental", "jameson", "jw", "la quinta", "le meridien",\
         "le méridien", "lexington", "luxury collection", "mainstay", "marriott",\
         "microtel", "motel 6", "palace inn", "premier inn", "quality inn",\
         "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz",\
-        "rodeway", "sheraton", "Signature Inn", "sleep inn", "springhill", "st regis",\
+        "rodeway", "sheraton", "signature Inn", "sleep inn", "springhill", "st regis",\
         "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace",\
-        "value hotel", "value inn", "W hotel", "westin", "wingate", "wyndham"]        
+        "value hotel", "value inn", "w hotel", "westin", "wingate", "wyndham"]        
 
         businessRatio = 0
         businessPartialRatio = 0
-
-        df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x for item in BadHotel) else 0) 
+        
+        df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x.split() for item in BadHotel) else 0) 
         df['Other Hotel Match'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x for item in HotelBrands) else 0)
 
         df['Name Score'] = df.apply(lambda row: \
@@ -414,6 +423,10 @@ def userMatch(df):
     print "nothing"
 #    df.apply(lambda row: df.drop(index,inplace=True) if row['Match \n1 = yes, 0 = no'] != 1)
 
+
+def compareStatus(df):    
+    df['Claimed Score'] = df.apply(lambda x: 100 if x['Advertiser/Claimed'] == "Claimed" else 0, axis = 1)
+
 #This function compares the phones in the file                
 def comparePhone(df):
     
@@ -422,6 +435,7 @@ def comparePhone(df):
             if (str(x['Location Phone']) == str(x['Listing Phone']) and str(x['Location Phone']) != "")\
             else (True if (str(x['Location Local Phone']) == str(x['Listing Phone']) \
                            and str(x['Location Local Phone']) != "") else False), axis = 1)
+        df['Phone Score'] = df.apply(lambda x: 100 if x['Phone Match'] == True else 0, axis = 1)
     except:
         df['Phone Match'] = 'x'    
 
@@ -595,6 +609,7 @@ def compareData(df, IndustryType, bid):
     #compareId(df)
     print 'comparing phones'
     comparePhone(df)
+    compareStatus(df)
     #compareCountry(df)
     print 'comparing zips'
     compareZip(df)
@@ -617,7 +632,6 @@ def compareData(df, IndustryType, bid):
 #This function provides a suggested match based on certain name/address thresholds
 def suggestedmatch(df, IndustryType):  
     robotmatch = []
-
     
     #Creates new columns that are easier to read in code, and for users when outputed - Mostly boolean variables
     df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
@@ -660,7 +674,7 @@ def suggestedmatch(df, IndustryType):
             else noName if x['Not Hotel'] == 1\
                     else noAddress if x['Address Match'] == False\
                         else noName if x['Name Match'] == 0 \
-                            else check if x['Name Match'] == 2 and x['Address Match'] == True or x['Phone Match'] == True\
+                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
                                 else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
                                     and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
                                         else matchText if x['Name Match'] == 1 \
@@ -810,7 +824,8 @@ def suggestedmatch(df, IndustryType):
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
 
-    df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.7 + float(row['Address Score'])*.3, axis = 1)
+    df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
+                        + float(row['Phone Score'])*.1 + float(row['Claimed Score']), axis = 1)
 
     
  # Where did this come from? Is this used anywhere? I think I just handled this in def readCheckedFile. -PL 3/4   
@@ -958,6 +973,7 @@ def runProg(df,IndustryType, bid):
     matchingNameQs.to_excel(writer,sheet_name="Matching Questions", index=False)
     workbook  = writer.book
     worksheet = writer.sheets["Result"]
+    worksheet.set_zoom(80)
     matchingSheet=writer.sheets['Matching Questions']
 
     print 'formatting file'

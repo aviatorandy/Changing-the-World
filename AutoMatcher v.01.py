@@ -923,8 +923,8 @@ def readMatchedFile(xlsFile):
         
     
  #New main runtime function - broken out as previous functions now handled in Tkinter   
-def runProg(df,IndustryType, bid):    
-    print 'runprog'
+def main(df,IndustryType, bid):    
+    print 'main'
     row = 0 
     if IndustryType == '3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'
@@ -1449,7 +1449,7 @@ class MatchingInput(Tkinter.Frame):
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
             df, bid = readFile(fname)
             
-            runProg(df,str(self.IndustryType.get()),bid)
+            main(df,str(self.IndustryType.get()),bid)
         #SQL
         elif self.dataInput.get()==2:
             self.detailsW=Tkinter.Toplevel(self)
@@ -1489,7 +1489,7 @@ class MatchingInput(Tkinter.Frame):
             else:
                 labelID = 0
             df = sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get())
-            runProg(df,self.IndustryType.get(),self.bizID.get())
+            main(df,self.IndustryType.get(),self.bizID.get())
     
 #button function to ammend businessNames list            
     def AddMore(self):

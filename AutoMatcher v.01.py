@@ -201,7 +201,6 @@ def noNames(df):
     
 #This function compares the names in the file
 def compareName(df, IndustryType, bid):
-    
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     
@@ -234,6 +233,7 @@ def compareName(df, IndustryType, bid):
 #start of comparisons, broken out by industry
     #Normal Industry  
     if IndustryType == "0":
+        print "Normal Naming"
         if businessNameMatch == 1:
             for index, row in df.iterrows():             
                 businessPartial = 0
@@ -253,27 +253,26 @@ def compareName(df, IndustryType, bid):
                 total = max(businessPartial, businessTokenSet, businessTokenSort,ntpr,ntksr,ntsr)
                 averagenamescore.append(total)
             df['Name Score'] = averagenamescore        
-            return
+            
         else:
             df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
 
             df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-##
 
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
 
             #returns Max of Business Match or Location Name Match
+            df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
 
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
-            
 
 
     #Industry Hotel
-    if IndustryType == "2":
-
+    elif IndustryType == "2":
+        print "Hotel Naming"
         BadHotel = ["optimeyes", "bakery","grill", "bar", "starbucks", "electric", "wedding", "gym",\
                      "pool", "restaurant", "bistro", "academy", "cafe", "salon",\
                      "5ten20", "lab", "rental", "car", "body", "fitness", "swim", "hertz", "steak",\
@@ -311,10 +310,11 @@ def compareName(df, IndustryType, bid):
         df['Name Score'] = df.apply(lambda row: \
          fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']) if ['Other Hotel Match'] == 1 else\
             fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
-        return
+        
         
     #Industry Healthcare Professional matching
     elif IndustryType == "3":
+        print "HC Prof Naming"
         df['Name Score'] = df.apply(lambda row: \
                 fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name']), axis=1) 
         
@@ -324,6 +324,7 @@ def compareName(df, IndustryType, bid):
 #  return
     #Agent Names matching
     elif IndustryType == "5":
+        print "Agent Naming"
         for index, row in df.iterrows():             
             if businessNameMatch==1:
                 businessRatio = 0
@@ -344,37 +345,51 @@ def compareName(df, IndustryType, bid):
                 #returns Max of Business Match or Location Name Match
                 average = np.mean([nsr,ntpr])
                 averagenamescore.append(average)
-#        df['Name Score'] = df.apply(lambda row: \
-#                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'], axis=1)) 
-        df['Name Score'] = averagenamescore
-        return
+
+                df['Name Score'] = averagenamescore
+        
+
     #Auto Name Matching
     elif IndustryType == "6":
         return        
     #Industry International    
     else:       
-        for index, row in df.iterrows():             
-            if businessNameMatch==1:
-                    businessRatio = 0
-                    businessPartialRatio = 0
-                    #Check listing name against business names
-                    for bName in businessNames:
-                        businessRatio = max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                        businessPartialRatio = max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
-                    #Check listing name against location name
-                    nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                    ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                    #returns Max of Business Match or Location Name Match
-                    average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-                    averagenamescore.append(average)
-            else:
-                    nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                    ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                    #returns Max of Business Match or Location Name Match
-                    average = np.mean([nsr,ntpr])
-                    averagenamescore.append(average)
-        df['Name Score'] = averagenamescore
-        return   
+        print "Other Naming"
+        if businessNameMatch == 1:
+            for index, row in df.iterrows():             
+                businessPartial = 0
+                businessTokenSet = 0
+                businessTokenSort = 0
+                #Check listing name against business names
+                for bName in businessNames:
+                    businessPartial  = max(businessPartial, fuzz.partial_ratio(bName, row['Cleaned Listing Name']))
+                    businessTokenSet = max(businessTokenSet, fuzz.token_set_ratio(bName, row['Cleaned Listing Name']))
+                    businessTokenSort = max(businessTokenSort, fuzz.token_sort_ratio(bName, row['Cleaned Listing Name']))
+                #Check listing name against location name
+                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                ntksr = fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                ntsr = fuzz.token_sort_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+                
+                #returns Max of Business Match or Location Name Match
+                total = max(businessPartial, businessTokenSet, businessTokenSort,ntpr,ntksr,ntsr)
+                averagenamescore.append(total)
+            df['Name Score'] = averagenamescore        
+                       
+        else:
+            df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+
+            df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+
+            df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+
+            #returns Max of Business Match or Location Name Match
+            df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
+
+            df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
+            
         
 #This function compares the countries in the file
 def compareStateCountry(df):
@@ -644,10 +659,11 @@ def suggestedmatch(df, IndustryType):
     #Normal Type
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
-    
+        print "Normal Matching"
         df['Robot Suggestion'] = df.apply(lambda x: matchText \
             if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
-                or x['Geocode Match']) else (check if x['Name Match'] == 2 \
+                or x['Geocode Match']) else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] \
+                or x['Geocode Match'])\
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
         
@@ -655,8 +671,8 @@ def suggestedmatch(df, IndustryType):
     #If hotel match another and phone and address         
     #Hotel Type
     #Need to Add Name Score taking the max of the brand
-    if IndustryType == '2':      
-                
+    elif IndustryType == '2':      
+        print "Hotel Matching"        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else noName if x['Not Hotel'] == 1\
                     else noAddress if x['Address Match'] == False\
@@ -668,10 +684,10 @@ def suggestedmatch(df, IndustryType):
                                         and x['Address Match'] == True or x['Phone Match'] == True\
                                                 else noMatch ,axis = 1) 
         df['Match \n1 = yes, 0 = no'] = ""
-   
+        return
     #Healthcare Professional
     elif IndustryType == '3': 
-        
+        print "HC Prof Matching"
 #        df['Robot Suggestion'] = df.apply(lambda row: matchNPI if row ['NPI Match'] \
 #                        else checkname if row['Phone Match'] == '1' and \
 #                                    (66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None)\
@@ -717,10 +733,11 @@ def suggestedmatch(df, IndustryType):
         
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""
-                        
+        return                        
     #Healthcare Facilities    
     elif IndustryType == '4':
-         df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
+        print "HC Facility Matching"
+        df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
                     else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
                           else (check if x['Name Match']==2 \
                           else (noName if x['Name Match']==0 \
@@ -729,9 +746,11 @@ def suggestedmatch(df, IndustryType):
                           ('Check Name and Specialty' if x['Name Match']==2 \
                           else (noName if x['Name Match']==0 \
                           else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
-                         
+        return                        
+    
     #International
     elif IndustryType == '6':
+        print "Intl Matching"
         for index, row in df.iterrows(): 
             if row['Name Score'] <= 60 and row['No Name']!='URL for name':
                 robotmatch.append("No Match - Name")
@@ -792,12 +811,12 @@ def suggestedmatch(df, IndustryType):
 
         df['Robot Suggestion'] = robotmatch
         df['Match \n1 = yes, 0 = no'] = ""        
+        return                        
     
- 
      #All other industries
     else:
+        print "Other Matching"
         #Applies Match rules based on new columns.
-
         df['Robot Suggestion'] = df.apply(lambda x: matchText \
             if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match']==2 \
@@ -807,6 +826,7 @@ def suggestedmatch(df, IndustryType):
     df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""
+    return                        
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
@@ -909,6 +929,7 @@ def readMatchedFile(xlsFile):
  #New main runtime function - broken out as previous functions now handled in Tkinter   
 def main(df,IndustryType, bid):    
     print 'main'
+    print IndustryType
     row = 0 
     if IndustryType == '3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'

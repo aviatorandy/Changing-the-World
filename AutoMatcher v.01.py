@@ -22,6 +22,7 @@ import time
 import datetime
 from datetime import date
 import sys
+import math
 
 
 #This function cleans the names 
@@ -432,12 +433,17 @@ def comparePhone(df):
     
     try:
         df['Phone Match'] = df.apply(lambda x: True \
-            if (str(x['Location Phone']) == str(x['Listing Phone']) and str(x['Location Phone']) != "")\
-            else (True if (str(x['Location Local Phone']) == str(x['Listing Phone']) \
-                           and str(x['Location Local Phone']) != "") else False), axis = 1)
-        df['Phone Score'] = df.apply(lambda x: 100 if x['Phone Match'] == True else 0, axis = 1)
+            if ((x['Location Phone']) == (x['Listing Phone']) and \
+                (x['Location Phone']) != None and pd.isnull(x['Location Phone'])==False \
+                 and  pd.isnull(x['Listing Phone'])==False)\
+            else (True if ((x['Location Local Phone']) == (x['Listing Phone']) \
+                           and pd.isnull(x['Location Local Phone'])==False \
+                        and   pd.isnull(x['Listing Phone'])==False) else False), axis = 1)
+        
+        df['Phone Score'] = df.apply(lambda x: 100 if x['Phone Match'] else 0, axis = 1)
     except:
-        df['Phone Match'] = 'x'    
+        df['Phone Match'] = 'x'   
+     
 
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
@@ -607,6 +613,8 @@ def calculateDoctorMatch(df):
 def compareData(df, IndustryType, bid):
     
     #compareId(df)
+    print 'comparing names'
+    compareName(df,IndustryType, bid)
     print 'comparing phones'
     comparePhone(df)
     compareStatus(df)
@@ -616,8 +624,7 @@ def compareData(df, IndustryType, bid):
     if IndustryType == '3':
         print 'comparing NPIs'
         compareNPI(df)
-    print 'comparing names'
-    compareName(df,IndustryType, bid)
+
     if IndustryType == '4':
         print 'specialty check'
         calculateDoctorMatch(df)
@@ -1204,8 +1211,8 @@ def getBusIDfromLoc(locationID):
         busID = pd.read_sql(SQL_BusIDQuery, con=Yext_OPS_DB)['business_id'][0]
     except:
         print "Connect to SDM!"
-        busID = "Dog"
-#        sys.exit()
+#        busID = "Dog"
+        sys.exit()
     
     return busID    
 

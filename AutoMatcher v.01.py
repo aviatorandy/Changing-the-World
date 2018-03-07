@@ -260,37 +260,25 @@ def compareName(df, IndustryType, bid):
 
             df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-#
+##
+
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
 
+            #returns Max of Business Match or Location Name Match
+
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
             
-#            df['Name Score'] = df.apply(lambda row: fuzz.partial_ratio\
-#            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
-            #
-
-#            df['token'] = df.apply(lambda row: \
-#                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)#
-#            df['nsr'] = df.apply(lambda row: \
-#                fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
-#            df['ntpr'] = df.apply(lambda row: \
-#                fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
-#            df['Name Score'] = df[['nsr','ntpr']].mean(axis=1) 
-            return
-
-                #returns Max of Business Match or Location Name Match
 
 
     #Industry Hotel
     if IndustryType == "2":
 
-        BadHotel = ["bakery","grill", "bar", "starbucks", "electric", "wedding", "gym",\
+        BadHotel = ["optimeyes", "bakery","grill", "bar", "starbucks", "electric", "wedding", "gym",\
                      "pool", "restaurant", "bistro", "academy", "cafe", "salon",\
                      "5ten20", "lab", "rental", "car", "body", "fitness", "swim", "hertz", "steak",\
-                     "sip", "zone", "alarm", "limestone", "catering", "room", "âme", "trivium",\
-                     "broughton's", "broscheks", "vmug",\
+                     "sip", "zone", "alarm", "limestone", "catering", "room", "âme", "massage", "trivium",\
+                     "broughton's", "broscheks", "vmug", "parking", "kenvigs", "martinis", "martini's"\
                      "beauty","formaggio","gallery", "motors",\
                      "sports", "formaggiosacramento", "rgs", "brasserie",\
                      "office", "vaso", "oceana", "yard", "vmware"\
@@ -365,8 +353,6 @@ def compareName(df, IndustryType, bid):
         return        
     #Industry International    
     else:       
-#        df['Name Score'] = df.apply(lambda row: 0 if row['Shitty?'] == 1 else \
-#                fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
         for index, row in df.iterrows():             
             if businessNameMatch==1:
                     businessRatio = 0
@@ -654,8 +640,6 @@ def suggestedmatch(df, IndustryType):
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
     npimatch = 'Match - NPI'
-
-#    df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 else None, axis=1)
     
     #Normal Type
     if IndustryType == '0':        
@@ -665,12 +649,8 @@ def suggestedmatch(df, IndustryType):
             if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match'] == 2 \
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
-        
-        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
-                        else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
-        return
-    
+        
     #Hotel matches each other
     #If hotel match another and phone and address         
     #Hotel Type
@@ -1461,7 +1441,7 @@ class MatchingInput(Tkinter.Frame):
             
             main(df,str(self.IndustryType.get()),bid)
         #SQL
-        elif self.dataInput.get()==2:
+        elif self.dataInput.get() == 2:
             self.detailsW=Tkinter.Toplevel(self)
             self.detailsW .protocol("WM_DELETE_WINDOW", self._delete_window)            
             vcmd = self.master.register(self.validate)
@@ -1482,9 +1462,6 @@ class MatchingInput(Tkinter.Frame):
         
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
             
-            
-            
-            
 #Runs SQl Pull            
     def pullSQLRun(self):
                 
@@ -1499,7 +1476,7 @@ class MatchingInput(Tkinter.Frame):
             else:
                 labelID = 0
             df = sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get())
-            main(df,self.IndustryType.get(),self.bizID.get())
+            main(df,str(self.IndustryType.get()),self.bizID.get())
     
 #button function to ammend businessNames list            
     def AddMore(self):

@@ -346,7 +346,7 @@ def compareName(df, IndustryType, bid):
                 average = np.mean([nsr,ntpr])
                 averagenamescore.append(average)
 
-                df['Name Score'] = averagenamescore
+        df['Name Score'] = averagenamescore
         
 
     #Auto Name Matching
@@ -432,14 +432,20 @@ def compareStatus(df):
 #This function compares the phones in the file                
 def comparePhone(df):
     
+    
+    df['Location Phone']=df.apply(lambda x: '%.12g' % x['Location Phone'] if isinstance(x['Location Phone'], float) else str(x['Location Phone']) ,axis=1)
+    df['Location Local Phone']=df.apply(lambda x: '%.12g' % x['Location Local Phone'] if isinstance(x['Location Local Phone'], float) else str(x['Location Local Phone']),axis=1)
+    df['Listing Phone']=df.apply(lambda x: '%.12g' % x['Listing Phone'] if isinstance(x['Listing Phone'], float) else str(x['Listing Phone']),axis=1)
+    
+    
+    
     try:
         df['Phone Match'] = df.apply(lambda x: True \
-            if ((x['Location Phone']) == (x['Listing Phone']) and \
-                (x['Location Phone']) != None and pd.isnull(x['Location Phone'])==False \
-                 and  pd.isnull(x['Listing Phone'])==False)\
-            else (True if ((x['Location Local Phone']) == (x['Listing Phone']) \
+            if (x['Location Phone'] == x['Listing Phone'] and \
+                  (pd.isnull(x['Location Phone']) or  pd.isnull(x['Listing Phone']) or x['Listing Phone']==None or x['Listing Phone']=="nan" )==False)\
+            else (True if (x['Location Local Phone'] == x['Listing Phone'] \
                            and pd.isnull(x['Location Local Phone'])==False \
-                        and   pd.isnull(x['Listing Phone'])==False) else False), axis = 1)
+                        and x['Listing Phone']!="nan" and  pd.isnull(x['Listing Phone'])==False and x['Listing Phone']!=None) else False), axis = 1)
         
         df['Phone Score'] = df.apply(lambda x: 100 if x['Phone Match'] else 0, axis = 1)
     except:

@@ -1414,26 +1414,10 @@ class MatchingInput(Tkinter.Frame):
 #            If Suppression Type
             if self.ReportType.get() == 1:    
                 print "Creating Suppression Report"
+                
                 text = "Suppression Approval Summary"
                 suppRepDF = checkedDF[checkedDF['PL Status'] == 'Suppress']
 
-                #Needs logic if certain things exist
-                claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
-                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
-
-                claimedFBDF = claimedFBDF[['Store ID', 'Location ID',\
-                                           'Location Name', 'Location Address', \
-                                           'Location City', 'Location State', 'Location Zip', 'Location Phone',\
-                                           'Listing ID', 'Listing Name', \
-                                           'Listing Address', 'Listing City', 'Listing State', \
-                                           'Listing Zip', 'Listing Phone', \
-                                           'Listing URL','External ID', 'Advertiser/Claimed',\
-                                            'Last Post Date']]
-                                            
-#                                            nocols = ['Live Listing External ID', 'Live Listing URL','Duplicate Listing External ID', \
-#                                            'Duplicate Listing URL', 'Yes/No', 'Reason']
-
-                
                 ################Create a Suppression Approval File 
                 pivot = pd.pivot_table(suppRepDF, values='PL Status',index='Publisher',aggfunc='count')
 #                print pivot
@@ -1460,14 +1444,30 @@ class MatchingInput(Tkinter.Frame):
                 worksheet.write(len(publisherNames)+3, 0, "Grand Total")
                 worksheet.write(len(publisherNames)+3, 1, publisherNames['Count of Duplicates'].sum())
                 worksheet.set_zoom(80)
-                
-                claimedFBDF.to_excel(suppwriter,sheet_name="Facebook Claimed Pages", index=False)
-                worksheet = suppwriter.sheets['Facebook Claimed Pages']                
-                
-                worksheet.set_column(0,26,20)
-                worksheet.set_zoom(80)
-                
-                suppwriter.save()
+
+                #Needs logic if certain things exist
+                claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
+                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
+
+                if claimedFBDF.shape[0] > 0:
+                    claimedFBDF = claimedFBDF[['Store ID', 'Location ID',\
+                                               'Location Name', 'Location Address', \
+                                               'Location City', 'Location State', 'Location Zip', 'Location Phone',\
+                                               'Listing ID', 'Listing Name', \
+                                               'Listing Address', 'Listing City', 'Listing State', \
+                                               'Listing Zip', 'Listing Phone', \
+                                               'Listing URL','External ID',\
+                                                'Last Post Date']]
+                                                
+    #                                            nocols = ['Location URL','Yes/No', 'Reason']
+
+                    claimedFBDF.to_excel(suppwriter,sheet_name="Facebook Claimed Pages", index=False)
+                    worksheet = suppwriter.sheets['Facebook Claimed Pages']                
+                    
+                    worksheet.set_column(0,26,20)
+                    worksheet.set_zoom(80)
+                    
+                    suppwriter.save()
 
             print "Writing to File"
             self.AllDone(writeUploadFile(uploadDF))                

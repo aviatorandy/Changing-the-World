@@ -280,7 +280,7 @@ def compareName(df, IndustryType, bid):
                      "broughton's", "broscheks", "vmug", "parking", "kenvigs", "martinis", "martini's"\
                      "beauty","formaggio","gallery", "motors",\
                      "sports", "formaggiosacramento", "rgs", "brasserie",\
-                     "office", "vaso", "oceana", "yard", "vmware"\
+                     "office", "vaso", "oceana", "vmware"\
                      "trivium", "fyve", "steakhouse", "ame", "wellness", "pay", "presentation"\
                      "presentations", "presentation", "visual",\
                      "tent", "eno", "copper", "coffee", "leisue","charter", "me", "ticketmaster",\
@@ -752,6 +752,7 @@ def suggestedmatch(df, IndustryType):
                           ('Check Name and Specialty' if x['Name Match']==2 \
                           else (noName if x['Name Match']==0 \
                           else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
+        df['Match \n1 = yes, 0 = no'] = ""
         return                        
     
     #International
@@ -951,7 +952,8 @@ def main(df,IndustryType, bid):
  #Completes Matching Question sheet   
     matchingNameQs = matchingQuestions(df)     
         
-    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(bid)+" AutoMatcher Output "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
+    FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(bid)+\
+    " AutoMatcher Output "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
 
     columns=df.columns.tolist()
@@ -1266,13 +1268,16 @@ def matchingQuestions(df):
 #Your app is a subclass of the Tkinter class Frame.
 
 
-def writeUploadFile(uploadDF):
-    filePath =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(getBusIDfromLoc(uploadDF.loc[0,'locationId']))+" Upload Linkages "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".csv")
+def writeUploadFile(df):
+    filePath =  os.path.expanduser("~\Documents\Python Scripts\\"+ \
+                                   getBusName(getBusIDfromLoc(df.loc[0,'locationId']))+\
+                                   " Upload Linkages "+ str(date.today().strftime("%Y-%m-%d")) \
+                                    + " " + str(time.strftime("%H.%M.%S")) +".csv")
 
     print 'writing file'
     #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
-    uploadDF.to_csv(filePath, encoding='utf-8',index=False)
-    return "\nUpload Linkages available: "+filePath
+    df.to_csv(filePath,sheet_name="Linkages", encoding='utf-8',index=False)
+    return "\nUpload Linkages available: "+ filePath
     
     
 class MatchingInput(Tkinter.Frame):
@@ -1367,7 +1372,8 @@ class MatchingInput(Tkinter.Frame):
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)
 
             checkedDF = ExternalID_De_Dupe(checkedDF)
-            
+
+#            
             checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'Antimatch',axis=1)
             
             if self.ReportType.get()==0:
@@ -1386,29 +1392,91 @@ class MatchingInput(Tkinter.Frame):
                     if index != 0:
                     #If Listings, Diagnostic. or Facebook Template: if previous listing is a Match of the same Loc/Pub ID combination, then NPL
                         if row['Location ID'] == checkedDF.iloc[index-1]['Location ID'] and row['Publisher ID']\
-                             == checkedDF.iloc[index-1]['Publisher ID'] and checkedDF.iloc[index-1]['PL Status'] == "Sync":
-                            row['PL Status']= "NoPowerListing"
-                        else: row['PL Status']= "Sync"
+                             == checkedDF.iloc[index-1]['Publisher ID'] and row['override'] == 'Match':\
+                            checkedDF.set_value(index,"PL Status","NoPowerListing")
+                        else: 
+                            pass
+                        
+            print "External ID deduping\n"
 
-            print "external ID  deduping"
-            #EXTERNAL ID DEDPUE
-            print "Creating Upload Overrides"
+            #EXTERNAL ID DEDUPE
+            print "Creating Upload Overrides\n"
             
             #checkedDF=calculateTotalScore(checkedDF)
             uploadDF = checkedDF[['Publisher ID','Location ID','Listing ID','override','PL Status']]
-            uploadDF.columns=[ "partnerId","locationId",  "listingId", "override","PL Status"]
-
-            uploadDF['listingId']=uploadDF.apply(lambda x: x['listingId'].replace('\'',''),axis=1)
+            uploadDF.columns=[ "partnerId","locationId", "listingId", "override","PL Status"]
             
-            self.AllDone(writeUploadFile(uploadDF))
+            try:
+                uploadDF['listingId'] = uploadDF.apply(lambda x: x['listingId'].replace('\'',''),axis=1)            
+            except:
+                pass                
+
+#            If Suppression Type
+            if self.ReportType.get() == 1:    
+                print "Creating Suppression Report"
+                text = "Suppression Approval Summary"
+                suppRepDF = checkedDF[checkedDF['PL Status'] == 'Suppress']
+
+                #Needs logic if certain things exist
+                claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
+                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
+
+                claimedFBDF = claimedFBDF[['Store ID', 'Location ID',\
+                                           'Location Name', 'Location Address', \
+                                           'Location City', 'Location State', 'Location Zip', 'Location Phone',\
+                                           'Listing ID', 'Listing Name', \
+                                           'Listing Address', 'Listing City', 'Listing State', \
+                                           'Listing Zip', 'Listing Phone', \
+                                           'Listing URL','External ID', 'Advertiser/Claimed',\
+                                            'Last Post Date']]
+                                            
+#                                            nocols = ['Live Listing External ID', 'Live Listing URL','Duplicate Listing External ID', \
+#                                            'Duplicate Listing URL', 'Yes/No', 'Reason']
+
+                
+                ################Create a Suppression Approval File 
+                pivot = pd.pivot_table(suppRepDF, values='PL Status',index='Publisher',aggfunc='count')
+#                print pivot
+                publisherNames = pd.DataFrame(pivot)
+                publisherNames.columns=['Count of Duplicates']
+
+                publisherNames = publisherNames.sort_index(ascending=True)
+                print publisherNames
+
+#                publisherNames = publisherNames.reset_index() 
+
+                filePath =  os.path.expanduser("~\Documents\Python Scripts\\" + getBusName(getBusIDfromLoc(uploadDF.loc[0,'locationId']))+\
+                                               " Suppression Summary File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
+        
+                print "mixing mixing"
+                suppwriter = pd.ExcelWriter(filePath, engine='xlsxwriter')
+                publisherNames.to_excel(suppwriter,sheet_name="Summary", index=True,  encoding='utf8', startrow=2)
+#                workbook  = suppwriter.book
+                worksheet = suppwriter.sheets['Summary']                
+                worksheet.set_column(0,0,26)
+                worksheet.set_column(1,1,10)
+                worksheet.write(0, 0, text)
+
+                worksheet.write(len(publisherNames)+3, 0, "Grand Total")
+                worksheet.write(len(publisherNames)+3, 1, publisherNames['Count of Duplicates'].sum())
+                worksheet.set_zoom(80)
+                
+                claimedFBDF.to_excel(suppwriter,sheet_name="Facebook Claimed Pages", index=False)
+                worksheet = suppwriter.sheets['Facebook Claimed Pages']                
+                
+                worksheet.set_column(0,26,20)
+                worksheet.set_zoom(80)
+                
+                suppwriter.save()
+
+            print "Writing to File"
+            self.AllDone(writeUploadFile(uploadDF))                
             print t0
             t1=time.time()
             print t1
             print t1-t0
        #remove this once we do something here     
                
-            
-                    
             #Gets user input for how to set up matcher           
     def initialSettingsWindow(self):
         

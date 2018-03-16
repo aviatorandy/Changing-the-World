@@ -695,52 +695,99 @@ def suggestedmatch(df, IndustryType):
     #Healthcare Professional
     elif IndustryType == '3': 
         print "HC Prof Matching"
-#        df['Robot Suggestion'] = df.apply(lambda row: matchNPI if row ['NPI Match'] \
-#                        else checkname if row['Phone Match'] == '1' and \
-#                                    (66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None)\
-#                        else matchText if 76 <= row['Name Score'] \
 
+        df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
+       
+        df['Robot Suggestion'] = df.apply(lambda x: npimatch if x['NPI Match'] == 1 \
+            else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+            else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])
+            else (noName if x['Name Match']==0 \
+            else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
         
-        for index, row in df.iterrows(): 
-            if row ['NPI Match'] :
-                robotmatch.append("Match Suggested - NPI")
-            elif row['Phone Match'] == '1':
-                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None:
-                    robotmatch.append("Check") 
-                elif 76 <= row['Name Score']:
-                    robotmatch.append("Match Suggested") 
-                else: 
-                    if row['No Name'] == 'URL for name':
-                        robotmatch.append('Check - URL name')
-                    else:
-                        robotmatch.append("No Match - Name")                         
-            elif row['Address Score'] < 70:
-                if row['Distance (M)']<200:
-                    if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
-                        robotmatch.append("Check") 
-                    elif 76 <= row['Name Score']:
-                        robotmatch.append("Match Suggested - Geocode") 
-                    else: 
-                        if row['No Name'] == 'URL for name':
-                            robotmatch.append('Check - URL name')
-                        else:
-                            robotmatch.append("No Match - Name")
-                else:
-                    robotmatch.append("No Match - Address")
-            else:    
-                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
-                    robotmatch.append("Check") 
-                elif 76 <= row['Name Score']:
-                    robotmatch.append("Match Suggested") 
-                else: 
-                    if row['No Name'] == 'URL for name':
-                        robotmatch.append('Check - URL name')
-                    else:
-                        robotmatch.append("No Match - Name")                         
-        
-        df['Robot Suggestion'] = robotmatch
+#==============================================================================
+#         for index, row in df.iterrows(): 
+#             if row ['NPI Match'] :
+#                 robotmatch.append("Match Suggested - NPI")
+#             elif row['Phone Match'] == '1':
+#                 if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None:
+#                     robotmatch.append("Check") 
+#                 elif 76 <= row['Name Score']:
+#                     robotmatch.append("Match Suggested") 
+#                 else: 
+#                     if row['No Name'] == 'URL for name':
+#                         robotmatch.append('Check - URL name')
+#                     else:
+#                         robotmatch.append("No Match - Name")                         
+#             elif row['Address Score'] < 70:
+#                 if row['Distance (M)']<200:
+#                     if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
+#                         robotmatch.append("Check") 
+#                     elif 76 <= row['Name Score']:
+#                         robotmatch.append("Match Suggested - Geocode") 
+#                     else: 
+#                         if row['No Name'] == 'URL for name':
+#                             robotmatch.append('Check - URL name')
+#                         else:
+#                             robotmatch.append("No Match - Name")
+#                 else:
+#                     robotmatch.append("No Match - Address")
+#             else:    
+#                 if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
+#                     robotmatch.append("Check") 
+#                 elif 76 <= row['Name Score']:
+#                     robotmatch.append("Match Suggested") 
+#                 else: 
+#                     if row['No Name'] == 'URL for name':
+#                         robotmatch.append('Check - URL name')
+#                     else:
+#                         robotmatch.append("No Match - Name")                         
+#         
+#         df['Robot Suggestion'] = robotmatch
+#==============================================================================
+
         df['Match \n1 = yes, 0 = no'] = ""
-        return                        
+
+ 
+#        for index, row in df.iterrows(): 
+#            if row ['NPI Match'] :
+#                robotmatch.append("Match - NPI")
+#            elif row['Phone Match'] == '1':
+#                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None:
+#                    robotmatch.append("Check") 
+#                elif 76 <= row['Name Score']:
+#                    robotmatch.append("Match Suggested") 
+#                else: 
+#                    if row['No Name'] == 'URL for name':
+#                        robotmatch.append('Check - URL name')
+#                    else:
+#                        robotmatch.append("No Match - Name")                         
+#            elif row['Address Score'] < 70:
+#               if row['Distance (M)']<200:
+#                    if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
+#                        robotmatch.append("Check") 
+#                    elif 76 <= row['Name Score']:
+#                        robotmatch.append("Match Suggested - Geocode") 
+#                    else: 
+#                        if row['No Name'] == 'URL for name':
+#                            robotmatch.append('Check - URL name')
+#                        else:
+#                            robotmatch.append("No Match - Name")
+#                else:
+#                    robotmatch.append("No Match - Address")
+#            else:    
+#                if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name']is None:
+#                    robotmatch.append("Check") 
+#                elif 76 <= row['Name Score']:
+#                    robotmatch.append("Match Suggested") 
+#                else: 
+#                    if row['No Name'] == 'URL for name':
+#                        robotmatch.append('Check - URL name')
+#                    else:
+#                        robotmatch.append("No Match - Name")                         
+#        
+#        df['Robot Suggestion'] = robotmatch
+#       df['Match \n1 = yes, 0 = no'] = ""
+#        return                    
     #Healthcare Facilities    
     elif IndustryType == '4':
         print "HC Facility Matching"

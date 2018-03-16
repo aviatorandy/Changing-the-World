@@ -23,6 +23,7 @@ import datetime
 from datetime import date
 import sys
 import math
+#import win32com.client
 
 
 #This function cleans the names 
@@ -660,7 +661,7 @@ def suggestedmatch(df, IndustryType):
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
-    npimatch = 'Match - NPI'
+    npimatch = 'Match Suggested - NPI'
     
     #Normal Type
     if IndustryType == '0':        
@@ -702,7 +703,7 @@ def suggestedmatch(df, IndustryType):
         
         for index, row in df.iterrows(): 
             if row ['NPI Match'] :
-                robotmatch.append("Match - NPI")
+                robotmatch.append("Match Suggested - NPI")
             elif row['Phone Match'] == '1':
                 if 66 < row['Name Score'] < 76 or row['Cleaned Listing Name'] is None:
                     robotmatch.append("Check") 
@@ -1415,7 +1416,7 @@ class MatchingInput(Tkinter.Frame):
             if self.ReportType.get() == 1:    
                 print "Creating Suppression Report"
                 
-                text = "Suppression Approval Summary"
+                
                 suppRepDF = checkedDF[checkedDF['PL Status'] == 'Suppress']
 
                 ################Create a Suppression Approval File 
@@ -1428,22 +1429,39 @@ class MatchingInput(Tkinter.Frame):
                 print publisherNames
 
 #                publisherNames = publisherNames.reset_index() 
-
-                filePath =  os.path.expanduser("~\Documents\Python Scripts\\" + getBusName(getBusIDfromLoc(uploadDF.loc[0,'locationId']))+\
+                businessName=getBusName(getBusIDfromLoc(uploadDF.loc[0,'locationId']))
+                filePath =  os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
                                                " Suppression Summary File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
         
                 print "mixing mixing"
                 suppwriter = pd.ExcelWriter(filePath, engine='xlsxwriter')
                 publisherNames.to_excel(suppwriter,sheet_name="Summary", index=True,  encoding='utf8', startrow=2)
-#                workbook  = suppwriter.book
-                worksheet = suppwriter.sheets['Summary']                
+                workbook  = suppwriter.book
+                worksheet = suppwriter.sheets['Summary']  
+               # format1= workbook.add_format({
+              #                         'bold': False,})  
+              #  
                 worksheet.set_column(0,0,26)
-                worksheet.set_column(1,1,10)
-                worksheet.write(0, 0, text)
+                worksheet.set_column(1,1,17)
+                worksheet.write(0, 0, businessName+ " - Suppression Approval Summary - "+ str(date.today().strftime("%Y-%m-%d")))
 
                 worksheet.write(len(publisherNames)+3, 0, "Grand Total")
                 worksheet.write(len(publisherNames)+3, 1, publisherNames['Count of Duplicates'].sum())
+                
+#                Total_format = workbook.add_format({'bold': True})
+#                
+#                worksheet.set_row (0,None,Total_format)
+#
+#
+#                Total_format.set_pattern(1)
+#                Total_format.set_bg_color('#D9E1F2')
+#                
+#                
+#                worksheet.set_row(len(publisherNames)+3,None, Total_format)
+                
                 worksheet.set_zoom(80)
+                
+               
 
                 #Needs logic if certain things exist
                 claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
@@ -1453,22 +1471,51 @@ class MatchingInput(Tkinter.Frame):
                     claimedFBDF = claimedFBDF[['Store ID', 'Location ID',\
                                                'Location Name', 'Location Address', \
                                                'Location City', 'Location State', 'Location Zip', 'Location Phone',\
-                                               'Listing ID', 'Listing Name', \
+                                                'Listing Name', \
                                                'Listing Address', 'Listing City', 'Listing State', \
                                                'Listing Zip', 'Listing Phone', \
-                                               'Listing URL','External ID',\
+                                               'Listing URL','Listing ID','External ID',\
                                                 'Last Post Date']]
+                    claimedFBDF['Yes/No']=""
+                    claimedFBDF['Reason']=""
+                    
+                    
+               
                                                 
     #                                            nocols = ['Location URL','Yes/No', 'Reason']
 
-                    claimedFBDF.to_excel(suppwriter,sheet_name="Facebook Claimed Pages", index=False)
+                    claimedFBDF.to_excel(suppwriter,sheet_name="Facebook Claimed Pages", index=False,startrow=0 )
                     worksheet = suppwriter.sheets['Facebook Claimed Pages']                
                     
-                    worksheet.set_column(0,26,20)
-                    worksheet.set_zoom(80)
+#                    worksheet.set_column(0,26,20)
+#                    worksheet.set_zoom(80)
+#                    
+#                    format = workbook.add_format()
+#                    format.set_center_across()
+#                    
+#                    for col in range(0,29):
+#                        worksheet.write_blank(0, col, '', format)
+#                        
+#                    worksheet.write(0, 0, 'Location Information in Yext', format)
+#                    worksheet.write(0, 13, 'Listing Information on Publishers', format)
+#                    worksheet.write(0, 27, 'Approval', format)
+#                    worksheet.write(0, 0, 'Location Information in Yext', format)
+#                    
+
+                    
                     
                     suppwriter.save()
-
+        
+           
+            
+                import win32com.client
+                xlApp= win32com.client.Dispatch("Excel.Application")
+                SuppFile = xlApp.Workbooks.Open(filePath)
+                toolkit=os.path.expanduser("~\Documents\entops\Templates and Macros\EntOpsMacroToolkit.xlam")
+                a=xlApp.Application.Run('\''+toolkit+"\'!AutoMatcherSuppressionReport.Run_Suppression_Report")
+                b=SuppFile.Save()  
+               
+            
             print "Writing to File"
             self.AllDone(writeUploadFile(uploadDF))                
             print t0

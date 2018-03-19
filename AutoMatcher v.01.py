@@ -185,7 +185,7 @@ def cleanCity(city):
 
 def noNames(df):        
     
-    df['Name Score'] = df.apply(lambda row: cleanName(row['Location Name']), axis=1) 
+  #  df['Name Score'] = df.apply(lambda row: cleanName(row['Location Name']), axis=1) 
 
     
     for index,row in df.iterrows():        
@@ -213,7 +213,7 @@ def noNames(df):
 def compareName(df, IndustryType, bid):
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
-    df['No Name'] = df.apply(lambda row: 1 if row['Location Name'] == "" else 0, axis=1)
+    df['No Name'] = df.apply(lambda row: True if row['Location Name'] == None else False, axis=1)
    # df.apply(noNames)
 
     averagenamescore = []
@@ -702,7 +702,7 @@ def suggestedmatch(df, IndustryType):
     noName = 'No Match - Name'
     noMatch = 'No Match'
     noAddress = 'No Match - Phone/Address'
-    checkMissing = 'Missing Name/Address'
+    checkMissing = 'Check Missing Name/Address'
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -712,7 +712,7 @@ def suggestedmatch(df, IndustryType):
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
         print "Normal Matching"
-        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name']==1 or x['No Address'] ==1)\
+        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address'])\
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match'])\
@@ -726,7 +726,7 @@ def suggestedmatch(df, IndustryType):
     elif IndustryType == '2':      
         print "Hotel Matching"        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name']==1 or x['No Address'] ==1)\
+            else checkMissing if (x['No Name'] or x['No Address'])\
                 else noName if x['Not Hotel'] == 1\
                     else noAddress if x['Address Match'] == False\
                         else noName if x['Name Match'] == 0 \
@@ -741,10 +741,10 @@ def suggestedmatch(df, IndustryType):
     #Healthcare Professional
     elif IndustryType == '3': 
         print "HC Prof Matching"
-                df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
+        df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
        
         df['Robot Suggestion'] = df.apply(lambda x: npimatch if x['NPI Match'] == 1 \
-            else checkMissing if (x['No Name']==1 or x['No Address'] ==1)
+            else checkMissing if (x['No Name'] or x['No Address'])
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
             else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])
             else (noName if x['Name Match']==0 \
@@ -840,7 +840,7 @@ def suggestedmatch(df, IndustryType):
     elif IndustryType == '4':
         print "HC Facility Matching"
         df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
-                    else checkMissing if (x['No Name']==1 or x['No Address'] ==1) 
+                    else checkMissing if (x['No Name'] or x['No Address']) 
                     else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
                           else (check if x['Name Match']==2 \
                           else (noName if x['Name Match']==0 \
@@ -927,7 +927,7 @@ def suggestedmatch(df, IndustryType):
     else:
         print "Other Matching"
         #Applies Match rules based on new columns.
-        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name']==1 or x['No Address'] ==1) 
+        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address']) 
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match']==2 \
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis = 1)
@@ -1648,6 +1648,7 @@ class MatchingInput(Tkinter.Frame):
             
             
             
+            print 'checking live sync'
             
             googleLiveIDs=GoogleIDs(busID)
             googleLiveIDs= googleLiveIDs.reset_index()
@@ -1656,6 +1657,9 @@ class MatchingInput(Tkinter.Frame):
                                 
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Sync'] == 1 else x['Match'], axis=1)
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)
+
+                
+            print "External ID deduping\n"
 
             checkedDF = ExternalID_De_Dupe(checkedDF)
             
@@ -1686,7 +1690,6 @@ class MatchingInput(Tkinter.Frame):
                         else: 
                             pass
                         
-            print "External ID deduping\n"
 
             #EXTERNAL ID DEDUPE
             print "Creating Upload Overrides\n"

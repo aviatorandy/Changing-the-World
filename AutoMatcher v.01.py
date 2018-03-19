@@ -1916,7 +1916,7 @@ class MatchingInput(Tkinter.Frame):
         if self.dataInput.get() == 1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
             df, bid = readFile(fname)
-            
+            self.bid=bid
             main(df,str(self.IndustryType.get()),bid)
         #SQL
         elif self.dataInput.get() == 2:
@@ -1944,6 +1944,7 @@ class MatchingInput(Tkinter.Frame):
     def pullSQLRun(self):
                 
         if self.bizID.get():
+            self.bid=self.bizID.get()
             self.detailsW.destroy()
             if  self.folderID.get():
                 folderID=self.folderID.get()
@@ -2015,20 +2016,21 @@ class MatchingInput(Tkinter.Frame):
         print "end: "+ datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
         print str(t1-t0)+" seconds"
         
+        
 
         if part==1:
-            #currentStats=pd.read_csv("J:\zAutomatcherData\Part1Stats.csv", encoding ='utf-8')
-            stats=open("J:\zAutomatcherData\Part1Stats.csv",'a')
+            currentStats=pd.read_csv("J:\zAutomatcherData\Part1Stats.csv", encoding ='utf-8')
+          #  stats=open("J:\zAutomatcherData\Part1Stats.csv",'a')
             checks=len(df[df['Robot Suggestion'].str.contains('Check')])
-            stats.write(','.join((os.getenv('username'),str(self.bizID.get()),str(getBusName(\
-               self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
-                    str(df.shape[0]),str(checks))))
-            stats.close()
-            #updatedStats=currentStats.append([os.getenv('username'),self.bizID.get(),getBusName(\
-               # self.bizID.get()),self.IndustryType.get(),datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
-              #      df.shape[0],checks])
+            #stats.write(','.join((os.getenv('username'),str(self.bizID.get()),str(getBusName(\
+          #     self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
+          #          str(df.shape[0]),str(checks))))
+          #  stats.close()
+            currentStats.loc[len(currentStats)]=[os.getenv('username'),self.bid,getBusName(\
+                self.bid),self.IndustryType.get(),datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
+                    df.shape[0],checks]
             
-            #updatedStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8',index=False)
+            currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8',index=False)
 
 
         self.completeWindow=Toplevel()  

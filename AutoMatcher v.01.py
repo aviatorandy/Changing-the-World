@@ -23,6 +23,15 @@ import datetime
 from datetime import date
 import sys
 import math
+import win32com.client
+import warnings
+import itertools
+
+
+
+
+warnings.simplefilter("ignore", UserWarning)
+warnings.filterwarnings('ignore', category=MySQLdb.Warning)
 #import win32com.client
 
 
@@ -225,11 +234,13 @@ def compareName(df, IndustryType, bid):
     global namesComplete
     global businessNameMatch
     
+    print 'See popup!'
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
     
     app.wait_window(app.nameW)
    
+    
     
 #start of comparisons, broken out by industry
     #Normal Industry  
@@ -316,9 +327,32 @@ def compareName(df, IndustryType, bid):
     #Industry Healthcare Professional matching
     elif IndustryType == "3":
         print "HC Prof Naming"
-        df['Name Score'] = df.apply(lambda row: \
-                fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name']), axis=1) 
         
+        
+#        nickNameExcelFile=pd.ExcelFile("~\Documents\Changing-the-World\nicknames.xlsx", keep_default_na = False)
+#        nicknameList = nickNameExcelFile.parse('nicknames')
+#        nicknameList = nicknameList.fillna("yext123")
+#        nicknameList = nicknameList.applymap(lambda x : x.lower())
+#        nicknameList = nicknameList.values.tolist()
+#        
+#        for index,row in df.itterows():
+#        
+#            locationNickNames=None   
+#            locationName = (" " + str(row['Provider Name']) + " ").lower()
+#            locationNickNames=set([tuple(group) for group in nicknameList for nick in group if nick in locationName.split(' ', 1)[0]])
+#            
+#            namescore=fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name'])
+#            for name in locationNickNames:
+#                namescore=max(namescore,fuzz.token_set_ratio(name+" "+row['Provider Name'].split(' ', 1)[1], row['Cleaned Listing Name']))
+#     
+#            averagenamescore.append(namescore)
+#            
+#        df['Name Score'] = averagenamescore
+#            
+            
+            
+        df['Name Score'] = df.apply(lambda row: \
+               fuzz.token_set_ratio(row['Provider Name'], row['Cleaned Listing Name']), axis=1)    
     #Industry Healthcare Facility matching
 
 #    if IndustryType=="4":
@@ -326,6 +360,14 @@ def compareName(df, IndustryType, bid):
     #Agent Names matching
     elif IndustryType == "5":
         print "Agent Naming"
+        
+#        nickNameExcelFile=pd.ExcelFile("~\Documents\Changing-the-World\nicknames.xlsx", keep_default_na = False)
+#        nicknameList = nickNameExcelFile.parse('nicknames')
+#        nicknameList = nicknameList.fillna("yext123")
+#        nicknameList = nicknameList.applymap(lambda x : x.lower())
+#        nicknameList = nicknameList.values.tolist()
+#        
+        
         for index, row in df.iterrows():             
             if businessNameMatch==1:
                 businessRatio = 0
@@ -551,12 +593,12 @@ def calculateDistance(row):
     c = 2 * asin(sqrt(a))
     r = 6371 # Radius of earth in kilometers. Use 3956 for miles
     return c * r * 1000
-    
+
     
 def calculateDoctorMatch(df):
     
     commonDoctorWords = ['md','pa','dr','do','np','phys','lpn','rn','dds','cnm','mph','phd','gp','dpm']
-#    doctorSpecialty=pd.read_csv("~\Documents\Changing-the-World\SpecialtyDoctorMatching.csv")
+   # doctorSpecialty=pd.read_csv("~\Documents\Changing-the-World\SpecialtyDoctorMatching.csv")
     excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na = False)
     doctorSpecialty = excelFile.parse('Specialty')
     doctorSpecialty = doctorSpecialty.fillna("yext123")
@@ -652,12 +694,13 @@ def suggestedmatch(df, IndustryType):
     df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
     df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] >= 60 else 0), axis=1)
     df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)']<=200 else False, axis=1)
+    df['Phone or Address Match']=df.apply(lambda x:  x['Phone Match'] or x['Address Match'],axis=1)
     
     liveSync = 'No Match - Live Sync'
     matchText = 'Match Suggested'
     noName = 'No Match - Name'
     noMatch = 'No Match'
-    noAddress = 'No Match - Address'
+    noAddress = 'No Match - Phone/Address'
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -744,7 +787,9 @@ def suggestedmatch(df, IndustryType):
 #         
 #         df['Robot Suggestion'] = robotmatch
 #==============================================================================
-
+        
+        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+                    else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
  
@@ -800,6 +845,9 @@ def suggestedmatch(df, IndustryType):
                           ('Check Name and Specialty' if x['Name Match']==2 \
                           else (noName if x['Name Match']==0 \
                           else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
+        
+        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+                    else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
         return                        
     
@@ -865,6 +913,9 @@ def suggestedmatch(df, IndustryType):
                             robotmatch.append("Match Suggested")                                                
 
         df['Robot Suggestion'] = robotmatch
+
+        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+                    else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""        
         return                        
     
@@ -997,21 +1048,23 @@ def main(df,IndustryType, bid):
 #Compares all, suggests matches    
     compareData(df,IndustryType, bid)
     
+    print 'matching questions'
  #Completes Matching Question sheet   
     matchingNameQs = matchingQuestions(df)     
         
     FilepathMatch =  os.path.expanduser("~\Documents\Python Scripts\\"+ getBusName(bid)+\
     " AutoMatcher Output "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
-
     columns=df.columns.tolist()
     reorder=['Location Name', 'Listing Name', \
     'Name Score', 'Location Address', 'Listing Address', 'Address Score', 'Distance (M)', \
-    'Name Match','Phone Match', 'Address Match', 'Geocode Match', 'Robot Suggestion','Match \n1 = yes, 0 = no']
+    'Name Match','Phone Match', 'Address Match', 'Phone or Address Match', 'Geocode Match', 'Robot Suggestion','Match \n1 = yes, 0 = no']
     for col in reorder:    
         columns.append(columns.pop(columns.index(col)))
     df=df[columns]
 
+
+    df=df.sort_values(by='Name Score')   
     df=df.sort_values(by='Robot Suggestion')
     print 'writing file'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter',options={'strings_to_urls': False})
@@ -1052,7 +1105,7 @@ def main(df,IndustryType, bid):
     geocodeMatchCol=df.columns.get_loc("Geocode Match")
 
     
-    worksheet.set_row(0, 29.4)
+    worksheet.set_row(0, 45)
 
     #worksheet.set_column(Lat , LastPostDate, None, None, {'hidden': 1})
     worksheet.set_column(0, namecol-1, None, None, {'hidden': 1})
@@ -1134,7 +1187,7 @@ def main(df,IndustryType, bid):
 
         os.startfile(FilepathMatch)
 #        os.system('start excel.exe "'+os.path.expanduser(FilepathMatch)+'"' % (sys.path[0], ))
-        app.AllDone("\nDone! Results have been wrizzled to your Excel file. 1love <3"+"\nMatching Template here:\n"+ FilepathMatch )
+        app.AllDone(df,1,"\nDone! Results have been wrizzled to your Excel file. 1love <3"+"\nMatching Template here:\n"+ FilepathMatch )
         print "\nDone! Results have been wrizzled to your Excel file. 1love <3"
         print "\nMatching Template here:"
         print FilepathMatch
@@ -1142,11 +1195,11 @@ def main(df,IndustryType, bid):
         subprocess.Popen(r'explorer /select,'+os.path.expanduser(FilepathMatch))
         
     except IOError:
-        app.AllDone("\nIOError: Make sure your Excel file is closed before re-running the script.")
+        app.AllDone(df,1,"\nIOError: Make sure your Excel file is closed before re-running the script.")
         print "\nIOError: Make sure your Excel file is closed before re-running the script."          
 
 #Pulls all location and listing match data
-def sqlPull(bid,folderID,labelID,ReportType):
+def sqlPull(bid,folderID,labelID,ReportType,IndustryType):
     print 'pulling data'
     #Pull Location info and Listing IDs
     #IF LISTINGS:
@@ -1228,8 +1281,32 @@ def sqlPull(bid,folderID,labelID,ReportType):
     SQL_DataListings = pd.read_sql(FinalQueryListings, con=Yext_Prod_DB)    
     
     
+    if ReportType==1:
+        liveSyncSQL="SELECT tl.location_id as \"Location ID\", tl.partner_id as \"Publisher ID\", tl.externalId AS 'Sync External ID', tl.url AS 'Sync URL' from alpha.tags_listings tl "+ \
+        "WHERE tl.tagsListingStatus_id=6 and tl.location_id in ("+','.join(SQL_DataMatches['Location ID'].to_csv(path=None,sep=',',index=False).split('\n'))[:-1]+");"
+    
+        Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
+        syncIDsDF = pd.read_sql(liveSyncSQL, con=Yext_Prod_DB)    
+    
+    
+        
+        
     #Combine results
     df=SQL_DataListings.merge(SQL_DataMatches,on='Listing ID',how='outer')
+    if ReportType==1:
+        df=df.merge(syncIDsDF,on=['Location ID','Publisher ID'],how='left')
+        
+    if IndustryType==3:
+        NPI_SQL=open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/3. Pull NPI Data.sql")).read()
+        NPI_SQL=NPI_SQL.splitlines()
+        for index, line in enumerate(NPI_SQL):
+            NPI_SQL[index]=line.replace('@bizid', str(bid))
+        NPI_SQL = ' '.join(NPI_SQL)
+        Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
+        NPI_Data = pd.read_sql(NPI_SQL, con=Yext_Prod_DB)       
+        
+        df=df.merge(NPI_Data,on=['Location ID'],how='left')
+        
     return df
 
 #Gets Alt Name policies at business level
@@ -1286,25 +1363,60 @@ def getProviderName(df):
     return DoctorNamesIDs        
     
  #Finds Listing names that could be good to match to based on prevalence    
+#==============================================================================
+# def get_similarity(df, ind, col):
+#     mapped = list(map(lambda x: fuzz.token_sort_ratio(x, df[col].loc[ind]), df[col]))
+#     cond = (np.array(mapped) >= 70)
+#     label = df[col][cond].iloc[0]
+# 
+#     return label
+#==============================================================================
       
 def matchingQuestions(df):
     
     Qdf=df[df['Robot Suggestion'].isin(['No Match - Name','Check Name'])]
-
     pivot=pd.pivot_table(Qdf,values='Link ID',index='Listing Name',aggfunc='count')
 
     listingNames=pd.DataFrame(pivot)
    
-    #print df[0]
-    if not listingNames.empty:
+    ts=time.time()
+    
+    if not listingNames.empty and listingNames.shape[0]<5000:
         listingNames.columns=['Count']    
         listingNames=listingNames.sort_values(by=['Count'],ascending=False)
         listingNames=listingNames.reset_index() 
         listingNames['Listing Name']=listingNames['Listing Name'].apply(cleanName)
+
+        listingNames.columns = listingNames.columns.str.replace('\s+', '_')
+        
+        #mergedListNames=listingNames.groupby(lambda x: get_similarity(listingNames, x, 'Listing_Name'))['Count'].sum()
+
+        alias = {l : r for l, r in itertools.product(listingNames.Listing_Name, listingNames.Listing_Name) if l < r and fuzz.token_sort_ratio(l, r) >= 70}
+        series=listingNames.Count.groupby(listingNames.Listing_Name.replace(alias)).sum()
+        
+        mergedListNames=series.to_frame()
+       
+        mergedListNames=mergedListNames.reset_index()
+        mergedListNames.columns=mergedListNames.columns=['Listing Name','Count']
+        mergedListNames=mergedListNames.sort_values(by=['Count'],ascending=False)                                   
+        mergedListNames= mergedListNames[mergedListNames['Count'] >= 5]
+        mergedListNames = mergedListNames.replace(np.nan, '', regex=True)
+        mergedListNames=mergedListNames[mergedListNames['Listing Name']!='']
+      
+        te=time.time()
+
+        print te-ts
+        
+        return mergedListNames
     
+    elif  not listingNames.empty:
+        listingNames.columns=['Count']    
+        listingNames=listingNames.sort_values(by=['Count'],ascending=False)
+        listingNames=listingNames.reset_index() 
+        listingNames['Listing Name']=listingNames['Listing Name'].apply(cleanName)
         listingNames= listingNames[listingNames['Count'] > 5]  
- 
         return listingNames
+
     else:
         return pd.DataFrame([{'Listing Name' : 'None', 'Count' : '0'}])
 
@@ -1326,7 +1438,111 @@ def writeUploadFile(df):
     #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
     df.to_csv(filePath,sheet_name="Linkages", encoding='utf-8',index=False)
     return "\nUpload Linkages available: "+ filePath
+
+def GoogleIDs(bid):
     
+    #Gets IDs from GMB
+    inputFile = open(os.path.expanduser("~/Documents/entops/Temporary Matching Template Workaround/GoogleIDs1.sql")).read()
+    splitQueries= inputFile.split(";")
+    SQL_Query715=splitQueries[1]
+    SQL_Query715=SQL_Query715.splitlines()
+    
+    
+    for index, line in enumerate(SQL_Query715):
+        if line=="WHERE al.business_id = @BUSINESS_ID":
+            SQL_Query715[index]=line.replace('@BUSINESS_ID', str(bid))
+    SQLQuery715_3 = [x for x in SQL_Query715 if x.startswith("--") is False]
+    SQLQuery715_4 = []
+    for x in SQLQuery715_3:
+        if '--' in x:
+            SQLQuery715_4.append(x[0:x.index('-')])
+        else:
+            SQLQuery715_4.append(x)
+        
+        #Convert Query into string from list
+    FinalQuery715 = ' '.join(SQLQuery715_4)
+    
+    Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
+    SQL_Data_715 = pd.read_sql(FinalQuery715, con=Yext_Prod_DB)
+        
+    
+    
+    #Gets listing IDs for Google Reviews
+    inputFile = open(os.path.expanduser("~/Documents/entops/Temporary Matching Template Workaround/GoogleIDs2.sql")).read()
+    splitQueries= inputFile.split(";")
+    SQL_Query713=splitQueries[1]
+    SQL_Query713=SQL_Query713.splitlines()
+    
+    for index, line in enumerate(SQL_Query713):
+        if line=="WHERE al.business_id = @BUSINESS_ID":
+                SQL_Query713[index]=line.replace('@BUSINESS_ID', str(bid))
+                
+                
+    SQLQuery713_3 = [x for x in SQL_Query713 if x.startswith("--") is False]
+    SQLQuery713_4 = []
+    for x in SQLQuery713_3:
+        if '--' in x:
+            SQLQuery713_4.append(x[0:x.index('-')])
+        else:
+            SQLQuery713_4.append(x)
+        
+        #Convert Query into string from list
+    FinalQuery713 = ' '.join(SQLQuery713_4)
+    
+    Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5009, db="alpha")
+    SQL_Data_713 = pd.read_sql(FinalQuery713, con=Yext_Prod_DB)    
+    
+    
+    listingIDs=SQL_Data_713.iloc[:,0:1]
+    listingIDs.columns=['ID']       
+    LiDs = listingIDs["ID"].tolist()
+    LiDs = ','.join(str(e) for e in LiDs)
+    
+    #Gets external IDs for Google Reviews listing IDs
+    inputFile = open(os.path.expanduser("~/Documents/entops/Temporary Matching Template Workaround/GoogleIDs3.sql")).read()
+    splitQueries= inputFile.split(";")
+    SQL_Query_ext=splitQueries[0]
+    SQL_Query_ext=SQL_Query_ext.splitlines()
+    
+    for index, line in enumerate(SQL_Query_ext):
+        if line=="where wl.id in (123456)":
+            SQL_Query_ext[index]=line.replace('123456', LiDs)
+                
+                
+    SQL_Query_ext_3 = [x for x in SQL_Query_ext if x.startswith("--") is False]
+    SQL_Query_ext_4 = []
+    for x in SQL_Query_ext_3:
+        if '--' in x:
+            SQL_Query_ext_4.append(x[0:x.index('-')])
+        else:
+            SQL_Query_ext_4.append(x)
+        
+        #Convert Query into string from list
+    FinalQuery_ext = ' '.join(SQL_Query_ext_4)
+    
+    Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
+    SQL_Data_ext = pd.read_sql(FinalQuery_ext, con=Yext_Prod_DB)    
+    
+    
+    #combines lists
+    col1 = SQL_Data_715.iloc[:,0:1]
+    col2 = SQL_Data_ext.iloc[:,0:1]
+    
+    col1.columns=["Live Google External IDs"]
+    col2.columns=["Live Google External IDs"]       
+    
+    SQL_Data = pd.concat([col1, col2], ignore_index=True)
+    SQL_Data = SQL_Data.drop_duplicates()
+    
+    SQL_Data["Live Google External IDs"] = "'" + SQL_Data["Live Google External IDs"].astype(str)
+        
+        # SQL_Data.to_excel()
+    newSQL_Data = SQL_Data.set_index('Live Google External IDs')
+    
+    #print(newSQL_Data)
+    Yext_Prod_DB.close()
+    
+    return newSQL_Data
     
 class MatchingInput(Tkinter.Frame):
 
@@ -1356,7 +1572,8 @@ class MatchingInput(Tkinter.Frame):
                                 +" based on inputs as well as create a matches upload file"+
                                 "\n To start the process, select the first option. "\
                                 +"After you have reviewed all match suggestions and filled in a match status,"\
-                                +"\n run the program again, and select the second option.").grid(row=0,column=0, columnspan=2,pady=(0,20))
+                                +"\n run the program again, and select the second option."\
+                                +"\nMake sure you are connected to SDM and the J:\ Drive!").grid(row=0,column=0, columnspan=2,pady=(0,20))
         self.processChoice = IntVar()
         self.processChoice.set(-1)
         self.StartMatch = Radiobutton(master,text="Start AutoMatcher - pull data/enter file and suggest matches",\
@@ -1367,13 +1584,14 @@ class MatchingInput(Tkinter.Frame):
         self.Next=Button(master,text = "Next",command = lambda: [self.initialSettingsWindow() \
                                      if self.processChoice.get() == 0 else (self.inputChecks() \
                                       if self.processChoice.get() == 1 else self.processChoice.set(-1))]).grid(row = 2,column = 0,pady=(30,0),sticky=E)
+
         self.Quit=Button(master,text="Quit",command = lambda: [root.destroy()]).grid(row = 3,column = 0,sticky=E, pady=25)
         
 #If the user has manually checked the matches, this will take those in, determine Match statuses, and produce upload document        
     def inputChecks(self):
         self.master.withdraw()
         self.UploadSetup=Toplevel()
-        self.UploadSetup .protocol("WM_DELETE_WINDOW", self._delete_window)
+        self.UploadSetup.protocol("WM_DELETE_WINDOW", self._delete_window)
         
         self.ReportType=IntVar()
         self.ReportType.set(-1)
@@ -1385,7 +1603,6 @@ class MatchingInput(Tkinter.Frame):
         self.nextButton = Button(self.UploadSetup, text="Next", command=lambda: [self.readCheckedFile() \
                             if (self.ReportType.get() >-1) else self.ReportType.set(self.ReportType.get())])\
                                                         .grid(row=7,column=0,sticky=W,pady=(35,0))
-        
         
     def readCheckedFile (self):         
         self.UploadSetup.destroy()
@@ -1416,11 +1633,31 @@ class MatchingInput(Tkinter.Frame):
                                                 (0 if x['Match \n1 = yes, 0 = no'] == 0 else x['Match']), axis=1)
            
             
+            busID=getBusIDfromLoc(checkedDF.loc[0,'Location ID'])
+            busName=getBusName(busID)
+            completeCopyFilePath =  os.path.expanduser("J:\zAutomatcherData\CheckedFiles\\"+ \
+                                   os.getenv('username')+ " - " + busName+" Data "+ str(date.today().strftime("%Y-%m-%d")) \
+                                    + " " + str(time.strftime("%H.%M.%S")) +".csv")
+
+            #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
+            checkedDF.to_csv(completeCopyFilePath,sheet_name="Data", encoding='utf-8',index=False)
+            
+            
+            
+            
+            googleLiveIDs=GoogleIDs(busID)
+            googleLiveIDs= googleLiveIDs.reset_index()
+            checkedDF['Google Live Sync']=checkedDF['External ID'].isin(googleLiveIDs['Live Google External IDs'])
+            checkedDF['Live Sync']=checkedDF.apply (lambda x: 1 if x['Google Live Sync'] else x['Live Sync'],axis=1)
+                                
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Sync'] == 1 else x['Match'], axis=1)
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)
 
             checkedDF = ExternalID_De_Dupe(checkedDF)
+            
+            
 
+            
 #            
             checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'Antimatch',axis=1)
             
@@ -1476,11 +1713,37 @@ class MatchingInput(Tkinter.Frame):
                 print publisherNames
 
 #                publisherNames = publisherNames.reset_index() 
-                businessName=getBusName(getBusIDfromLoc(uploadDF.loc[0,'locationId']))
-                filePath =  os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
+                businessName=busName
+                
+                
+#                Total_format = workbook.add_format({'bold': True})
+#                
+#                worksheet.set_row (0,None,Total_format)
+#
+#
+#                Total_format.set_pattern(1)
+#                Total_format.set_bg_color('#D9E1F2')
+#                
+#                
+#                worksheet.set_row(len(publisherNames)+3,None, Total_format)
+                
+               
+                
+               
+
+                #Needs logic if certain things exist
+                claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
+                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
+                print "mixing mixing"
+                if claimedFBDF.shape[0] > 0:
+                
+                    
+                    filePath =  os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
+                                               " Suppression Approval File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
+                else:
+                     filePath =  os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
                                                " Suppression Summary File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
         
-                print "mixing mixing"
                 suppwriter = pd.ExcelWriter(filePath, engine='xlsxwriter')
                 publisherNames.to_excel(suppwriter,sheet_name="Summary", index=True,  encoding='utf8', startrow=2)
                 workbook  = suppwriter.book
@@ -1494,32 +1757,15 @@ class MatchingInput(Tkinter.Frame):
 
                 worksheet.write(len(publisherNames)+3, 0, "Grand Total")
                 worksheet.write(len(publisherNames)+3, 1, publisherNames['Count of Duplicates'].sum())
+                worksheet.set_zoom(80)    
                 
-#                Total_format = workbook.add_format({'bold': True})
-#                
-#                worksheet.set_row (0,None,Total_format)
-#
-#
-#                Total_format.set_pattern(1)
-#                Total_format.set_bg_color('#D9E1F2')
-#                
-#                
-#                worksheet.set_row(len(publisherNames)+3,None, Total_format)
                 
-                worksheet.set_zoom(80)
-                
-               
-
-                #Needs logic if certain things exist
-                claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
-                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
-
                 if claimedFBDF.shape[0] > 0:
                     claimedFBDF = claimedFBDF[['Store ID', 'Location ID',\
-                                               'Location Name', 'Location Address', \
+                                               'Location Name', 'Location Address', 'Location Address 2',\
                                                'Location City', 'Location State', 'Location Zip', 'Location Phone',\
-                                                'Listing Name', \
-                                               'Listing Address', 'Listing City', 'Listing State', \
+                                                'Sync External ID', 'Sync URL', 'Listing Name', \
+                                               'Listing Address','Listing Address 2', 'Listing City', 'Listing State', \
                                                'Listing Zip', 'Listing Phone', \
                                                'Listing URL','Listing ID','External ID',\
                                                 'Last Post Date']]
@@ -1551,20 +1797,55 @@ class MatchingInput(Tkinter.Frame):
 
                     
                     
-                    suppwriter.save()
+                suppwriter.save()
         
            
-            
-                import win32com.client
                 xlApp= win32com.client.Dispatch("Excel.Application")
                 SuppFile = xlApp.Workbooks.Open(filePath)
                 toolkit=os.path.expanduser("~\Documents\entops\Templates and Macros\EntOpsMacroToolkit.xlam")
                 a=xlApp.Application.Run('\''+toolkit+"\'!AutoMatcherSuppressionReport.Run_Suppression_Report")
-                b=SuppFile.Save()  
+
+                
+                reportDF = checkedDF[['Store ID', 'Location ID',\
+                                           'Location Name', 'Location Address', 'Location Address 2',\
+                                           'Location City', 'Location State', 'Location Zip', 'Location Phone',\
+                                            'Sync External ID', 'Sync URL', 'Listing Name', \
+                                           'Listing Address','Listing Address 2', 'Listing City', 'Listing State', \
+                                           'Listing Zip', 'Listing Phone', \
+                                           'Listing URL','Listing ID','External ID',\
+                                            'Last Post Date','Publisher ID', 'Publisher']]
+                
+                
+                fullFilePath =  os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
+                                               " Full Suppression Details "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
+        
+                reportWriter = pd.ExcelWriter(fullFilePath, engine='xlsxwriter')
+                publisherNames.to_excel(reportWriter,sheet_name="Summary", index=True,  encoding='utf8', startrow=2)
+                workbook  = reportWriter.book
+                worksheet = reportWriter.sheets['Summary']  
+               # format1= workbook.add_format({
+              #                         'bold': False,})  
+              #  
+                worksheet.set_column(0,0,26)
+                worksheet.set_column(1,1,17)
+                worksheet.write(0, 0, businessName+ " - Suppression Approval Summary - "+ str(date.today().strftime("%Y-%m-%d")))
+
+                worksheet.write(len(publisherNames)+3, 0, "Grand Total")
+                worksheet.write(len(publisherNames)+3, 1, publisherNames['Count of Duplicates'].sum())
+                worksheet.set_zoom(80)                            
+#                                            nocols = ['Location URL','Yes/No', 'Reason']
+
+                reportDF.to_excel(reportWriter,sheet_name="Facebook Claimed Pages", index=False,startrow=0 )
+                worksheet1 = reportWriter.sheets['Facebook Claimed Pages'] 
+                reportWriter.save()
                
+                xlApp1= win32com.client.Dispatch("Excel.Application")
+                reportFile = xlApp1.Workbooks.Open(fullFilePath)
+                toolkit=os.path.expanduser("~\Documents\entops\Templates and Macros\EntOpsMacroToolkit.xlam")
+                a=xlApp.Application.Run('\''+toolkit+"\'!AutoMatcherSuppressionReport.Run_Suppression_Report")
             
             print "Writing to File"
-            self.AllDone(writeUploadFile(uploadDF))                
+            self.AllDone(uploadDF, 2, writeUploadFile(uploadDF))                
             print t0
             t1=time.time()
             print t1
@@ -1615,6 +1896,7 @@ class MatchingInput(Tkinter.Frame):
                                                          else self.ReportType.set(self.ReportType.get())])\
                                                         .grid(row=7,column=0,sticky=W,pady=(35,0))
      
+                                                                                                    
 #        self.inputType.grid(row=2,column=0)
 #        self.SQL.grid(row=3,column=1, sticky=W)
 #        self.file.grid(row=4,column=1, sticky=W)
@@ -1664,7 +1946,7 @@ class MatchingInput(Tkinter.Frame):
                 labelID=self.labelID.get()
             else:
                 labelID = 0
-            df = sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get())
+            df = sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get(),self.IndustryType.get())
             main(df,str(self.IndustryType.get()),self.bizID.get())
     
 #button function to ammend businessNames list            
@@ -1719,12 +2001,29 @@ class MatchingInput(Tkinter.Frame):
             return False
 
   #Final screen to close program.          
-    def AllDone(self,msg):
+    def AllDone(self,df,part,msg):
         global t0
         t1=time.time()
         print "start: "+datetime.datetime.fromtimestamp(t0).strftime('%Y-%m-%d %H:%M:%S')
         print "end: "+ datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
         print str(t1-t0)+" seconds"
+        
+
+        if part==1:
+            #currentStats=pd.read_csv("J:\zAutomatcherData\Part1Stats.csv", encoding ='utf-8')
+            stats=open("J:\zAutomatcherData\Part1Stats.csv",'a')
+            checks=len(df[df['Robot Suggestion'].str.contains('Check')])
+            stats.write(','.join((os.getenv('username'),str(self.bizID.get()),str(getBusName(\
+               self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
+                    str(df.shape[0]),str(checks))))
+            stats.close()
+            #updatedStats=currentStats.append([os.getenv('username'),self.bizID.get(),getBusName(\
+               # self.bizID.get()),self.IndustryType.get(),datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
+              #      df.shape[0],checks])
+            
+            #updatedStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8',index=False)
+
+
         self.completeWindow=Toplevel()  
         self.completeWindow.protocol("WM_DELETE_WINDOW", self._delete_window) 
         self.completeMsg=Label(self.completeWindow,text="time to complete: "+str(t1-t0)+"  "+msg).grid(row=1,column=1)

@@ -213,8 +213,7 @@ def noNames(df):
 def compareName(df, IndustryType, bid):
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
-    
-    df['No Name']=''
+    df['No Name'] = df.apply(lambda row: 1 if row['Location Name'] == "" else 0, axis=1)
    # df.apply(noNames)
 
     averagenamescore = []
@@ -498,6 +497,8 @@ def comparePhone(df):
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
     #International 
+    df['No Address'] = df.apply(lambda row: 1 if row['Listing Address'] == "" else 0, axis=1)
+
     if IndustryType == '6':
         #Combine Address 1, Address 2
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress)\
@@ -701,6 +702,7 @@ def suggestedmatch(df, IndustryType):
     noName = 'No Match - Name'
     noMatch = 'No Match'
     noAddress = 'No Match - Phone/Address'
+    checkMissing = 'Missing Name/Address'
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -710,8 +712,8 @@ def suggestedmatch(df, IndustryType):
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
         print "Normal Matching"
-        df['Robot Suggestion'] = df.apply(lambda x: matchText \
-            if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
+        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name']==1 or x['No Address'] ==1)\
+            else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match'])\
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
@@ -724,7 +726,8 @@ def suggestedmatch(df, IndustryType):
     elif IndustryType == '2':      
         print "Hotel Matching"        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else noName if x['Not Hotel'] == 1\
+            else checkMissing if (x['No Name']==1 or x['No Address'] ==1)\
+                else noName if x['Not Hotel'] == 1\
                     else noAddress if x['Address Match'] == False\
                         else noName if x['Name Match'] == 0 \
                             else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
@@ -738,10 +741,10 @@ def suggestedmatch(df, IndustryType):
     #Healthcare Professional
     elif IndustryType == '3': 
         print "HC Prof Matching"
-
-        df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
+                df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
        
         df['Robot Suggestion'] = df.apply(lambda x: npimatch if x['NPI Match'] == 1 \
+            else checkMissing if (x['No Name']==1 or x['No Address'] ==1)
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
             else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])
             else (noName if x['Name Match']==0 \
@@ -837,6 +840,7 @@ def suggestedmatch(df, IndustryType):
     elif IndustryType == '4':
         print "HC Facility Matching"
         df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
+                    else checkMissing if (x['No Name']==1 or x['No Address'] ==1) 
                     else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
                           else (check if x['Name Match']==2 \
                           else (noName if x['Name Match']==0 \
@@ -923,8 +927,8 @@ def suggestedmatch(df, IndustryType):
     else:
         print "Other Matching"
         #Applies Match rules based on new columns.
-        df['Robot Suggestion'] = df.apply(lambda x: matchText \
-            if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
+        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name']==1 or x['No Address'] ==1) 
+            else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match']==2 \
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis = 1)
 

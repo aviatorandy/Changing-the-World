@@ -27,7 +27,6 @@ import win32com.client
 import warnings
 import itertools
 
-
 warnings.simplefilter("ignore", UserWarning)
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
 
@@ -261,7 +260,6 @@ def compareName(df, IndustryType, bid):
       #Removes extra columns          
             df=df.drop(['businessPartial','businessTokenSet','businessTokenSort','Token Set', 'Partial Score', 'Token sort'],axis=1)         
 
-            
         else:
             
         #Comapres location name to listing name on different methods. Takes highest score             
@@ -411,14 +409,36 @@ def compareName(df, IndustryType, bid):
 
             df=df.drop(["Token Set", "Partial Score", "Token sort"],axis=1)         
         
-
     #Auto Name Matching
-#    elif IndustryType == "6":
-#        return        
-  
+    elif IndustryType == "6":
+        print "Auto Naming"
 
+        CarCheck = ["svc", "service", "parts","part","body", "collision",\
+                    "clln", "body shop", "used", "usado", "pre-owned"]     
+                    
+        #Match to Sales and Services and New and Used                     
+        CarBrands = ['gm', 'gmc', 'buick', 'cadillac', 'chevrolet', 'chevy', 'pontiac', \
+        'oldsmobile', 'olds mobile', 'pntc', 'geo', 'hummer', 'saturn', \
+        'corvette', 'vette', 'corvet', 'acura', 'alfa', 'aston martin', \
+        'audi', 'enterprise rent', 'hertz', 'bentley', 'bmw', 'bugatti', 'chrysler',\
+        'dodge', 'ferrari', 'fiat', 'ford', 'honda', 'hyundai', 'infiniti', 'isuzu',\
+        'isuzu', 'jaguar', 'jeep', 'kia', 'lamborghini', 'lexus', 'lincoln', 'lotus',\
+        'maserati', 'maybach', 'mazda', 'mercedes', 'mini', 'mitsubishi', 'nissan',\
+        'plymouth', 'porsche', 'rover', 'royce', 'saab', 'saturn', 'scion', 'subaru',\
+        'suzuki', 'suzuki', 'toyota', 'volkswag', 'vw', 'volvo']        
 
-  #Industry Other    
+        businessRatio = 0
+        businessPartialRatio = 0
+        
+        df['Car Brand'] = df['Location Name'].apply(lambda x: 1 if any(item in x.split() for item in CarBrands) else 0) 
+        df['Car Check'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x for item in HotelBrands) else 0)
+
+        df['Name Score'] = df.apply(lambda row: \
+         fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']) if ['Other Hotel Match'] == 1 else\
+            fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
+        
+        return        
+    #Industry International/Healthcare Facility    
     else:       
         print "Other Naming"
         if businessNameMatch == 1:
@@ -552,7 +572,6 @@ def compareCity(df):
     df['csr'] = df.apply(lambda row: fuzz.ratio(row['Cleaned Input City'], row['Cleaned Listing City']),axis=1)
     df['ctpr'] =  df.apply(lambda row:fuzz.partial_ratio(row['Cleaned Input City'], row['Cleaned Listing City']),axis=1)
     df['City Score'] =df[['csr','ctpr']].mean(axis=1)
-
   
 #This function compares the Zips in the file                   
 def compareZip(df):
@@ -718,8 +737,12 @@ def suggestedmatch(df, IndustryType):
                                         else matchText if x['Name Match'] == 1 \
                                         and x['Address Match'] == True or x['Phone Match'] == True\
                                                 else noMatch ,axis = 1) 
+
+        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+        else ('Check' if x['Name Match'] == 2 else False), axis=1)
+
         df['Match \n1 = yes, 0 = no'] = ""
-        return
+        
     #Healthcare Professional
     elif IndustryType == '3': 
         print "HC Prof Matching"
@@ -731,13 +754,11 @@ def suggestedmatch(df, IndustryType):
             else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])
             else (noName if x['Name Match']==0 \
             else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
-
         
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
- 
     #Healthcare Facilities    
     elif IndustryType == '4':
         print "HC Facility Matching"
@@ -755,7 +776,6 @@ def suggestedmatch(df, IndustryType):
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
-        return                        
     
     #International
     elif IndustryType == '6':
@@ -823,7 +843,6 @@ def suggestedmatch(df, IndustryType):
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""        
-        return                        
     
      #All other industries
     else:
@@ -837,8 +856,7 @@ def suggestedmatch(df, IndustryType):
 
     df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
-    df['Match \n1 = yes, 0 = no'] = ""
-    return                        
+    df['Match \n1 = yes, 0 = no'] = ""                        
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
@@ -920,9 +938,8 @@ def readMatchedFile(xlsFile):
         else:
             raise Exception('Please provide a csv or xlsx file.')
         return df
-        
-    
- #main runtime function   
+
+#main runtime function   
 def main(df,IndustryType, bid):    
     row = 0 
     if IndustryType == '3':
@@ -971,7 +988,6 @@ def main(df,IndustryType, bid):
     'text_wrap': True})
     
     
-
     for col_num, value in enumerate(df.columns.values):
         worksheet.write(0, col_num, value, headerformat)
         
@@ -993,7 +1009,6 @@ def main(df,IndustryType, bid):
     LastPostDate=  df.columns.get_loc("Listing Latitude")
     nameMatchCol=df.columns.get_loc("Name Match")
     geocodeMatchCol=df.columns.get_loc("Geocode Match")
-
     
     worksheet.set_row(0, 45)
 
@@ -1153,9 +1168,7 @@ def sqlPull(bid,folderID,labelID,ReportType,IndustryType):
         for index, line in enumerate(SQL_QueryListings):
             SQL_QueryListings[index]=line.replace('--AND (lagf.googlePlaceId not in (select tl.externalid from tags_listings tl join tags_listings_unavailable_reasons tlur on tlur.location_id = tl.location_id join alpha.tags_unavailable_reasons tur on tur.id=tlur.tagsunavailablereason_id where tlur.partner_id=715 and tur.showasWarning is false) or lagf.googlePlaceId is null)', \
             'AND (lagf.googlePlaceId not in (select tl.externalid from tags_listings tl join tags_listings_unavailable_reasons tlur on tlur.location_id = tl.location_id join alpha.tags_unavailable_reasons tur on tur.id=tlur.tagsunavailablereason_id where tlur.partner_id=715 and tur.showasWarning is false) or lagf.googlePlaceId is null)')            
-        
-            
-            
+                  
     SQL_QueryListings = [x for x in SQL_QueryListings if x.startswith("--") is False]
     FinalQueryListings = []
     for x in SQL_QueryListings:
@@ -1176,10 +1189,7 @@ def sqlPull(bid,folderID,labelID,ReportType,IndustryType):
         "WHERE tl.tagsListingStatus_id=6 and tl.location_id in ("+','.join(SQL_DataMatches['Location ID'].to_csv(path=None,sep=',',index=False).split('\n'))[:-1]+");"
     
         Yext_Prod_DB = MySQLdb.connect(host="127.0.0.1", port=5020, db="alpha")
-        syncIDsDF = pd.read_sql(liveSyncSQL, con=Yext_Prod_DB)    
-    
-    
-        
+        syncIDsDF = pd.read_sql(liveSyncSQL, con=Yext_Prod_DB)            
         
     #Combine results
     df=SQL_DataListings.merge(SQL_DataMatches,on='Listing ID',how='outer')
@@ -1478,7 +1488,6 @@ class MatchingInput(Tkinter.Frame):
                                  defaultextension="*.xlsx;*.xls", \
                                  filetypes=( ("Excel files", "*.xlsx;*.xls"), ("CSV", "*.csv"),('All files','*.*') ))        
         checkedDF = readMatchedFile(checkedFile)
-
         
 #Checks to see if all rows asking for a check have manual review        
         allChecksComplete = True
@@ -1497,18 +1506,9 @@ class MatchingInput(Tkinter.Frame):
             checkedDF['Match'] = checkedDF.apply(lambda x: 1 if 'Match Suggested' in x['Robot Suggestion'] else 0, axis=1)
             checkedDF['Match'] = checkedDF.apply(lambda x: 1 if x['Match \n1 = yes, 0 = no'] == 1 else \
                                                 (0 if x['Match \n1 = yes, 0 = no'] == 0 else x['Match']), axis=1)
-           
-            
+                       
             busID=getBusIDfromLoc(checkedDF.loc[0,'Location ID'])
             busName=getBusName(busID)
-            completeCopyFilePath =  os.path.expanduser("J:\zAutomatcherData\CheckedFiles\\"+ \
-                                   os.getenv('username')+ " - " + busName+" Data "+ str(date.today().strftime("%Y-%m-%d")) \
-                                    + " " + str(time.strftime("%H.%M.%S")) +".csv")
-
-            #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
-            checkedDF.to_csv(completeCopyFilePath,sheet_name="Data", encoding='utf-8',index=False)
-            
-            
             
             print 'checking live sync'
             
@@ -1525,10 +1525,9 @@ class MatchingInput(Tkinter.Frame):
 
             checkedDF = ExternalID_De_Dupe(checkedDF)
             
-            
 
-            
-#            
+            #writer = pd.ExcelWriter(filePath, engine='xlsxwriter')
+            #            
             checkedDF['override'] = checkedDF.apply(lambda x: 'Match' if x['Match'] == 1 else 'Antimatch',axis=1)
             
             if self.ReportType.get()==0:
@@ -1551,6 +1550,11 @@ class MatchingInput(Tkinter.Frame):
                             checkedDF.set_value(index,"PL Status","NoPowerListing")
                         else: 
                             pass
+                        
+            completeCopyFilePath =  os.path.expanduser("J:\zAutomatcherData\CheckedFiles\\"+ \
+                                               os.getenv('username')+ " - " + busName+" Data "+ str(date.today().strftime("%Y-%m-%d")) \
+                                                + " " + str(time.strftime("%H.%M.%S")) +".csv")
+            checkedDF.to_csv(completeCopyFilePath,sheet_name="Data", encoding='utf-8',index=False)
                         
 
             #EXTERNAL ID DEDUPE
@@ -1583,22 +1587,6 @@ class MatchingInput(Tkinter.Frame):
 
 #                publisherNames = publisherNames.reset_index() 
                 businessName=busName
-                
-                
-#                Total_format = workbook.add_format({'bold': True})
-#                
-#                worksheet.set_row (0,None,Total_format)
-#
-#
-#                Total_format.set_pattern(1)
-#                Total_format.set_bg_color('#D9E1F2')
-#                
-#                
-#                worksheet.set_row(len(publisherNames)+3,None, Total_format)
-                
-               
-                
-               
 
                 #Needs logic if certain things exist
                 claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
@@ -1617,9 +1605,6 @@ class MatchingInput(Tkinter.Frame):
                 publisherNames.to_excel(suppwriter,sheet_name="Summary", index=True,  encoding='utf8', startrow=2)
                 workbook  = suppwriter.book
                 worksheet = suppwriter.sheets['Summary']  
-               # format1= workbook.add_format({
-              #                         'bold': False,})  
-              #  
                 worksheet.set_column(0,0,26)
                 worksheet.set_column(1,1,17)
                 worksheet.write(0, 0, businessName+ " - Suppression Approval Summary - "+ str(date.today().strftime("%Y-%m-%d")))
@@ -1640,31 +1625,9 @@ class MatchingInput(Tkinter.Frame):
                                                 'Last Post Date']]
                     claimedFBDF['Yes/No']=""
                     claimedFBDF['Reason']=""
-                    
-                    
-               
-                                                
-    #                                            nocols = ['Location URL','Yes/No', 'Reason']
 
                     claimedFBDF.to_excel(suppwriter,sheet_name="Facebook Claimed Pages", index=False,startrow=0 )
                     worksheet = suppwriter.sheets['Facebook Claimed Pages']                
-                    
-#                    worksheet.set_column(0,26,20)
-#                    worksheet.set_zoom(80)
-#                    
-#                    format = workbook.add_format()
-#                    format.set_center_across()
-#                    
-#                    for col in range(0,29):
-#                        worksheet.write_blank(0, col, '', format)
-#                        
-#                    worksheet.write(0, 0, 'Location Information in Yext', format)
-#                    worksheet.write(0, 13, 'Listing Information on Publishers', format)
-#                    worksheet.write(0, 27, 'Approval', format)
-#                    worksheet.write(0, 0, 'Location Information in Yext', format)
-#                    
-
-                    
                     
                 suppwriter.save()
         
@@ -1905,9 +1868,7 @@ class MatchingInput(Tkinter.Frame):
             root.destroy()
         except:
             pass
-        
-
-
+ 
 #Defining this globally helps being able to call it within the Tkinter class
 global df
 df=pd.DataFrame

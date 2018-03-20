@@ -218,8 +218,11 @@ def noNames(df):
 def compareName(df, IndustryType, bid):
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
-    df['No Name'] = df.apply(lambda row: True if row['Location Name'] == None else False, axis=1)
-   # df.apply(noNames)
+    df['No Name'] = df['Listing Name'].isnull()
+#df.apply(lambda row: np.isnan(row['Listing Name']), axis=1)
+
+#    df.isna(df2['one'])
+    # df.apply(noNames)
    
     df['Cleaned Listing Name']=df.apply(lambda x: x['Cleaned Listing Name'].replace\
     (cleanName(x['Location City']),'') if cleanName(x['Location City']) in x['Cleaned Listing Name'] else\
@@ -574,9 +577,8 @@ def comparePhone(df):
 
 #This function compares the addresses in the file                
 def compareAddress(df,IndustryType):
-    #International 
-    df['No Address'] = df.apply(lambda row: 1 if row['Listing Address'] == "" else 0, axis=1)
-
+    #International
+    df['No Address'] = df['Listing Address'].isnull()        
     if IndustryType == '6':
         #Combine Address 1, Address 2
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress)\
@@ -794,7 +796,7 @@ def suggestedmatch(df, IndustryType):
     noName = 'No Match - Name'
     noMatch = 'No Match'
     noAddress = 'No Match - Phone/Address'
-    checkMissing = 'Check Missing Name/Address'
+    checkMissing = 'Check - No Name/Address'
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -1210,7 +1212,7 @@ def main(df,IndustryType, bid):
     worksheet.set_column(namescorecol, namescorecol, 7.5)
     worksheet.set_column(addressscorecol, addressscorecol, 7.5)
     worksheet.set_column(addresscol, addresscol+1, 27)
-    worksheet.set_column(robotcol, robotcol, 17.33)
+    worksheet.set_column(robotcol, robotcol, 23.11)
     worksheet.set_column(robotcol+1, robotcol+1, 14.22)
     
     worksheet.autofilter(0,0,0,lastgencol)

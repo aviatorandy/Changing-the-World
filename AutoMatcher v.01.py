@@ -196,6 +196,11 @@ def noNames(df):
         elif row['Listing Name'] == None:
             df.loc[index,'No Name'] = 'No Name'
 
+
+#df['Cleaned Listing Name']=df.apply(lambda x: x['Cleaned Listing Name'].replace\
+#    (cleanName(x['Location City']),'') if cleanName(x['Location City']) in x['Cleaned Listing Name'] else\
+#    x['Cleaned Listing Name'], axis=1)
+
     for index,row in df.iterrows():    
 #    df.apply()
         #Removes City name if in Listing name
@@ -215,7 +220,12 @@ def compareName(df, IndustryType, bid):
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     df['No Name'] = df.apply(lambda row: True if row['Location Name'] == None else False, axis=1)
    # df.apply(noNames)
-
+   
+    df['Cleaned Listing Name']=df.apply(lambda x: x['Cleaned Listing Name'].replace\
+    (cleanName(x['Location City']),'') if cleanName(x['Location City']) in x['Cleaned Listing Name'] else\
+    x['Cleaned Listing Name'], axis=1)
+    
+    
     averagenamescore = []
     average=0
     
@@ -246,40 +256,72 @@ def compareName(df, IndustryType, bid):
     if IndustryType == "0":
         print "Normal Naming"
         if businessNameMatch == 1:
-            for index, row in df.iterrows():             
-                businessPartial = 0
-                businessTokenSet = 0
-                businessTokenSort = 0
-                #Check listing name against business names
-                for bName in businessNames:
-                    businessPartial  = max(businessPartial, fuzz.partial_ratio(bName, row['Cleaned Listing Name']))
-                    businessTokenSet = max(businessTokenSet, fuzz.token_set_ratio(bName, row['Cleaned Listing Name']))
-                    businessTokenSort = max(businessTokenSort, fuzz.token_sort_ratio(bName, row['Cleaned Listing Name']))
-                #Check listing name against location name
-                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                ntksr = fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                ntsr = fuzz.token_sort_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                
-                #returns Max of Business Match or Location Name Match
-                total = max(businessPartial, businessTokenSet, businessTokenSort,ntpr,ntksr,ntsr)
-                averagenamescore.append(total)
-            df['Name Score'] = averagenamescore        
+            
+            df['businessPartial']=0
+            df['businessTokenSet'] =0
+            df['businessTokenSort'] =0
+
+            for bName in businessNames:
+                    df['businessPartial']  = df.apply(lambda row: \
+                        max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                    df['businessTokenSet'] = df.apply(lambda row: \
+                        max(row['businessTokenSet'], fuzz.token_set_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                    df['businessTokenSort'] = df.apply(lambda row:\
+                        max(row['businessTokenSort'], fuzz.token_sort_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                  
+                    
+            df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
+                    
+            df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"]].max(axis=1)
+            
+            
+            df=df.drop(['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"],axis=1)         
+#            ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+#            ntksr = fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+#            ntsr = fuzz.token_sort_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+#            
+#                businessPartial = 0
+#                businessTokenSet = 0
+#                businessTokenSort = 0
+#                #Check listing name against business names
+#                for bName in businessNames:
+#                    businessPartial  = max(businessPartial, fuzz.partial_ratio(bName, row['Cleaned Listing Name']))
+#                    businessTokenSet = max(businessTokenSet, fuzz.token_set_ratio(bName, row['Cleaned Listing Name']))
+#                    businessTokenSort = max(businessTokenSort, fuzz.token_sort_ratio(bName, row['Cleaned Listing Name']))
+#                #Check listing name against location name
+#                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+#                ntksr = fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+#                ntsr = fuzz.token_sort_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
+#                
+#                #returns Max of Business Match or Location Name Match
+#                total = max(businessPartial, businessTokenSet, businessTokenSort,ntpr,ntksr,ntsr)
+#                averagenamescore.append(total)
+#            df['Name Score'] = averagenamescore        
             
         else:
             df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
+    
             df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
+    
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
+    
             #returns Max of Business Match or Location Name Match
             df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
-
+    
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
 
+            df=df.drop(["Token Set", "Partial Score", "Token sort"],axis=1)         
+       
 
     #Industry Hotel
     elif IndustryType == "2":
@@ -367,70 +409,106 @@ def compareName(df, IndustryType, bid):
 #        nicknameList = nicknameList.values.tolist()
 #        
         
-        for index, row in df.iterrows():             
-            if businessNameMatch==1:
-                businessRatio = 0
-                businessPartialRatio = 0
-                #Check listing name against business names
-                for bName in businessNames:
-                    businessRatio = max(businessRatio,fuzz.ratio(bName,row['Cleaned Listing Name']))
-                    businessPartialRatio = max(businessPartialRatio,fuzz.partial_ratio(bName,row['Cleaned Listing Name']))
-                #Check listing name against location name
-                nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                #returns Max of Business Match or Location Name Match
-                average = max(np.mean([businessRatio,businessPartialRatio]),np.mean([nsr,ntpr]))
-                averagenamescore.append(average)
-            else:
-                nsr = fuzz.ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                #returns Max of Business Match or Location Name Match
-                average = np.mean([nsr,ntpr])
-                averagenamescore.append(average)
+        if businessNameMatch == 1:
+            
+            df['businessPartial']=0
+            df['businessTokenSet'] =0
+            df['businessTokenSort'] =0
 
-        df['Name Score'] = averagenamescore
+            for bName in businessNames:
+                    df['businessPartial']  = df.apply(lambda row: \
+                        max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                    df['businessTokenSet'] = df.apply(lambda row: \
+                        max(row['businessTokenSet'], fuzz.token_set_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                    df['businessTokenSort'] = df.apply(lambda row:\
+                        max(row['businessTokenSort'], fuzz.token_sort_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                  
+                    
+            df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
+                    
+            df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"]].max(axis=1)
+            
+            
+            df=df.drop(['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"],axis=1)         
+
+            
+        else:
+            df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            #returns Max of Business Match or Location Name Match
+            df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
+    
+            df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
+
+            df=df.drop(["Token Set", "Partial Score", "Token sort"],axis=1)         
         
 
     #Auto Name Matching
-    elif IndustryType == "6":
-        return        
+#    elif IndustryType == "6":
+#        return        
     #Industry International    
     else:       
         print "Other Naming"
         if businessNameMatch == 1:
-            for index, row in df.iterrows():             
-                businessPartial = 0
-                businessTokenSet = 0
-                businessTokenSort = 0
-                #Check listing name against business names
-                for bName in businessNames:
-                    businessPartial  = max(businessPartial, fuzz.partial_ratio(bName, row['Cleaned Listing Name']))
-                    businessTokenSet = max(businessTokenSet, fuzz.token_set_ratio(bName, row['Cleaned Listing Name']))
-                    businessTokenSort = max(businessTokenSort, fuzz.token_sort_ratio(bName, row['Cleaned Listing Name']))
-                #Check listing name against location name
-                ntpr = fuzz.partial_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                ntksr = fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                ntsr = fuzz.token_sort_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name'])
-                
-                #returns Max of Business Match or Location Name Match
-                total = max(businessPartial, businessTokenSet, businessTokenSort,ntpr,ntksr,ntsr)
-                averagenamescore.append(total)
-            df['Name Score'] = averagenamescore        
-                       
+            
+            df['businessPartial']=0
+            df['businessTokenSet'] =0
+            df['businessTokenSort'] =0
+
+            for bName in businessNames:
+                    df['businessPartial']  = df.apply(lambda row: \
+                        max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                    df['businessTokenSet'] = df.apply(lambda row: \
+                        max(row['businessTokenSet'], fuzz.token_set_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                    df['businessTokenSort'] = df.apply(lambda row:\
+                        max(row['businessTokenSort'], fuzz.token_sort_ratio(bName, row['Cleaned Listing Name'])),axis=1)
+                  
+                    
+            df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
+                    
+            df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"]].max(axis=1)
+            
+            
+            df=df.drop(['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"],axis=1)         
+   
+            
         else:
             df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
+    
             df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
+    
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
-
+    
             #returns Max of Business Match or Location Name Match
             df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
-
+    
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
+
+            df=df.drop(["Token Set", "Partial Score", "Token sort"],axis=1)         
             
         
 #This function compares the countries in the file
@@ -510,14 +588,23 @@ def compareAddress(df,IndustryType):
         df['Cleaned Listing Address'] = df['Cleaned Listing Address'].apply(cleanAddress)
         averageaddressscore = []
 
-        for index, row in df.iterrows():                             
-                #Finds best match between normal ratio, sorted ratio
-                asr = fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-                addressSortRatio = fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
-                apsr = fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
 
-                averageaddressscore.append(max(asr,addressSortRatio,apsr))
-        df['Address Score'] = averageaddressscore
+        df['asr'] = df.apply(lambda row: fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
+        df['addressSortRatio'] = df.apply(lambda row:  fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
+        df['apsr'] = df.apply(lambda row:  fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
+        
+        df['Address Score'] = df[['asr','addressSortRatio','apsr']].max(axis=1)
+        
+        df=df.drop(['asr','addressSortRatio','apsr'],axis=1)
+#        
+#        for index, row in df.iterrows():                             
+#                #Finds best match between normal ratio, sorted ratio
+#                df['asr'] = df.apply(lamfuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+#                addressSortRatio = fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+#                apsr = fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address'])
+#
+#                averageaddressscore.append(max(asr,addressSortRatio,apsr))
+#        df['Address Score'] = averageaddressscore
         return
     #All other industries    
     else:        
@@ -547,13 +634,18 @@ def compareCity(df):
     df['Cleaned Input City'] = df['Location City'].apply(cleanCity) 
     df['Cleaned Listing City'] = df['Listing City'].apply(cleanCity)
     averagecityscore = []
-    for index, row in df.iterrows(): 
-        csr = fuzz.ratio(row['Cleaned Input City'], row['Cleaned Listing City'])
-        ctpr = fuzz.partial_ratio(row['Cleaned Input City'], row['Cleaned Listing City'])
-        
-        average = np.mean([csr,ctpr])
-        averagecityscore.append(average)   
-    df['City Score'] = averagecityscore
+
+    df['csr'] = df.apply(lambda row: fuzz.ratio(row['Cleaned Input City'], row['Cleaned Listing City']),axis=1)
+    df['ctpr'] =  df.apply(lambda row:fuzz.partial_ratio(row['Cleaned Input City'], row['Cleaned Listing City']),axis=1)
+    df['City Score'] =df[['csr','ctpr']].mean(axis=1)
+#    
+#    for index, row in df.iterrows(): 
+#        csr = fuzz.ratio(row['Cleaned Input City'], row['Cleaned Listing City'])
+#        ctpr = fuzz.partial_ratio(row['Cleaned Input City'], row['Cleaned Listing City'])
+#        
+#        average = np.mean([csr,ctpr])
+#        averagecityscore.append(average)   
+#    df['City Score'] = averagecityscore
 
 #This function compares the Country in the file                        
 def compareCountry(df):
@@ -1385,7 +1477,7 @@ def matchingQuestions(df):
    
     ts=time.time()
     
-    if not listingNames.empty and listingNames.shape[0]<5000:
+    if listingNames.shape[0]>1 and listingNames.shape[0]<5000:
         listingNames.columns=['Count']    
         listingNames=listingNames.sort_values(by=['Count'],ascending=False)
         listingNames=listingNames.reset_index() 
@@ -2027,7 +2119,7 @@ class MatchingInput(Tkinter.Frame):
           #          str(df.shape[0]),str(checks))))
           #  stats.close()
             currentStats.loc[len(currentStats)]=[os.getenv('username'),self.bid,getBusName(\
-                self.bid),self.IndustryType.get(),datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
+                self.bid),self.IndustryType.get(),self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
                     df.shape[0],checks]
             
             currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8',index=False)

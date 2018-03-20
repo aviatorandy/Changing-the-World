@@ -758,26 +758,26 @@ def calculateDoctorMatch(df):
 def compareData(df, IndustryType, bid):
     
     #compareId(df)
-    print 'comparing names'
+    print 'Comparing names...'
     compareName(df,IndustryType, bid)
-    print 'comparing phones'
+    print 'Comparing phones...'
     comparePhone(df)
     compareStatus(df)
     #compareCountry(df)
-    print 'comparing zips'
+    print 'Comparing zips...'
     compareZip(df)
     if IndustryType == '3':
-        print 'comparing NPIs'
+        print 'Comparing NPIs...'
         compareNPI(df)
 
     if IndustryType == '4':
-        print 'specialty check'
+        print 'Checking specialties...'
         calculateDoctorMatch(df)
-    print 'comparing addresses'
+    print 'Comparing addresses...'
     compareAddress(df,IndustryType)
     #compareStateCountry(df)
     df['Distance (M)'] = df.apply(lambda row: calculateDistance(row), axis=1) 
-    print 'suggesting matches'
+    print 'Suggesting matches...'
     calculateTotalScore(df)
     suggestedmatch(df, IndustryType)
 
@@ -818,7 +818,7 @@ def suggestedmatch(df, IndustryType):
     #Hotel Type
     #Need to Add Name Score taking the max of the brand
     elif IndustryType == '2':      
-        print "Hotel Matching"        
+        print "Hotel Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else checkMissing if (x['No Name'] or x['No Address'])\
                 else noName if x['Not Hotel'] == 1\
@@ -1081,7 +1081,7 @@ def ExternalID_De_Dupe(df):
 #Reads CSV or XLSX files        
 def readFile(xlsFile):
         
-        print 'reading file'
+        print 'Reading file...'
         if xlsFile[-4:] == 'xlsx':
 #            print "still reading"
 #            wb = xlrd.open_workbook(xlsFile, on_demand=True,encoding_override="utf-8")
@@ -1108,7 +1108,7 @@ def readFile(xlsFile):
 #Reads CSV or XLSX files        
 def readMatchedFile(xlsFile):
         
-        print 'reading file'
+        print 'Reading file...'
         if xlsFile[-4:] == 'xlsx':
 #            wb = xlrd.open_workbook(xlsFile, on_demand=True,encoding_override="utf-8")
 #            sNames = wb.sheet_names()        
@@ -1132,8 +1132,6 @@ def readMatchedFile(xlsFile):
     
  #New main runtime function - broken out as previous functions now handled in Tkinter   
 def main(df,IndustryType, bid):    
-    print 'main'
-    print IndustryType
     row = 0 
     if IndustryType == '3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'
@@ -1146,7 +1144,7 @@ def main(df,IndustryType, bid):
 #Compares all, suggests matches    
     compareData(df,IndustryType, bid)
     
-    print 'matching questions'
+    print 'Creating matching questions...'
  #Completes Matching Question sheet   
     matchingNameQs = matchingQuestions(df)     
         
@@ -1164,7 +1162,7 @@ def main(df,IndustryType, bid):
 
     df=df.sort_values(by='Name Score')   
     df=df.sort_values(by='Robot Suggestion')
-    print 'writing file'
+    print '/nWriting file...'
     writer = pd.ExcelWriter(FilepathMatch, engine='xlsxwriter',options={'strings_to_urls': False})
     df.to_excel(writer,sheet_name="Result", index=False,  encoding='utf8')
     matchingNameQs.to_excel(writer,sheet_name="Matching Questions", index=False)
@@ -1173,7 +1171,7 @@ def main(df,IndustryType, bid):
     worksheet.set_zoom(80)
     matchingSheet=writer.sheets['Matching Questions']
 
-    print 'formatting file'
+    print 'Formatting file...'
     headerformat = workbook.add_format({
     'bold': True,
     'text_wrap': True})
@@ -1279,7 +1277,7 @@ def main(df,IndustryType, bid):
     
     matchingSheet.set_column(0,1,45)
     
-    print 'saving'    
+    print 'Saving...'    
     try:
         writer.save()
 
@@ -1666,17 +1664,17 @@ class MatchingInput(Tkinter.Frame):
 #        Frame1 = Frame(master)
 #        Frame1.grid(row = 0, column = 0, rowspan = 3, columnspan = 3, sticky = W+E+N+S) 
         
-        self.IntroLabel = Label(master,text="Welcome to the AutoMatcher! This will suggest matches"\
-                                +" based on inputs as well as create a matches upload file"+
-                                "\n To start the process, select the first option. "\
-                                +"After you have reviewed all match suggestions and filled in a match status,"\
-                                +"\n run the program again, and select the second option."\
-                                +"\nMake sure you are connected to SDM and the J:\ Drive!").grid(row=0,column=0, columnspan=2,pady=(0,20))
+        self.IntroLabel = Label(master,text="   Welcome to the AutoMatcher! This will suggest matches"\
+                                +" based on inputs as well as create an upload file"+
+                                "\n\n   To start, select the first option. "\
+                                +"\n   Review all checks and fill in a match status."
+                                +"\n   Afterwards, run the program again, and select the second option."\
+                                +"\n\n   Make sure you connect to SDM and the J:\ Drive!").grid(row=0,column=0, columnspan=2,pady=(0,20))
         self.processChoice = IntVar()
         self.processChoice.set(-1)
-        self.StartMatch = Radiobutton(master,text="Start AutoMatcher - pull data/enter file and suggest matches",\
+        self.StartMatch = Radiobutton(master,text="Pull data/enter file and suggest matches",\
                                       variable = self.processChoice,value = 0).grid(row = 1,column = 0)
-        self.ChecksChoice = Radiobutton(master,text="Create upload based on reviewed matches file",\
+        self.ChecksChoice = Radiobutton(master,text="Create upload file based on reviewed matches",\
                                         variable=self.processChoice,value=1).grid(row = 1,column = 1)
         
         self.Next=Button(master,text = "Next",command = lambda: [self.initialSettingsWindow() \

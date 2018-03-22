@@ -44,8 +44,6 @@ def cleanName(name):
         name = ""
     return name
 
-    
-    
 #This function cleans the addresses
 def cleanAddress(address):
     try:
@@ -222,9 +220,7 @@ def compareName(df, IndustryType, bid):
     print 'See popup!'
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
-    app.wait_window(app.nameW)
-   
-    
+    app.wait_window(app.nameW)  
     
 #start of comparisons, broken out by industry
     #Normal Industry  
@@ -258,11 +254,11 @@ def compareName(df, IndustryType, bid):
             df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"]].max(axis=1)
             
       #Removes extra columns          
-            df=df.drop(['businessPartial','businessTokenSet','businessTokenSort','Token Set', 'Partial Score', 'Token sort'],axis=1)         
-
+            df = df.drop(['businessPartial','businessTokenSet','businessTokenSort','Token Set', 'Partial Score', 'Token sort'],axis=1)         
+  
         else:
             
-        #Comapres location name to listing name on different methods. Takes highest score             
+        #Compares location name to listing name on different methods. Takes highest score             
             df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
     
@@ -295,38 +291,36 @@ def compareName(df, IndustryType, bid):
                      "tent", "eno", "copper", "coffee", "leisue","charter", "me", "ticketmaster",\
                      "swampers", "journeys", "friend", "orchards", "mandara", "camp"]     
                      
-        HotelBrands = ["ac hotels", "aloft", "america's best", \
+        HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", \
         "americas best value", "ascend", "autograph", "baymont", "best western",\
-        "cambria", "canadas best value", "candlewood", "clarion", "comfort inn",\
+        "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "elyton hotel"\
         "comfort suites", "country hearth", "courtyard", "crowne plaza", "curio",\
         "days inn", "doubletree", "econo lodge", "econolodge", "edition", "element",\
-        "embassy", "even", "fairfield inn", "four points", "garden inn", "gaylord",\
-        "hampton inn", "hilton", "holiday inn", "homewood", "howard johnson", "hyatt",\
-        "indigo", "intercontinental", "jameson", "jw", "la quinta", "le meridien",\
+        "embassy", "even", "fairfield inn", "four points", "garden inn", "gaylord", "renaissance"\
+        "hampton inn", "hilton", "holiday inn", "homewood suites", "howard johnson", "hyatt",\
+        "indigo", "intercontinental", "jameson", "jw marriott", "la quinta", "le meridien",\
         "le méridien", "lexington", "luxury collection", "mainstay", "marriott",\
         "microtel", "motel 6", "palace inn", "premier inn", "quality inn",\
-        "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz",\
+        "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz carlton", "protea"\
         "rodeway", "sheraton", "signature Inn", "sleep inn", "springhill", "st regis",\
         "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace",\
         "value hotel", "value inn", "w hotel", "westin", "wingate", "wyndham"]        
 
-      
         #If anything in Bad Hotel is in Listing name, is not a hotel
         df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x.split() for item in BadHotel) else 0) 
-        
+        df['Hotel Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in HotelBrands if brand in name),None))
+
         #If hotel brand exists in listing name,is a hotel.
         df['Other Hotel Match'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x for item in HotelBrands) else 0)
 
         df['Name Score'] = df.apply(lambda row: \
-         fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']) if ['Other Hotel Match'] == 1 else\
-            fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
-        
+         fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']) if pd.isnull(row['Hotel Brand Name']) else\
+            fuzz.token_set_ratio(row['Hotel Brand Name'], row['Cleaned Listing Name']), axis=1)                 
         
     #Industry Healthcare Professional matching
     elif IndustryType == "3":
         print "HC Prof Naming"
-        
-        
+                
 #        nickNameExcelFile=pd.ExcelFile("~\Documents\Changing-the-World\nicknames.xlsx", keep_default_na = False)
 #        nicknameList = nickNameExcelFile.parse('nicknames')
 #        nicknameList = nicknameList.fillna("yext123")
@@ -637,7 +631,7 @@ def calculateDoctorMatch(df):
             if any([x for x in ['Gift Shop', 'Cafe'] if x in listingName]): 
                 specialties.append( "No Match - Excluded")
             else:
-                locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
+                locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in badhotel if specialty in locationName])
                 listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
                 
 #Compares specialty, with synonyms from location to listing. if same, match, if different, antimatch
@@ -736,7 +730,7 @@ def suggestedmatch(df, IndustryType):
                                     and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
                                         else matchText if x['Name Match'] == 1 \
                                         and x['Address Match'] == True or x['Phone Match'] == True\
-                                                else noMatch ,axis = 1) 
+                                                else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
         else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -1269,8 +1263,9 @@ def matchingQuestions(df):
     Qdf=df[df['Robot Suggestion'].isin(['No Match - Name','Check Name'])]
     pivot=pd.pivot_table(Qdf,values='Link ID',index='Listing Name',aggfunc='count')
 
-    listingNames=pd.DataFrame(pivot)
-   
+    listingNames = pd.DataFrame(pivot)
+    print listingNames 
+    print listingNames.shape[0]
 #    ts=time.time()
     
     if listingNames.shape[0]>1 and listingNames.shape[0]<5000:
@@ -1282,17 +1277,32 @@ def matchingQuestions(df):
         listingNames.columns = listingNames.columns.str.replace('\s+', '_')
         
         alias = {l : r for l, r in itertools.product(listingNames.Listing_Name, listingNames.Listing_Name) if l < r and fuzz.token_sort_ratio(l, r) >= 70}
-        series=listingNames.Count.groupby(listingNames.Listing_Name.replace(alias)).sum()
+
+        print alias
+        print type(alias)
+        print len(alias)
+        if len(alias)>0:         
+            series=listingNames.Count.groupby(listingNames.Listing_Name.replace(alias)).sum()
         
-        mergedListNames=series.to_frame()
-       
-        mergedListNames=mergedListNames.reset_index()
-        mergedListNames.columns=mergedListNames.columns=['Listing Name','Count']
-        mergedListNames=mergedListNames.sort_values(by=['Count'],ascending=False)                                   
-        mergedListNames= mergedListNames[mergedListNames['Count'] >= 5]
-        mergedListNames = mergedListNames.replace(np.nan, '', regex=True)
-        mergedListNames=mergedListNames[mergedListNames['Listing Name']!='']
-      
+            mergedListNames=series.to_frame()
+           
+            mergedListNames=mergedListNames.reset_index()
+            mergedListNames.columns=mergedListNames.columns=['Listing Name','Count']
+            mergedListNames=mergedListNames.sort_values(by=['Count'],ascending=False)                                   
+            mergedListNames= mergedListNames[mergedListNames['Count'] >= 5]
+            mergedListNames = mergedListNames.replace(np.nan, '', regex=True)
+            mergedListNames=mergedListNames[mergedListNames['Listing Name']!='']
+        elif not listingNames.empty:
+            print listingNames
+            listingNames=listingNames.sort_values(by=['Count'],ascending=False)
+            listingNames=listingNames.reset_index() 
+            listingNames['Listing_Name']=listingNames['Listing_Name'].apply(cleanName)
+            listingNames= listingNames[listingNames['Count'] > 5]  
+            return listingNames
+    
+        else:
+            return pd.DataFrame([{'Listing Name' : 'None', 'Count' : '0'}])
+            
   #      te=time.time()
 
       #  print te-ts

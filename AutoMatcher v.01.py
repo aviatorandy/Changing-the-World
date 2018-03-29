@@ -697,7 +697,7 @@ def suggestedmatch(df, IndustryType):
     noName = 'No Match - Name'
     noMatch = 'No Match'
     noAddress = 'No Match - Phone/Address'
-    checkMissing = 'Check No Name/Address'
+    checkMissingName = 'Check No Name'
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -707,7 +707,8 @@ def suggestedmatch(df, IndustryType):
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
         print "Normal Matching"
-        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address'])\
+        #df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address'])\
+        df['Robot Suggestion'] = df.apply(lambda x: checkMissingName if (x['No Name']) \
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match'])\

@@ -1648,8 +1648,8 @@ class MatchingInput(Tkinter.Frame):
                 toolkit=os.path.expanduser("~\Documents\entops\Templates and Macros\EntOpsMacroToolkit.xlam")
                 a=xlApp.Application.Run('\''+toolkit+"\'!AutoMatcherSuppressionReport.Run_Suppression_Report")
 
-                
-                reportDF = checkedDF[['Store ID', 'Location ID',\
+                reportDF=checkedDF[checkedDF['PL Status'] == 'Suppress']
+                reportDF = reportDF[['Store ID', 'Location ID',\
                                            'Location Name', 'Location Address', 'Location Address 2',\
                                            'Location City', 'Location State', 'Location Zip', 'Location Phone',\
                                             'Sync External ID', 'Sync URL', 'Listing Name', \
@@ -1855,19 +1855,21 @@ class MatchingInput(Tkinter.Frame):
         
 
         if part==1:
-            currentStats=pd.read_csv("J:\zAutomatcherData\Part1Stats.csv", encoding ='utf-8')
-          #  stats=open("J:\zAutomatcherData\Part1Stats.csv",'a')
-            checks=len(df[df['Robot Suggestion'].str.contains('Check')])
-            #stats.write(','.join((os.getenv('username'),str(self.bizID.get()),str(getBusName(\
-          #     self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
-          #          str(df.shape[0]),str(checks))))
-          #  stats.close()
-            currentStats.loc[len(currentStats)]=[os.getenv('username'),self.bid,getBusName(\
-                self.bid),self.IndustryType.get(),self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
-                    df.shape[0],checks]
-            
-            currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8',index=False)
-
+            try:
+                currentStats=pd.read_csv("J:\zAutomatcherData\Part1Stats.csv", encoding ='utf-8')
+              #  stats=open("J:\zAutomatcherData\Part1Stats.csv",'a')
+                checks=len(df[df['Robot Suggestion'].str.contains('Check')])
+                #stats.write(','.join((os.getenv('username'),str(self.bizID.get()),str(getBusName(\
+              #     self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
+              #          str(df.shape[0]),str(checks))))
+              #  stats.close()
+                currentStats.loc[len(currentStats)]=[os.getenv('username'),self.bid,getBusName(\
+                    self.bid),self.IndustryType.get(),self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'),t1-t0,\
+                        df.shape[0],checks]
+                
+                currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8',index=False)
+            except:
+                pass
 
         self.completeWindow=Toplevel()  
         self.completeWindow.protocol("WM_DELETE_WINDOW", self._delete_window) 

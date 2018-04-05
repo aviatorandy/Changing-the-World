@@ -758,6 +758,9 @@ def suggestedmatch(df, IndustryType):
     noMatch = 'No Match'
     noAddress = 'No Match - Phone/Address'
     checkMissing = 'Check No Name/Address'
+
+    checkMissingName = 'Check No Name'
+
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -805,7 +808,7 @@ def suggestedmatch(df, IndustryType):
         df['Robot Suggestion'] = df.apply(lambda x: npimatch if x['NPI Match'] == 1 \
             else checkMissing if (x['No Name'] or x['No Address'])
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-            else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])
+            else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
             else (noName if x['Name Match']==0 \
             else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
         

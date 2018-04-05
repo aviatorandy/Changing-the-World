@@ -26,9 +26,12 @@ import math
 import win32com.client
 import warnings
 import itertools
+from pythonParser import NameDenormalizer
+nickNames=NameDenormalizer()
 
 warnings.simplefilter("ignore", UserWarning)
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
+
 
 
 #This function cleans the names 
@@ -350,7 +353,30 @@ def compareName(df, IndustryType, bid):
 #        nicknameList = nicknameList.applymap(lambda x : x.lower())
 #        nicknameList = nicknameList.values.tolist()
 #        
+        df['altListNames'] = np.empty((len(df), 0)).tolist()
+        df['altLocNames'] = np.empty((len(df), 0)).tolist()
+
+        for index, row in df.iterrows():
+            row['altListNames'].append(row['Cleaned Listing Name'])
+            row['altLocNames'].append(row['Cleaned Location Name'])
+
+            for word in row['Cleaned Listing Name'].split():
+                otherListNames=nickNames.get(word)
+                if otherListNames:
+                    for name in otherListNames:
+                        df.loc[index,'altListNames'].append(row['Cleaned Listing Name'].replace(word,name))
+                otherListNames = None
+            for word in row['Cleaned Location Name'].split():
+                otherLocNames=nickNames.get(word)
+                if otherLocNames:
+                    for name in otherLocNames:
+                       df.loc[index,'altLocNames'].append(row['Cleaned Location Name'].replace(word,name))
+                otherLocNames=None
         
+                
+                
+                
+
         if businessNameMatch == 1:
             
             df['businessPartial']=0
@@ -367,7 +393,7 @@ def compareName(df, IndustryType, bid):
                         max(row['businessTokenSort'], fuzz.token_sort_ratio(bName, row['Cleaned Listing Name'])),axis=1)
                   
     #Comapres location name to listing name on different methods. Takes highest score             
-         
+             
             df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
     
@@ -376,8 +402,23 @@ def compareName(df, IndustryType, bid):
     
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
-                    
-            df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"]].max(axis=1)
+             
+            df['Alt Token Set']=""
+            df['Alt Partial Score']=""
+            df['Alt Token Sort']=""
+            for index,row in df.iterrows():    
+                for altLocName in row['altLocNames']:
+                    for altListName in row['altListNames']:
+                        df.loc[index,'Alt Token Set']=max(df.loc[index,'Alt Token Set'],fuzz.token_set_ratio(altLocName,altListName))
+                        df.loc[index,'Alt Partial Score']=max(df.loc[index,'Alt Partial Score'],fuzz.token_set_ratio(altLocName,altListName))
+                        df.loc[index,'Alt Token Sort']=max(df.loc[index,'Alt Token Sort'],fuzz.token_set_ratio(altLocName,altListName))
+                        
+            
+            
+            
+            
+            df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',\
+            "Token Set", "Partial Score", "Token sort", 'Alt Token Set','Alt Partial Score','Alt Token Sort']].max(axis=1)
             
             
             df=df.drop(['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"],axis=1)         
@@ -395,11 +436,30 @@ def compareName(df, IndustryType, bid):
     
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+            
+            df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1) 
+    
+            df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
+            (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
+             
+            df['Alt Token Set']=0
+            df['Alt Partial Score']=0
+            df['Alt Token Sort']=0
+            for index,row in df.iterrows():    
+                for altLocName in row['altLocNames']:
+                    for altListName in row['altListNames']:
+                        df.loc[index,'Alt Token Set']=max(df.loc[index,'Alt Token Set'],fuzz.token_set_ratio(altLocName,altListName))
+                        df.loc[index,'Alt Partial Score']=max(df.loc[index,'Alt Partial Score'],fuzz.token_set_ratio(altLocName,altListName))
+                        df.loc[index,'Alt Token Sort']=max(df.loc[index,'Alt Token Sort'],fuzz.token_set_ratio(altLocName,altListName))
     
             #returns Max of Business Match or Location Name Match
-            df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
+            df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort",'Alt Token Set','Alt Partial Score','Alt Token Sort']].mean(axis=1)
     
-            df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
+            df['Name Score'] = df[["Token Set", "Partial Score", "Token sort",'Alt Token Set','Alt Partial Score','Alt Token Sort']].max(axis=1)
 
             df=df.drop(["Token Set", "Partial Score", "Token sort"],axis=1)         
         
@@ -631,7 +691,7 @@ def calculateDoctorMatch(df):
             if any([x for x in ['Gift Shop', 'Cafe'] if x in listingName]): 
                 specialties.append( "No Match - Excluded")
             else:
-                locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in badhotel if specialty in locationName])
+                locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
                 listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
                 
 #Compares specialty, with synonyms from location to listing. if same, match, if different, antimatch
@@ -697,7 +757,7 @@ def suggestedmatch(df, IndustryType):
     noName = 'No Match - Name'
     noMatch = 'No Match'
     noAddress = 'No Match - Phone/Address'
-    checkMissingName = 'Check No Name'
+    checkMissing = 'Check No Name/Address'
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
@@ -707,8 +767,7 @@ def suggestedmatch(df, IndustryType):
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
         print "Normal Matching"
-        #df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address'])\
-        df['Robot Suggestion'] = df.apply(lambda x: checkMissingName if (x['No Name']) \
+        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address'])\
             else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match']) else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] \
                 or x['Geocode Match'])\
@@ -859,7 +918,6 @@ def calculateTotalScore(df):
     df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
                         + float(row['Phone Score'])*.1 + float(row['Claimed Score']), axis = 1)
 
- 
     
     #FB Brand page anti match - NEED TO DO
     
@@ -1522,11 +1580,11 @@ class MatchingInput(Tkinter.Frame):
             busName=getBusName(busID)
             
             print 'checking live sync'
-            
-            googleLiveIDs=GoogleIDs(busID)
-            googleLiveIDs= googleLiveIDs.reset_index()
-            checkedDF['Google Live Sync']=checkedDF['External ID'].isin(googleLiveIDs['Live Google External IDs'])
-            checkedDF['Live Sync']=checkedDF.apply (lambda x: 1 if x['Google Live Sync'] else x['Live Sync'],axis=1)
+            if self.ReportType.get()==1:
+                googleLiveIDs=GoogleIDs(busID)
+                googleLiveIDs= googleLiveIDs.reset_index()
+                checkedDF['Google Live Sync']=checkedDF['External ID'].isin(googleLiveIDs['Live Google External IDs'])
+                checkedDF['Live Sync']=checkedDF.apply (lambda x: 1 if x['Google Live Sync'] else x['Live Sync'],axis=1)
                                 
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Sync'] == 1 else x['Match'], axis=1)
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)

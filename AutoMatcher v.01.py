@@ -172,7 +172,6 @@ def cleanCity(city):
     .replace("spring","spg")\
     .replace("height","ht")\
 
-
         city = re.sub('[^A-Za-z0-9\s]+', ' ', city)
         city = re.sub( '\s+', ' ', city)
     except AttributeError:
@@ -770,11 +769,15 @@ def suggestmatch(df, IndustryType):
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
         print "Normal Matching"
-        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address'])\
-            else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
-                or x['Geocode Match']) else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] \
-                or x['Geocode Match'])\
-                else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis=1)
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else checkMissing if (x['No Name'])\
+                else noName if x['Name Match'] ==0\
+                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                        else matchText if x['Name Match'] == 1\
+                            and x['Address Match'] == True or x['Phone Match'] == True\
+                                else checkMissing if x['No Address']\
+                                    else noAddress if x['Address Match'] == False\
+                                        else noMatch, axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
     #Need to Add Name Score taking the max of the brand
@@ -794,7 +797,7 @@ def suggestmatch(df, IndustryType):
                                                     else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
-        else ('Check' if x['Name Match'] == 2 else False), axis=1)
+                            else ('Check' if x['Name Match'] == 2 else False), axis=1)
 
         df['Match \n1 = yes, 0 = no'] = ""
         
@@ -926,15 +929,19 @@ def suggestmatch(df, IndustryType):
     else:
         print "Other Matching"
         #Applies Match rules based on new columns.
-        df['Robot Suggestion'] = df.apply(lambda x: checkMissing if (x['No Name'] or x['No Address']) 
-            else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] \
-                or x['Geocode Match']) else (check if x['Name Match']==2 \
-                else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis = 1)
-
-
-    df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
-                    else ('Check' if x['Name Match'] == 2 else False), axis=1)
-    df['Match \n1 = yes, 0 = no'] = ""                        
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else checkMissing if (x['No Name'])\
+                else noName if x['Name Match'] ==0\
+                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                        else matchText if x['Name Match'] == 1\
+                            and x['Address Match'] == True or x['Phone Match'] == True\
+                                else checkMissing if x['No Address']\
+                                    else noAddress if x['Address Match'] == False\
+                                        else noMatch, axis=1)
+    
+        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
+                        else ('Check' if x['Name Match'] == 2 else False), axis=1)
+        df['Match \n1 = yes, 0 = no'] = ""
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    

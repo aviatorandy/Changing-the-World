@@ -235,9 +235,7 @@ def compareName(df, IndustryType, bid):
     for index, row in df.iterrows():
      
         for word in row['Cleaned Listing Name'].split():
-            print word
             otherListNames=nickNames.get(word.rstrip())
-            print otherListNames
             if otherListNames:
                 for name in otherListNames:
                     df.loc[index,'ListPeopleNames'].append(name)

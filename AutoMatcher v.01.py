@@ -225,10 +225,39 @@ def compareName(df, IndustryType, bid):
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)  
     
+    
+    
+    #Should this be here, or only for some industries?
+    df['ListPeopleNames'] = np.empty((len(df), 0)).tolist()
+    df['LocPeopleNames'] = np.empty((len(df), 0)).tolist()
+    df['ListPeopleNamesNotInLoc'] = np.empty((len(df), 0)).tolist()
+    
+    for index, row in df.iterrows():
+     
+        for word in row['Cleaned Listing Name'].split():
+            print word
+            otherListNames=nickNames.get(word.rstrip())
+            print otherListNames
+            if otherListNames:
+                for name in otherListNames:
+                    df.loc[index,'ListPeopleNames'].append(name)
+            otherListNames = None
+        for word in row['Cleaned Location Name'].split():
+            otherLocNames=nickNames.get(word.rstrip())
+            if otherLocNames:
+                for name in otherLocNames:
+                   df.loc[index,'LocPeopleNames'].append(name)
+            otherLocNames=None
+    
+        df.at[index,'ListPeopleNamesNotInLoc'] = list(set(df.loc[index,'ListPeopleNames']).difference(set(df.loc[index,'LocPeopleNames'])))
+    
+    df['ExtraPeopleNamesInListing']=df['ListPeopleNamesNotInLoc'].apply(lambda x: len(x)>0)
 #start of comparisons, broken out by industry
     #Normal Industry  
     if IndustryType == "0":
         print "Normal Naming"
+        
+        
         if businessNameMatch == 1:
             
             df['businessPartial']=0
@@ -911,9 +940,16 @@ def suggestedmatch(df, IndustryType):
                 else (noName if x['Name Match']==0 else (noAddress if not x['Address Match'] else 'uh oh'))) , axis = 1)
 
 
+    #we might want to move where this lives.        
+    df['Robot Suggestion']=df.apply(lambda x: 'No Match - People Name' if x['ExtraPeopleNamesInListing'] else x['Robot Suggestion'],axis=1)
+
+
     df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""                        
+    
+
+
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
@@ -1326,8 +1362,7 @@ def matchingQuestions(df):
     pivot=pd.pivot_table(Qdf,values='Link ID',index='Listing Name',aggfunc='count')
 
     listingNames = pd.DataFrame(pivot)
-    print listingNames 
-    print listingNames.shape[0]
+
 #    ts=time.time()
     
     if listingNames.shape[0]>1 and listingNames.shape[0]<5000:
@@ -1340,9 +1375,6 @@ def matchingQuestions(df):
         
         alias = {l : r for l, r in itertools.product(listingNames.Listing_Name, listingNames.Listing_Name) if l < r and fuzz.token_sort_ratio(l, r) >= 70}
 
-        print alias
-        print type(alias)
-        print len(alias)
         if len(alias)>0:         
             series=listingNames.Count.groupby(listingNames.Listing_Name.replace(alias)).sum()
         
@@ -1355,7 +1387,6 @@ def matchingQuestions(df):
             mergedListNames = mergedListNames.replace(np.nan, '', regex=True)
             mergedListNames=mergedListNames[mergedListNames['Listing Name']!='']
         elif not listingNames.empty:
-            print listingNames
             listingNames=listingNames.sort_values(by=['Count'],ascending=False)
             listingNames=listingNames.reset_index() 
             listingNames['Listing_Name']=listingNames['Listing_Name'].apply(cleanName)

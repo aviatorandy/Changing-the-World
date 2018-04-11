@@ -28,6 +28,8 @@ import warnings
 import itertools
 from pythonParser import NameDenormalizer
 nickNames=NameDenormalizer()
+from pythonParser import NameDenormalizerWithOriginal
+firstNames=NameDenormalizerWithOriginal()
 
 warnings.simplefilter("ignore", UserWarning)
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
@@ -233,18 +235,18 @@ def compareName(df, IndustryType, bid):
     for index, row in df.iterrows():
      
         for word in row['Cleaned Listing Name'].split():
-            print word
-            otherListNames=nickNames.get(word.rstrip())
-            print otherListNames
+            otherListNames=firstNames.get(word.rstrip())
             if otherListNames:
                 for name in otherListNames:
-                    df.loc[index,'ListPeopleNames'].append(name)
+                    if name !='':
+                        df.loc[index,'ListPeopleNames'].append(name)
             otherListNames = None
         for word in row['Cleaned Location Name'].split():
-            otherLocNames=nickNames.get(word.rstrip())
+            otherLocNames=firstNames.get(word.rstrip())
             if otherLocNames:
                 for name in otherLocNames:
-                   df.loc[index,'LocPeopleNames'].append(name)
+                    if name != '':
+                        df.loc[index,'LocPeopleNames'].append(name)
             otherLocNames=None
     
         df.at[index,'ListPeopleNamesNotInLoc'] = list(set(df.loc[index,'ListPeopleNames']).difference(set(df.loc[index,'LocPeopleNames'])))

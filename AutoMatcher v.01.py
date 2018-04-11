@@ -1573,6 +1573,7 @@ class MatchingInput(Tkinter.Frame):
         master.title("AutoMatcher Setup")
 
         master.minsize(width=500, height=300)
+        root.lift()
 
         
         self.IntroLabel = Label(master,text="   Welcome to the AutoMatcher! This will suggest matches"\
@@ -1918,11 +1919,19 @@ class MatchingInput(Tkinter.Frame):
         global businessNames
         global businessNameMatch
         
+#        if self.NewName.get() != "":
+#            for i in self.NewName.get().split(","):
+#                businessNames.append(cleanName(i)) 
+
+        matchingNames=[]
+        for i,name in enumerate(self.queriedNames):
+            if self.varN[i].get():
+                matchingNames.append(cleanName(name))
         if self.NewName.get() != "":
-            for i in self.NewName.get().split(","):
-                businessNames.append(cleanName(i)) 
-        
-        businessNameMatch=self.busNameMatch.get()
+            for name in self.NewName.get().split(","):
+                matchingNames.append(cleanName(name)) 
+        businessNameMatch=1
+        businessNames=matchingNames
        # businessNames.append(cleanName(NewName))
         #AddNameBox.delete(0, END)
         self.nameW.destroy()
@@ -1933,24 +1942,54 @@ class MatchingInput(Tkinter.Frame):
         global businessNames
         global businessNameMatch
         
+        self.queriedNames=businessNames
         self.complete=BooleanVar()
         self.complete=False
         self.nameW=Toplevel()
         self.nameW.protocol("WM_DELETE_WINDOW", self._delete_window) 
         self.nameW.minsize(width=300, height=200)
-        self.NewName=StringVar()
         
-        self.busNameMatch=IntVar()
-        self.busNameMatch.set(-1)
-        self.busMatchLabel=Label(self.nameW,text="Do you want to match to generic business names?").grid(row=0,column=0, sticky=W, columnspan=2)
-        self.yesMatch=Radiobutton(self.nameW,text="Yes, match to business names", variable=self.busNameMatch , value=1).grid(row=1,column=0,pady=(0,20),sticky=W)
-        self.noMatch=Radiobutton(self.nameW,text="No, do not match to business names", variable=self.busNameMatch ,value=0).grid(row=1,column=1,pady=(0,20),sticky=E)
-        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0, columnspan=2)
-        self.AddMoreLabel=Label(self.nameW,text="If needed, enter comma separated list of additional business names to match to:").grid(row=11,column=0, columnspan=2)
-        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=12,column=0, columnspan=2)
-        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=0, columnspan=2 ,pady=(20,0))
-#        self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
+        
+        self.NameIntro=Label(self.nameW,text='Select which names to match to, and/or add your own comma delinated list of names to match to')\
+                             .grid(row=0,column=0, sticky=W, columnspan=2)
+        self.varN = dict()                     
+       # self.matchList=[0]*len(self.queriedNames)
+        for i,name in enumerate(self.queriedNames):
+           self.varN[i]=IntVar()
+           self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varN[i]).grid(row=i+1,column=0, sticky=W)
+        lastRow=len(self.queriedNames)+2
+        self.NewName=StringVar()   
+        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=lastRow,column=0, columnspan=2)
+        
+        
+        
+        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda:self.AddMore()).grid(row=lastRow+1,column=0, columnspan=2 ,pady=(20,0))
+        
+#        self.AddMoreButton.wait_variable(wait)
+        
+        
+#        self.busNameMatch=IntVar()
+#        self.busNameMatch.set(-1)
+#        self.busMatchLabel=Label(self.nameW,text="Do you want to match to generic business names?").grid(row=0,column=0, sticky=W, columnspan=2)
+#        self.yesMatch=Radiobutton(self.nameW,text="Yes, match to business names", variable=self.busNameMatch , value=1).grid(row=1,column=0,pady=(0,20),sticky=W)
+#        self.noMatch=Radiobutton(self.nameW,text="No, do not match to business names", variable=self.busNameMatch ,value=0).grid(row=1,column=1,pady=(0,20),sticky=E)
+#        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0, columnspan=2)
+#        self.AddMoreLabel=Label(self.nameW,text="If needed, enter comma separated list of additional business names to match to:").grid(row=11,column=0, columnspan=2)
+#        
+    #    self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
   
+
+     
+
+
+
+
+
+
+
+
+
+
     
 #Checks if input is a number
     def validate(self, new_text):

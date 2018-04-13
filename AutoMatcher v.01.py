@@ -614,14 +614,14 @@ def compareAddress(df,IndustryType):
         df['Cleaned Listing Address'] = df['Cleaned Listing Address'].apply(cleanAddress)
 
 
-    #Compares addresses on different comparison methods. Takes max.
-        df['asr'] = df.apply(lambda row: fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
-        df['addressSortRatio'] = df.apply(lambda row:  fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
-        df['apsr'] = df.apply(lambda row:  fuzz.partial_token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
+        #Compares addresses on different comparison methods. Takes max.
+        df['ar'] = df.apply(lambda row: fuzz.ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
+        df['aSortr'] = df.apply(lambda row:  fuzz.token_sort_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
+        df['aSetr'] = df.apply(lambda row:  fuzz.token_set_ratio(row['Cleaned Input Address'], row['Cleaned Listing Address']),axis=1)
         
-        df['Address Score'] = df[['asr','addressSortRatio','apsr']].max(axis=1)
+        df['Address Score'] = df[['ar','aSortr','aSetr']].max(axis=1)
       #Deletes extra columns 
-        df=df.drop(['asr','addressSortRatio','apsr'],axis=1)
+        df=df.drop(['ar','aSortr','aSetr'],axis=1)
 
         return
     
@@ -891,65 +891,15 @@ def suggestmatch(df, IndustryType):
     #International
     elif IndustryType == '6':
         print "Intl Matching"
-        for index, row in df.iterrows(): 
-            if row['Name Score'] <= 60 and row['No Name']!='URL for name':
-                robotmatch.append("No Match - Name")
-            else:
-                if row['Phone Match']:
-                    if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                        robotmatch.append("Check")
-                    elif row['Name Score']<60:
-                        robotmatch.append('Check - URL Name')
-                    else:
-                        robotmatch.append("Match Suggested") 
-                elif row['Country'] == 'GB':
-                    #if GB zip matches, then address match
-                    if row['Address Score'] < 70 and not row['Zip Match']:
-                        if row['Distance (M)']<200:
-                            if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                                robotmatch.append("Check")
-                            elif row['Name Score']<60:
-                                robotmatch.append('Check - URL Name')
-                            else:
-                                robotmatch.append("Match Suggested - Geocode")
-                        else:
-                            robotmatch.append("No Match - Address")
-                    elif row['Zip Match']:
-                        if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                            robotmatch.append("Check")
-                        elif row['Name Score']<60:
-                            robotmatch.append('Check - URL Name')
-                        else:
-                            robotmatch.append("Match Suggested")
-                    
-                    else:
-                        if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                            robotmatch.append("Check")
-                        elif row['Name Score']<60:
-                            robotmatch.append('Check - URL Name')
-                        else:
-                            robotmatch.append("Match Suggested")
-                else:
-                    if row['Address Score'] < 70:
-                        if row['Distance (M)']<200:
-                            if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                                robotmatch.append("Check")
-                            elif row['Name Score']<60:
-                                robotmatch.append('Check - URL Name')
-
-                            else:
-                                robotmatch.append("Match Suggested - Geocode")
-                        else:
-                            robotmatch.append("No Match - Address")
-                    else:
-                        if 60 < row['Name Score'] < 80 or row['Cleaned Listing Name']is None:
-                            robotmatch.append("Check")
-                        elif row['Name Score']<60:
-                            robotmatch.append('Check - URL Name')
-                        else:
-                            robotmatch.append("Match Suggested")                                                
-
-        df['Robot Suggestion'] = robotmatch
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else checkMissing if (x['No Name'])\
+                else noName if x['Name Match'] == 0 \
+                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                        else matchText if x['Name Match'] == 1 \
+                            and x['Address Match'] == True or x['Phone Match'] == True\
+                                else checkMissing if x['No Address']\
+                                    else noAddress if x['Address Match'] == False\
+                                        else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)

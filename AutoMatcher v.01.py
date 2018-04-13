@@ -792,7 +792,9 @@ def suggestmatch(df, IndustryType):
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
-    npimatch = 'Match Suggested - NPI'
+    #npimatch = 'Match Suggested - NPI'
+    clusternpimatch = 'Match - Cluster NPI'
+    clusternpimismatch = 'Check Name - Cluster Pub'
     diffBrand = 'No Match - Diff Brand'
     
     #Normal Type
@@ -857,18 +859,20 @@ def suggestmatch(df, IndustryType):
     #Healthcare Professional
     elif IndustryType == '3': 
         print "HC Prof Matching"
+        clusterpubs = [737, 735, 736, 776, 741]
+        
         df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
        
-        df['Robot Suggestion'] = df.apply(lambda x: npimatch if x['NPI Match'] == 1 \
-            else checkMissing if (x['No Name'] or x['No Address'])
-            else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-            else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-            else (noName if x['Name Match']==0 \
-            else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
-        
-        df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
-                    else ('Check' if x['Name Match'] == 2 else False), axis=1)
+        df['Robot Suggestion'] = df.apply(lambda x: clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
+            else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
+                else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                    else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                        else (noName if x['Name Match']==0 \
+                              else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
+            
         df['Match \n1 = yes, 0 = no'] = ""
+        
+        return
 
     #Healthcare Facilities    
     elif IndustryType == '4':

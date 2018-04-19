@@ -360,25 +360,28 @@ def compareName(df, IndustryType, bid):
                      "office", "vaso", "oceana", "vmware"\
                      "trivium", "fyve", "steakhouse", "ame", "wellness", "pay", "presentation"\
                      "presentations", "presentation", "visual",\
-                     "tent", "eno", "copper", "coffee", "leisue","charter", "me", "ticketmaster",\
-                     "swampers", "journeys", "friend", "orchards", "mandara", "camp"]     
+                     "tent", "eno", "copper", "coffee", "leisure","charter", "me", "ticketmaster",\
+                     "swampers", "journeys", "friend", "orchards", "mandara", "camp", "broughtons"]     
                      
-        HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", \
+        HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", "tribute"\
         "americas best value", "ascend", "autograph", "baymont", "best western",\
-        "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "elyton hotel"\
-        "comfort suites", "country hearth", "courtyard", "crowne plaza", "curio",\
-        "days inn", "doubletree", "econo lodge", "econolodge", "edition", "element",\
-        "embassy", "even", "fairfield inn", "four points", "garden inn", "gaylord", "renaissance"\
-        "hampton inn", "hilton", "holiday inn", "homewood suites", "howard johnson", "hyatt",\
+        "cambria", "canadas best value", "candlewood", "clarion", "conrad", "comfort inn", "elyton hotel"\
+        "comfort suites", "delta", "country hearth", "courtyard", "crowne plaza", "curio",\
+        "casa monica", "days inn", "grand residence", "doubletree", "econo lodge", "econolodge", "edition", "element",\
+        "embassy suites", "even", "fairfield inn", "four points", "garden inn", "gaylord", "renaissance"\
+        "hampton inn", "hilton garden inn", "holiday inn", "homewood suites", "howard johnson", "hyatt",\
         "indigo", "intercontinental", "jameson", "jw marriott", "la quinta", "le meridien",\
-        "le méridien", "lexington", "luxury collection", "mainstay", "marriott",\
+        "le méridien", "lexington", "luxury collection", "protea", "mainstay", "marriott executive", \
         "microtel", "motel 6", "palace inn", "premier inn", "quality inn",\
-        "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz carlton", "protea"\
+        "quality suites", "ramada", "red roof", "renaissance", "residence inn", "bulgari", "ritz carlton", "protea"\
         "rodeway", "sheraton", "signature Inn", "sleep inn", "springhill", "st regis",\
         "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace",\
-        "value hotel", "value inn", "w hotel", "westin", "wingate", "wyndham"]        
+        "value hotel", "value inn", "w hotel", "westin", "wingate", "wyndham","marriott"]        
 
         #If anything in Bad Hotel is in Listing name, is not a hotel
+        
+        #This identifies the actual car brand name within the string
+
         df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x.split() for item in BadHotel) else 0) 
         df['Hotel Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in HotelBrands if brand in name),None))
 
@@ -438,9 +441,6 @@ def compareName(df, IndustryType, bid):
                     for name in otherLocNames:
                        df.loc[index,'altLocNames'].append(row['Cleaned Location Name'].replace(word,name))
                 otherLocNames=None
-        
-                
-                
                 
         if businessNameMatch == 1:
             df['businessPartial'] = 0
@@ -474,10 +474,6 @@ def compareName(df, IndustryType, bid):
                         df.loc[index,'Alt Token Set']=max(df.loc[index,'Alt Token Set'],fuzz.token_set_ratio(altLocName,altListName))
                         df.loc[index,'Alt Partial Score']=max(df.loc[index,'Alt Partial Score'],fuzz.token_set_ratio(altLocName,altListName))
                         df.loc[index,'Alt Token Sort']=max(df.loc[index,'Alt Token Sort'],fuzz.token_set_ratio(altLocName,altListName))
-                        
-            
-            
-            
             
             df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',\
             "Token Set", "Partial Score", "Token sort", 'Alt Token Set','Alt Partial Score','Alt Token Sort']].max(axis=1)
@@ -779,6 +775,7 @@ def suggestmatch(df, IndustryType):
     df['Phone or Address Match']=df.apply(lambda x:  x['Phone Match'] or x['Address Match'],axis=1)
     
     liveSync = 'No Match - Live Sync'
+    liveSuppress = 'No Match - Live Suppress'
     matchText = 'Match Suggested'
     noName = 'No Match - Name'
     noMatch = 'No Match'
@@ -802,31 +799,33 @@ def suggestmatch(df, IndustryType):
         #Applies Match rules based on new columns.
         print "Normal Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else noName if x['Name Match'] ==0\
-                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                        else matchText if x['Name Match'] == 1\
-                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                else checkMissing if x['No Address']\
-                                    else noAddress if x['Address Match'] == False\
-                                        else noMatch, axis=1)
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else checkMissing if (x['No Name'])\
+                    else noName if x['Name Match'] ==0\
+                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                            else matchText if x['Name Match'] == 1\
+                                and x['Address Match'] == True or x['Phone Match'] == True\
+                                    else checkMissing if x['No Address']\
+                                        else noAddress if x['Address Match'] == False\
+                                            else noMatch, axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
     #Need to Add Name Score taking the max of the brand
     elif IndustryType == '1':      
         print "Auto Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else checkAuto if x['Car Excl Word Check']\
-                    else checkBrand if x['Brand Name'] == None\
-                        else diffBrand if x['Other Brand Check'] == True\
-                            else noName if x['Name Match'] == 0 \
-                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                    else matchText if x['Name Match'] == 1 \
-                                        and x['Address Match'] == True or x['Phone Match'] == True\
-                                            else checkMissing if x['No Address']\
-                                                else noAddress if x['Address Match'] == False\
-                                                    else noMatch, axis = 1) 
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else checkMissing if (x['No Name'])\
+                    else checkAuto if x['Car Excl Word Check']\
+                        else checkBrand if x['Brand Name'] == None\
+                            else diffBrand if x['Other Brand Check'] == True\
+                                else noName if x['Name Match'] == 0 \
+                                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                        else matchText if x['Name Match'] == 1 \
+                                            and x['Address Match'] == True or x['Phone Match'] == True\
+                                                else checkMissing if x['No Address']\
+                                                    else noAddress if x['Address Match'] == False\
+                                                        else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                             else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -840,16 +839,17 @@ def suggestmatch(df, IndustryType):
     elif IndustryType == '2':      
         print "Hotel Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'] or x['No Address'])\
-                else noName if x['Not Hotel'] == 1\
-                    else noAddress if x['Address Match'] == False\
-                        else noName if x['Name Match'] == 0 \
-                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
-                                    and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
-                                        else matchText if x['Name Match'] == 1 \
-                                        and x['Address Match'] == True or x['Phone Match'] == True\
-                                                else noMatch, axis = 1) 
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else checkMissing if (x['No Name'] or x['No Address'])\
+                    else noName if x['Not Hotel'] == 1\
+                        else noAddress if x['Address Match'] == False\
+                            else noName if x['Name Match'] == 0 \
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
+                                        and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
+                                            else matchText if x['Name Match'] == 1 \
+                                            and x['Address Match'] == True or x['Phone Match'] == True\
+                                                    else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
         else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -863,13 +863,15 @@ def suggestmatch(df, IndustryType):
         
         df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
        
-        df['Robot Suggestion'] = df.apply(lambda x: clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
-            else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
-                else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-                    else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-                        else (noName if x['Name Match']==0 \
-                              else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
-            
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
+                    else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
+                        else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                            else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                                else (noName if x['Name Match']==0 \
+                                      else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
+                
         df['Match \n1 = yes, 0 = no'] = ""
         
         return
@@ -877,16 +879,18 @@ def suggestmatch(df, IndustryType):
     #Healthcare Facilities    
     elif IndustryType == '4':
         print "HC Facility Matching"
-        df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
-                    else checkMissing if (x['No Name'] or x['No Address']) 
-                    else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
-                          else (check if x['Name Match']==2 \
-                          else (noName if x['Name Match']==0 \
-                          else (noAddress if not x['Address Match'] else 'uh oh') )))\
-                          if x['Specialty Match'][0:5]=='Match' else \
-                          ('Check Name and Specialty' if x['Name Match']==2 \
-                          else (noName if x['Name Match']==0 \
-                          else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else liveSuppress if x['Live Suppress'] == 1 \
+                    else noSpecialty if x['Specialty Match'][0:2]=='No' \
+                        else checkMissing if (x['No Name'] or x['No Address']) 
+                        else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
+                              else (check if x['Name Match']==2 \
+                              else (noName if x['Name Match']==0 \
+                              else (noAddress if not x['Address Match'] else 'uh oh') )))\
+                              if x['Specialty Match'][0:5]=='Match' else \
+                              ('Check Name and Specialty' if x['Name Match']==2 \
+                              else (noName if x['Name Match']==0 \
+                              else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
         
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -896,15 +900,16 @@ def suggestmatch(df, IndustryType):
     elif IndustryType == '6':
         print "Intl Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else noName if x['Name Match'] == 0 \
-                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                        else matchText if x['Name Match'] == 1 \
-                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                else checkMissing if x['No Address']\
-                                    else noAddress if x['Address Match'] == False\
-                                        else noMatch, axis = 1) 
-
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else checkMissing if (x['No Name'])\
+                    else noName if x['Name Match'] == 0 \
+                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                            else matchText if x['Name Match'] == 1 \
+                                and x['Address Match'] == True or x['Phone Match'] == True\
+                                    else checkMissing if x['No Address']\
+                                        else noAddress if x['Address Match'] == False\
+                                            else noMatch, axis = 1) 
+    
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""        
@@ -914,17 +919,16 @@ def suggestmatch(df, IndustryType):
         print "Other Matching"
         #Applies Match rules based on new columns.
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else noName if x['Name Match'] ==0\
-                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                        else matchText if x['Name Match'] == 1\
-                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                else checkMissing if x['No Address']\
-                                    else noAddress if x['Address Match'] == False\
-                                    else noMatch, axis=1)
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else checkMissing if (x['No Name'])\
+                    else noName if x['Name Match'] ==0\
+                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                            else matchText if x['Name Match'] == 1\
+                                and x['Address Match'] == True or x['Phone Match'] == True\
+                                    else checkMissing if x['No Address']\
+                                        else noAddress if x['Address Match'] == False\
+                                        else noMatch, axis=1)
     
-        
-
         #we might want to move where this lives.        
             
     df['Robot Suggestion']=df.apply(lambda x: 'No Match - People Name' if x['ExtraPeopleNamesInListing'] else x['Robot Suggestion'],axis=1)
@@ -937,7 +941,6 @@ def suggestmatch(df, IndustryType):
 
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
-
     df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
                         + float(row['Phone Score'])*.1 + float(row['Claimed Score']), axis = 1)
 

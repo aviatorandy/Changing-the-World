@@ -768,6 +768,8 @@ def compareData(df, IndustryType, bid):
 def suggestmatch(df, IndustryType):  
     robotmatch = []
     
+    #if FB then create new column
+    
     #Creates new columns that are easier to read in code, and for users when outputed - Mostly boolean variables
     df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
     df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] >= 60 else 0), axis=1)
@@ -793,6 +795,14 @@ def suggestmatch(df, IndustryType):
     clusternpimatch = 'Match - Cluster NPI'
     clusternpimismatch = 'Check Name - Cluster Pub'
     diffBrand = 'No Match - Diff Brand'
+    userMatch = 'User Match'
+    noFBMatch = 'User Manual No Match'
+    
+    bpgid = []
+    #if external ID External ID is in the array then we would the following 
+    #if user match is there then we would say user match
+    # if type facebook then 
+    
     
     #Normal Type
     if IndustryType == '0':        
@@ -800,14 +810,16 @@ def suggestmatch(df, IndustryType):
         print "Normal Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else checkMissing if (x['No Name'])\
-                    else noName if x['Name Match'] ==0\
-                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                            else matchText if x['Name Match'] == 1\
-                                and x['Address Match'] == True or x['Phone Match'] == True\
-                                    else checkMissing if x['No Address']\
-                                        else noAddress if x['Address Match'] == False\
-                                            else noMatch, axis=1)
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else noName if x['Name Match'] ==0\
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1\
+                                        and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else checkMissing if x['No Address']\
+                                                else noAddress if x['Address Match'] == False\
+                                                    else noMatch, axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
     #Need to Add Name Score taking the max of the brand
@@ -815,18 +827,20 @@ def suggestmatch(df, IndustryType):
         print "Auto Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else checkMissing if (x['No Name'])\
-                    else checkAuto if x['Car Excl Word Check']\
-                        else checkBrand if x['Brand Name'] == None\
-                            else diffBrand if x['Other Brand Check'] == True\
-                                else noName if x['Name Match'] == 0 \
-                                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                        else matchText if x['Name Match'] == 1 \
-                                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                                else checkMissing if x['No Address']\
-                                                    else noAddress if x['Address Match'] == False\
-                                                        else noMatch, axis = 1) 
-
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \    
+                        else checkMissing if (x['No Name'])\
+                            else checkAuto if x['Car Excl Word Check']\
+                                else checkBrand if x['Brand Name'] == None\
+                                    else diffBrand if x['Other Brand Check'] == True\
+                                        else noName if x['Name Match'] == 0 \
+                                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                                else matchText if x['Name Match'] == 1 \
+                                                    and x['Address Match'] == True or x['Phone Match'] == True\
+                                                        else checkMissing if x['No Address']\
+                                                            else noAddress if x['Address Match'] == False\
+                                                                else noMatch, axis = 1) 
+    
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                             else ('Check' if x['Name Match'] == 2 else False), axis=1)
 
@@ -840,16 +854,18 @@ def suggestmatch(df, IndustryType):
         print "Hotel Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else checkMissing if (x['No Name'] or x['No Address'])\
-                    else noName if x['Not Hotel'] == 1\
-                        else noAddress if x['Address Match'] == False\
-                            else noName if x['Name Match'] == 0 \
-                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                    else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
-                                        and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
-                                            else matchText if x['Name Match'] == 1 \
-                                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                                    else noMatch, axis = 1) 
+                else noFBMatch if x['External ID'] in bpgid \    
+                    else userMatch if x['User Match'] == 1 \    
+                        else checkMissing if (x['No Name'] or x['No Address'])\
+                            else noName if x['Not Hotel'] == 1\
+                                else noAddress if x['Address Match'] == False\
+                                    else noName if x['Name Match'] == 0 \
+                                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                            else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
+                                                and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
+                                                    else matchText if x['Name Match'] == 1 \
+                                                    and x['Address Match'] == True or x['Phone Match'] == True\
+                                                            else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
         else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -865,12 +881,14 @@ def suggestmatch(df, IndustryType):
        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
-                    else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
-                        else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-                            else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-                                else (noName if x['Name Match']==0 \
-                                      else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
+                else noFBMatch if x['External ID'] in bpgid \        
+                    else userMatch if x['User Match'] == 1 \
+                        else clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
+                            else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
+                                else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                                    else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                                        else (noName if x['Name Match']==0 \
+                                              else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
                 
         df['Match \n1 = yes, 0 = no'] = ""
         
@@ -881,16 +899,18 @@ def suggestmatch(df, IndustryType):
         print "HC Facility Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                    else noSpecialty if x['Specialty Match'][0:2]=='No' \
-                        else checkMissing if (x['No Name'] or x['No Address']) 
-                        else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
-                              else (check if x['Name Match']==2 \
-                              else (noName if x['Name Match']==0 \
-                              else (noAddress if not x['Address Match'] else 'uh oh') )))\
-                              if x['Specialty Match'][0:5]=='Match' else \
-                              ('Check Name and Specialty' if x['Name Match']==2 \
-                              else (noName if x['Name Match']==0 \
-                              else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
+                else noFBMatch if x['External ID'] in bpgid \    
+                    else userMatch if x['User Match'] == 1 \    
+                        else noSpecialty if x['Specialty Match'][0:2]=='No' \
+                            else checkMissing if (x['No Name'] or x['No Address']) 
+                            else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
+                                  else (check if x['Name Match']==2 \
+                                  else (noName if x['Name Match']==0 \
+                                  else (noAddress if not x['Address Match'] else 'uh oh') )))\
+                                  if x['Specialty Match'][0:5]=='Match' else \
+                                  ('Check Name and Specialty' if x['Name Match']==2 \
+                                  else (noName if x['Name Match']==0 \
+                                  else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
         
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -901,15 +921,17 @@ def suggestmatch(df, IndustryType):
         print "Intl Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else checkMissing if (x['No Name'])\
-                    else noName if x['Name Match'] == 0 \
-                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                            else matchText if x['Name Match'] == 1 \
-                                and x['Address Match'] == True or x['Phone Match'] == True\
-                                    else checkMissing if x['No Address']\
-                                        else noAddress if x['Address Match'] == False\
-                                            else noMatch, axis = 1) 
-    
+                else noFBMatch if x['External ID'] in bpgid \    
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else noName if x['Name Match'] == 0 \
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1 \
+                                        and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else checkMissing if x['No Address']\
+                                                else noAddress if x['Address Match'] == False\
+                                                    else noMatch, axis = 1) 
+        
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""        
@@ -920,14 +942,16 @@ def suggestmatch(df, IndustryType):
         #Applies Match rules based on new columns.
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else checkMissing if (x['No Name'])\
-                    else noName if x['Name Match'] ==0\
-                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                            else matchText if x['Name Match'] == 1\
-                                and x['Address Match'] == True or x['Phone Match'] == True\
-                                    else checkMissing if x['No Address']\
-                                        else noAddress if x['Address Match'] == False\
-                                        else noMatch, axis=1)
+                else noFBMatch if x['External ID'] in bpgid \        
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else noName if x['Name Match'] ==0\
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1\
+                                        and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else checkMissing if x['No Address']\
+                                                else noAddress if x['Address Match'] == False\
+                                                else noMatch, axis=1)
     
         #we might want to move where this lives.        
             
@@ -938,11 +962,14 @@ def suggestmatch(df, IndustryType):
 
 
 
-
 def calculateTotalScore(df):
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
-    df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
-                        + float(row['Phone Score'])*.1 + float(row['Claimed Score']), axis = 1)
+    if self.ReportType = 2 
+        df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
+                                + float(row['Phone Score'])*.1 + float(row['Claimed Score']) + float(1337*row['User Match']), axis = 1)
+    else: 
+        df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
+                                + float(row['Phone Score'])*.1 + float(row['Claimed Score']) , axis = 1)
 
     
     #FB Brand page anti match - NEED TO DO
@@ -1853,6 +1880,10 @@ class MatchingInput(Tkinter.Frame):
             self.labelIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.labelID).grid(row=8,column=1,sticky=W)
         
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
+            
+            #FB FUNCTIONALITY 3 
+            #User input of brand page ID + any page IDs that you didn't match to and store that in an array []
+
             
 #Runs SQl Pull            
     def pullSQLRun(self):

@@ -26,14 +26,70 @@ import math
 import win32com.client
 import warnings
 import itertools
-from pythonParser import NameDenormalizer
-nickNames=NameDenormalizer()
-from pythonParser import NameDenormalizerWithOriginal
-firstNames=NameDenormalizerWithOriginal()
+import collections
+import csv
+import operator
+import json
+
 
 warnings.simplefilter("ignore", UserWarning)
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
 
+
+class NameDenormalizer(object):
+    def __init__(self, filename='names.csv'):
+        filename = filename or 'names.csv'
+        lookup = collections.defaultdict(list)
+        with open(filename) as f:
+            reader = csv.reader(f)
+            for line in reader:
+                matches = set(line)
+                for match in matches:
+                    lookup[match].append(matches)
+        self.lookup = lookup
+
+    def __getitem__(self, name):
+        name = name.lower()
+        if name not in self.lookup:
+            raise KeyError(name)
+        names = reduce(operator.or_, self.lookup[name])
+        if name in names:
+            names.remove(name)
+        return names
+
+    def get(self, name, default=None):
+        try:
+            return self[name]
+        except KeyError:
+            return default
+            
+            
+class NameDenormalizerWithOriginal(object):
+    def __init__(self, filename='names.csv'):
+        filename = filename or 'names.csv'
+        lookup = collections.defaultdict(list)
+        with open(filename) as f:
+            reader = csv.reader(f)
+            for line in reader:
+                matches = set(line)
+                for match in matches:
+                    lookup[match].append(matches)
+        self.lookup = lookup
+
+    def __getitem__(self, name):
+        name = name.lower()
+        if name not in self.lookup:
+            raise KeyError(name)
+        names = reduce(operator.or_, self.lookup[name])
+       # if name in names:
+          #  names.remove(name)
+        return names
+
+    def get(self, name, default=None):
+        try:
+            return self[name]
+        except KeyError:
+            return default
 
 
 #This function cleans the names 
@@ -793,7 +849,7 @@ def suggestmatch(df, IndustryType):
     noSpecialty = 'No Match - Specialty'
     checkSpecialty = 'Check Doctor/Specialty'
     #npimatch = 'Match Suggested - NPI'
-    clusternpimatch = 'Match - Cluster NPI'
+    clusternpimatch = 'Match Suggested - Cluster NPI'
     clusternpimismatch = 'Check Name - Cluster Pub'
     diffBrand = 'No Match - Diff Brand'
     
@@ -1795,6 +1851,7 @@ class MatchingInput(Tkinter.Frame):
         
         self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=2,padx=(15,0),sticky=W)
         self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=2, padx=(15,0),sticky=W)
+        self.Suppression=Radiobutton(self.settingWindow, text="facebook", variable=self.ReportType,value=2).grid(row=6,column=2, padx=(15,0),sticky=W)
         #self.FB=Radiobutton(self.settingWindow, text="FB", variable=self.ReportType,value=2).grid(row=1,column=2)
         #self.Google=Radiobutton(self.settingWindow, text="Google", variable=self.ReportType,value=x).grid(row=1,column=3)
         
@@ -1885,7 +1942,26 @@ class MatchingInput(Tkinter.Frame):
             for name in self.NewName.get().split(","):
                 matchingNames.append(cleanName(name)) 
         businessNameMatch=1
+        businessNames=list(set(businessNames))
         businessNames=matchingNames
+        
+        exclude=[]
+        for i,name in enumerate(self.excludedWords):
+            if self.varNexcl[i].get():
+                exclude.append(cleanName(name))
+        if self.NewExcl.get() != "":
+            for name in self.NewExcl.get().split(","):
+                exclude.append(cleanName(name)) 
+        
+        exclude=list(set(exclude))
+        try:
+            self.PreviousWords.loc[self.bid,'Account_ID']=self.bid
+            self.PreviousWords.loc[self.bid,'Match_Names']=businessNames
+            self.PreviousWords.loc[self.bid,'Excluded_Words']=exclude
+            self.PreviousWords.to_csv("J:\zAutomatcherData\GoodBadWords.csv", encoding='utf-8',index=False)
+        except:
+            pass
+        
        # businessNames.append(cleanName(NewName))
         #AddNameBox.delete(0, END)
         self.nameW.destroy()
@@ -1897,6 +1973,24 @@ class MatchingInput(Tkinter.Frame):
         global businessNameMatch
         
         self.queriedNames=businessNames
+        self.excludedWords=""
+        try:
+                self.PreviousWords=pd.read_csv("J:\zAutomatcherData\GoodBadWords.csv", encoding ='utf-8')
+                self.PreviousWords=self.PreviousWords.set_index('Account_ID')
+                self.bid=int(self.bid)
+                if (self.bid) in self.PreviousWords.index.values:
+                    self.queriedNames.append((self.PreviousWords.at[self.bid,'Match_Names']))
+                    self.excludedWords=(self.PreviousWords.at[self.bid,'Excluded_Words'])
+                    print type(self.queriedNames)
+                    print type(self.excludedWords)
+                    print (self.queriedNames)
+                    print (self.excludedWords)
+                    
+        except:
+                pass
+
+        
+        
         self.complete=BooleanVar()
         self.complete=False
         self.nameW=Toplevel()
@@ -1908,6 +2002,9 @@ class MatchingInput(Tkinter.Frame):
                              .grid(row=0,column=0, sticky=W, columnspan=2)
         self.varN = dict()                     
        # self.matchList=[0]*len(self.queriedNames)
+       
+        self.queriedNames=list(set(self.queriedNames))
+
         for i,name in enumerate(self.queriedNames):
            self.varN[i]=IntVar()
            self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varN[i]).grid(row=i+1,column=0, sticky=W)
@@ -1915,9 +2012,25 @@ class MatchingInput(Tkinter.Frame):
         self.NewName=StringVar()   
         self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=lastRow,column=0, columnspan=2)
         
+        self.exclNameIntro=Label(self.nameW,text='Select which words to exclude, and/or add your own comma delinated list of words to exclude')\
+                             .grid(row=lastRow+1,column=0, sticky=W, columnspan=2)
+        self.varNexcl = dict()                     
+       # self.matchList=[0]*len(self.queriedNames)
+       
+       
+        lastRow2=lastRow+2
+
+        if len(self.excludedWords)>0:
+            for i,name in enumerate(self.excludedWords.split(',')):
+               self.varNexcl[i]=IntVar()
+               self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varNexcl[i]).grid(row=i+2+lastRow,column=0, sticky=W)
+               lastRow2=lastRow+len(self.excludedWords)+2
+        self.NewExcl=StringVar()   
+        self.AddExcl=Entry(self.nameW,textvariable=self.NewExcl).grid(row=lastRow2,column=0, columnspan=2)
         
         
-        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda:self.AddMore()).grid(row=lastRow+1,column=0, columnspan=2 ,pady=(20,0))
+        
+        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda:self.AddMore()).grid(row=lastRow2+1,column=0, columnspan=2 ,pady=(20,0))
         
 #        self.AddMoreButton.wait_variable(wait)
         
@@ -1996,6 +2109,8 @@ class MatchingInput(Tkinter.Frame):
             pass
  
 #Defining this globally helps being able to call it within the Tkinter class
+nickNames=NameDenormalizer()
+firstNames=NameDenormalizerWithOriginal()
 global df
 df=pd.DataFrame
 global checkedDF

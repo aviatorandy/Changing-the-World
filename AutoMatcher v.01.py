@@ -416,25 +416,28 @@ def compareName(df, IndustryType, bid):
                      "office", "vaso", "oceana", "vmware"\
                      "trivium", "fyve", "steakhouse", "ame", "wellness", "pay", "presentation"\
                      "presentations", "presentation", "visual",\
-                     "tent", "eno", "copper", "coffee", "leisue","charter", "me", "ticketmaster",\
-                     "swampers", "journeys", "friend", "orchards", "mandara", "camp"]     
+                     "tent", "eno", "copper", "coffee", "leisure","charter", "me", "ticketmaster",\
+                     "swampers", "journeys", "friend", "orchards", "mandara", "camp", "broughtons"]     
                      
-        HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", \
+        HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", "tribute"\
         "americas best value", "ascend", "autograph", "baymont", "best western",\
-        "cambria", "canadas best value", "candlewood", "clarion", "comfort inn", "elyton hotel"\
-        "comfort suites", "country hearth", "courtyard", "crowne plaza", "curio",\
-        "days inn", "doubletree", "econo lodge", "econolodge", "edition", "element",\
-        "embassy", "even", "fairfield inn", "four points", "garden inn", "gaylord", "renaissance"\
-        "hampton inn", "hilton", "holiday inn", "homewood suites", "howard johnson", "hyatt",\
+        "cambria", "canadas best value", "candlewood", "clarion", "conrad", "comfort inn", "elyton hotel"\
+        "comfort suites", "delta", "country hearth", "courtyard", "crowne plaza", "curio",\
+        "casa monica", "days inn", "grand residence", "doubletree", "econo lodge", "econolodge", "edition", "element",\
+        "embassy suites", "even", "fairfield inn", "four points", "garden inn", "gaylord", "renaissance"\
+        "hampton inn", "hilton garden inn", "holiday inn", "homewood suites", "howard johnson", "hyatt",\
         "indigo", "intercontinental", "jameson", "jw marriott", "la quinta", "le meridien",\
-        "le méridien", "lexington", "luxury collection", "mainstay", "marriott",\
+        "le méridien", "lexington", "luxury collection", "protea", "mainstay", "marriott executive", \
         "microtel", "motel 6", "palace inn", "premier inn", "quality inn",\
-        "quality suites", "ramada", "red roof", "renaissance", "residence", "ritz carlton", "protea"\
+        "quality suites", "ramada", "red roof", "renaissance", "residence inn", "bulgari", "ritz carlton", "protea"\
         "rodeway", "sheraton", "signature Inn", "sleep inn", "springhill", "st regis",\
         "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace",\
-        "value hotel", "value inn", "w hotel", "westin", "wingate", "wyndham"]        
+        "value hotel", "value inn", "w hotel", "westin", "wingate", "wyndham","marriott"]        
 
         #If anything in Bad Hotel is in Listing name, is not a hotel
+        
+        #This identifies the actual car brand name within the string
+
         df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x.split() for item in BadHotel) else 0) 
         df['Hotel Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in HotelBrands if brand in name),None))
 
@@ -494,9 +497,6 @@ def compareName(df, IndustryType, bid):
                     for name in otherLocNames:
                        df.loc[index,'altLocNames'].append(row['Cleaned Location Name'].replace(word,name))
                 otherLocNames=None
-        
-                
-                
                 
         if businessNameMatch == 1:
             df['businessPartial'] = 0
@@ -530,10 +530,6 @@ def compareName(df, IndustryType, bid):
                         df.loc[index,'Alt Token Set']=max(df.loc[index,'Alt Token Set'],fuzz.token_set_ratio(altLocName,altListName))
                         df.loc[index,'Alt Partial Score']=max(df.loc[index,'Alt Partial Score'],fuzz.token_set_ratio(altLocName,altListName))
                         df.loc[index,'Alt Token Sort']=max(df.loc[index,'Alt Token Sort'],fuzz.token_set_ratio(altLocName,altListName))
-                        
-            
-            
-            
             
             df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',\
             "Token Set", "Partial Score", "Token sort", 'Alt Token Set','Alt Partial Score','Alt Token Sort']].max(axis=1)
@@ -827,6 +823,9 @@ def compareData(df, IndustryType, bid):
 #This function provides a suggested match based on certain name/address thresholds
 def suggestmatch(df, IndustryType):  
     robotmatch = []
+    global reportType
+
+    #if FB then create new column
     
     #Creates new columns that are easier to read in code, and for users when outputed - Mostly boolean variables
     df['Address Match'] = df.apply(lambda x: True if x['Address Score'] >= 70 else False, axis=1)
@@ -835,6 +834,7 @@ def suggestmatch(df, IndustryType):
     df['Phone or Address Match']=df.apply(lambda x:  x['Phone Match'] or x['Address Match'],axis=1)
     
     liveSync = 'No Match - Live Sync'
+    liveSuppress = 'No Match - Live Suppress'
     matchText = 'Match Suggested'
     noName = 'No Match - Name'
     noMatch = 'No Match'
@@ -852,38 +852,56 @@ def suggestmatch(df, IndustryType):
     clusternpimatch = 'Match Suggested - Cluster NPI'
     clusternpimismatch = 'Check Name - Cluster Pub'
     diffBrand = 'No Match - Diff Brand'
+    userMatch = 'User Match'
+    noFBMatch = 'User Manual No Match'
+    global bpgid
+    if reportType!=2:
+        bpgid = []
+    #if external ID External ID is in the array then we would the following 
+    #if user match is there then we would say user match
+    # if type facebook then 
     
+    df['External ID']=df['External ID'].map(lambda x: x.lstrip('\''))
+    
+    print bpgid
+    print type(bpgid)
     #Normal Type
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
         print "Normal Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else noName if x['Name Match'] ==0\
-                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                        else matchText if x['Name Match'] == 1\
-                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                else checkMissing if x['No Address']\
-                                    else noAddress if x['Address Match'] == False\
-                                        else noMatch, axis=1)
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else noName if x['Name Match'] ==0\
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1\
+                                        and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else checkMissing if x['No Address']\
+                                                else noAddress if x['Address Match'] == False\
+                                                    else noMatch, axis=1)
         df['Match \n1 = yes, 0 = no'] = ""
 
     #Need to Add Name Score taking the max of the brand
     elif IndustryType == '1':      
         print "Auto Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else checkAuto if x['Car Excl Word Check']\
-                    else checkBrand if x['Brand Name'] == None\
-                        else diffBrand if x['Other Brand Check'] == True\
-                            else noName if x['Name Match'] == 0 \
-                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                    else matchText if x['Name Match'] == 1 \
-                                        and x['Address Match'] == True or x['Phone Match'] == True\
-                                            else checkMissing if x['No Address']\
-                                                else noAddress if x['Address Match'] == False\
-                                                    else noMatch, axis = 1) 
-
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else checkAuto if x['Car Excl Word Check']\
+                                else checkBrand if x['Brand Name'] == None\
+                                    else diffBrand if x['Other Brand Check'] == True\
+                                        else noName if x['Name Match'] == 0 \
+                                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                                else matchText if x['Name Match'] == 1 \
+                                                    and x['Address Match'] == True or x['Phone Match'] == True\
+                                                        else checkMissing if x['No Address']\
+                                                            else noAddress if x['Address Match'] == False\
+                                                                else noMatch, axis = 1) 
+    
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                             else ('Check' if x['Name Match'] == 2 else False), axis=1)
 
@@ -896,16 +914,19 @@ def suggestmatch(df, IndustryType):
     elif IndustryType == '2':      
         print "Hotel Matching..."        
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'] or x['No Address'])\
-                else noName if x['Not Hotel'] == 1\
-                    else noAddress if x['Address Match'] == False\
-                        else noName if x['Name Match'] == 0 \
-                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
-                                    and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
-                                        else matchText if x['Name Match'] == 1 \
-                                        and x['Address Match'] == True or x['Phone Match'] == True\
-                                                else noMatch, axis = 1) 
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'] or x['No Address'])\
+                            else noName if x['Not Hotel'] == 1\
+                                else noAddress if x['Address Match'] == False\
+                                    else noName if x['Name Match'] == 0 \
+                                        else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                            else matchText if x['Name Match'] == 1 and x['Address Match'] == True\
+                                                and x['Phone Match'] == True and x['Other Hotel Match'] == 1\
+                                                    else matchText if x['Name Match'] == 1 \
+                                                    and x['Address Match'] == True or x['Phone Match'] == True\
+                                                            else noMatch, axis = 1) 
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
         else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -919,13 +940,17 @@ def suggestmatch(df, IndustryType):
         
         df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 76 else (2 if 76 > x['Name Score'] >= 66 else 0), axis=1)
        
-        df['Robot Suggestion'] = df.apply(lambda x: clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
-            else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
-                else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-                    else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
-                        else (noName if x['Name Match']==0 \
-                              else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
-            
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else clusternpimatch if x['Publisher ID'] in clusterpubs and x['NPI Match'] == 1 \
+                            else clusternpimismatch if x['NPI Match'] != 1 and x['Publisher ID'] in clusterpubs \
+                                else matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                                    else (check if x['Name Match'] == 2 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match']) \
+                                        else (noName if x['Name Match']==0 \
+                                              else (noAddress if not x['Address Match'] else 'tbd'))) , axis=1)
+                
         df['Match \n1 = yes, 0 = no'] = ""
         
         return
@@ -933,16 +958,20 @@ def suggestmatch(df, IndustryType):
     #Healthcare Facilities    
     elif IndustryType == '4':
         print "HC Facility Matching"
-        df['Robot Suggestion'] = df.apply(lambda x: noSpecialty if x['Specialty Match'][0:2]=='No' \
-                    else checkMissing if (x['No Name'] or x['No Address']) 
-                    else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
-                          else (check if x['Name Match']==2 \
-                          else (noName if x['Name Match']==0 \
-                          else (noAddress if not x['Address Match'] else 'uh oh') )))\
-                          if x['Specialty Match'][0:5]=='Match' else \
-                          ('Check Name and Specialty' if x['Name Match']==2 \
-                          else (noName if x['Name Match']==0 \
-                          else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
+        df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else noSpecialty if x['Specialty Match'][0:2]=='No' \
+                            else checkMissing if (x['No Name'] or x['No Address']) 
+                            else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
+                                  else (check if x['Name Match']==2 \
+                                  else (noName if x['Name Match']==0 \
+                                  else (noAddress if not x['Address Match'] else 'uh oh') )))\
+                                  if x['Specialty Match'][0:5]=='Match' else \
+                                  ('Check Name and Specialty' if x['Name Match']==2 \
+                                  else (noName if x['Name Match']==0 \
+                                  else (noAddress if not x['Address Match'] else 'uh oh') ))),axis=1)
         
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -952,15 +981,18 @@ def suggestmatch(df, IndustryType):
     elif IndustryType == '6':
         print "Intl Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else noName if x['Name Match'] == 0 \
-                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                        else matchText if x['Name Match'] == 1 \
-                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                else checkMissing if x['No Address']\
-                                    else noAddress if x['Address Match'] == False\
-                                        else noMatch, axis = 1) 
-
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else noName if x['Name Match'] == 0 \
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1 \
+                                        and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else checkMissing if x['No Address']\
+                                                else noAddress if x['Address Match'] == False\
+                                                    else noMatch, axis = 1) 
+        
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
         df['Match \n1 = yes, 0 = no'] = ""        
@@ -970,17 +1002,18 @@ def suggestmatch(df, IndustryType):
         print "Other Matching"
         #Applies Match rules based on new columns.
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
-            else checkMissing if (x['No Name'])\
-                else noName if x['Name Match'] ==0\
-                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                        else matchText if x['Name Match'] == 1\
-                            and x['Address Match'] == True or x['Phone Match'] == True\
-                                else checkMissing if x['No Address']\
-                                    else noAddress if x['Address Match'] == False\
-                                    else noMatch, axis=1)
+            else liveSuppress if x['Live Suppress'] == 1 \
+                else noFBMatch if x['External ID'] in bpgid \
+                    else userMatch if x['User Match'] == 1 \
+                        else checkMissing if (x['No Name'])\
+                            else noName if x['Name Match'] ==0\
+                                else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                    else matchText if x['Name Match'] == 1\
+                                        and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else checkMissing if x['No Address']\
+                                                else noAddress if x['Address Match'] == False\
+                                                else noMatch, axis=1)
     
-        
-
         #we might want to move where this lives.        
             
     df['Robot Suggestion']=df.apply(lambda x: 'No Match - People Name' if x['ExtraPeopleNamesInListing'] else x['Robot Suggestion'],axis=1)
@@ -990,12 +1023,16 @@ def suggestmatch(df, IndustryType):
 
 
 
-
 def calculateTotalScore(df):
-    #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
+    global reportType
 
-    df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
-                        + float(row['Phone Score'])*.1 + float(row['Claimed Score']), axis = 1)
+    #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
+    if reportType == 2:
+        df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
+                                + float(row['Phone Score'])*.1 + float(row['Claimed Score']) + float(1337*row['User Match']), axis = 1)
+    else: 
+        df['Total Score'] = df.apply(lambda row: float(row['Name Score'])*.6 + float(row['Address Score'])*.3\
+                                + float(row['Phone Score'])*.1 + float(row['Claimed Score']) , axis = 1)
 
     
     #FB Brand page anti match - NEED TO DO
@@ -1119,7 +1156,7 @@ def main(df,IndustryType, bid):
     'bold': True,
     'text_wrap': True})
     
-    
+    df['User Match']=df['User Match'].apply(lambda x: True if x==1 else False)
     for col_num, value in enumerate(df.columns.values):
         worksheet.write(0, col_num, value, headerformat)
         
@@ -1175,6 +1212,12 @@ def main(df,IndustryType, bid):
                                         'criteria': 'begins with',
                                         'value':    "Match",
                                         'format':   formatBlue})
+
+    worksheet.conditional_format(1, robotcol, row, lastgencol, {'type':'text',
+                                        'criteria': 'begins with',
+                                        'value':    "User Match",
+                                        'format':   formatBlue})
+    
     worksheet.conditional_format(1, robotcol-1, row, lastgencol, {'type':'text',
                                         'criteria': 'begins with',
                                         'value':    "Check",
@@ -1240,7 +1283,7 @@ def sqlPull(bid,folderID,labelID,ReportType,IndustryType):
     print 'pulling data'
     #Pull Location info and Listing IDs
     #IF LISTINGS:
-    if ReportType == 0:
+    if ReportType == 0 or ReportType==2:
         SQL_QueryMatches = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/1. Pull Matches.sql")).read()
     #IF SUPPRESSION:
     elif ReportType==1 :
@@ -1342,6 +1385,21 @@ def sqlPull(bid,folderID,labelID,ReportType,IndustryType):
         
     return df
 
+    
+def pullFBManualMatches(ListingIDs):
+        ListingIDs=ListingIDs.replace('\'','')
+        FB_SQL=open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Facebook - User Match Listing IDs.sql")).read()
+        FB_SQL=FB_SQL.splitlines()
+        for index, line in enumerate(FB_SQL):
+            FB_SQL[index]=line.replace('@listingid', str(ListingIDs))
+        FB_SQL = ' '.join(FB_SQL)
+        Yext_Mat_DB = MySQLdb.connect(host="127.0.0.1", port=5009, db="alpha")
+        FB_Data = pd.read_sql(FB_SQL, con=Yext_Mat_DB)      
+        FB_Data['Listing ID']=FB_Data['Listing ID'].astype(str)
+        return FB_Data
+       # df=df.merge(NPI_Data,on=['Location ID'],how='left')
+        
+#    return df
 #Gets Alt Name policies at business level
 def getAltName(bid):    
     SQL_AltNameQuery = open(os.path.expanduser("~/Documents/Changing-the-World/SQL Data Pull/Alt Name policies.sql")).read()
@@ -1851,7 +1909,7 @@ class MatchingInput(Tkinter.Frame):
         
         self.Listings=Radiobutton(self.settingWindow, text="Listings", variable=self.ReportType,value=0).grid(row=5,column=2,padx=(15,0),sticky=W)
         self.Suppression=Radiobutton(self.settingWindow, text="Suppression", variable=self.ReportType,value=1).grid(row=6,column=2, padx=(15,0),sticky=W)
-        self.Suppression=Radiobutton(self.settingWindow, text="facebook", variable=self.ReportType,value=2).grid(row=6,column=2, padx=(15,0),sticky=W)
+        self.fb=Radiobutton(self.settingWindow, text="Facebook Listings", variable=self.ReportType,value=2).grid(row=7,column=2, padx=(15,0),sticky=W)
         #self.FB=Radiobutton(self.settingWindow, text="FB", variable=self.ReportType,value=2).grid(row=1,column=2)
         #self.Google=Radiobutton(self.settingWindow, text="Google", variable=self.ReportType,value=x).grid(row=1,column=3)
         
@@ -1869,7 +1927,7 @@ class MatchingInput(Tkinter.Frame):
         self.nextButton = Button(self.settingWindow, text="Next", command=lambda: [self.detailsWindow() \
                             if (self.IndustryType.get() >-1 and self.ReportType.get() >-1 and self.dataInput.get() >-1)\
                                                          else self.ReportType.set(self.ReportType.get())])\
-                                                        .grid(row=7,column=0,sticky=W,pady=(35,0))
+                                                        .grid(row=8,column=0,sticky=W,pady=(35,0))
      
                                                                                                     
 #        self.inputType.grid(row=2,column=0)
@@ -1880,11 +1938,19 @@ class MatchingInput(Tkinter.Frame):
  #Gets File path or business, folder, and label ids to pull from SQL       
     def detailsWindow(self):
         self.settingWindow.destroy()
+        global reportType
+        reportType=self.ReportType.get()
         #File pull
         if self.dataInput.get() == 1:
             fname = tkFileDialog.askopenfilename(initialdir = "/",title = "Select file",filetypes=(("CSV", "*.csv"), ("Excel files", "*.xlsx;*.xls") ))
             df, bid = readFile(fname)
             self.bid=bid
+            df['Listing ID']=df['Listing ID'].map(lambda x: x.lstrip('\''))
+            if self.ReportType.get()==2:    
+                df=df.merge(pullFBManualMatches(','.join(map(str,df['Listing ID']))),on=['Listing ID'],how='left')
+                df['User Match']=df['User Match'].apply(lambda x: 1 if x==1 else 0)
+            else:
+                df['User Match']=False
             main(df,str(self.IndustryType.get()),bid)
         #SQL
         elif self.dataInput.get() == 2:
@@ -1898,15 +1964,28 @@ class MatchingInput(Tkinter.Frame):
             self.busIDLabel=Label(self.detailsW,text="Enter Business ID").grid(row=6,column=0,sticky=W)
             self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
             self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)
+            self.folderIDLabel=Label(self.detailsW,text="Enter Folder ID").grid(row=7,column=0,sticky=W)
+            self.labelIDLabel=Label(self.detailsW,text="Enter Label ID").grid(row=8,column=0,sticky=W)
+            
+            if self.ReportType.get()==2:
+                self.FBLabel=Label(self.detailsW,text="Enter Facebook Brand Page ID").grid(row=9,column=0,sticky=W)
+                
             
             self.bizID=StringVar()
             self.folderID=StringVar()
             self.labelID=StringVar()
+            self.fbBrandID=StringVar()
             self.busIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.bizID).grid(row=6,column=1,sticky=W)
             self.folderIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.folderID).grid(row=7,column=1,sticky=W)
             self.labelIDentry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.labelID).grid(row=8,column=1,sticky=W)
         
-            self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=9,column=1,sticky=W)
+            if self.ReportType.get()==2:
+                self.FBEntry=Entry(self.detailsW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.fbBrandID).grid(row=9,column=1,sticky=W)
+            
+            
+            self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=10,column=1,sticky=W)
+            
+        
             
 #Runs SQl Pull            
     def pullSQLRun(self):
@@ -1923,6 +2002,13 @@ class MatchingInput(Tkinter.Frame):
             else:
                 labelID = 0
             df = sqlPull(self.bizID.get(),folderID,labelID, self.ReportType.get(),self.IndustryType.get())
+            df['Listing ID']=df['Listing ID'].map(lambda x: x.lstrip('\''))
+            if self.ReportType.get()==2: 
+                global bpgid
+                bpgid=self.fbBrandID.get()
+                df=df.merge(pullFBManualMatches(','.join(map(str,df['Listing ID']))),on=['Listing ID'],how='left')
+            else:
+                df['User Match']=False
             main(df,str(self.IndustryType.get()),self.bizID.get())
     
 #button function to ammend businessNames list            
@@ -1946,12 +2032,12 @@ class MatchingInput(Tkinter.Frame):
         businessNames=matchingNames
         
         exclude=[]
-        for i,name in enumerate(self.excludedWords):
-            if self.varNexcl[i].get():
-                exclude.append(cleanName(name))
-        if self.NewExcl.get() != "":
-            for name in self.NewExcl.get().split(","):
-                exclude.append(cleanName(name)) 
+      #  for i,name in enumerate(self.excludedWords):
+   #         if self.varNexcl[i].get():
+     #           exclude.append(cleanName(name))
+     #   if self.NewExcl.get() != "":
+    #        for name in self.NewExcl.get().split(","):
+    #            exclude.append(cleanName(name)) 
         
         exclude=list(set(exclude))
         try:
@@ -2111,6 +2197,8 @@ class MatchingInput(Tkinter.Frame):
 #Defining this globally helps being able to call it within the Tkinter class
 nickNames=NameDenormalizer()
 firstNames=NameDenormalizerWithOriginal()
+global bpgid
+global reportType
 global df
 df=pd.DataFrame
 global checkedDF

@@ -2096,7 +2096,7 @@ class MatchingInput(Tkinter.Frame):
            self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varN[i]).grid(row=i+1,column=0, sticky=W)
         lastRow=len(self.queriedNames)+2
         self.NewName=StringVar()   
-        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=lastRow,column=0, columnspan=2)
+        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=lastRow,column=1, columnspan=2)
         
         self.exclNameIntro=Label(self.nameW,text='Select which words to exclude, and/or add your own comma delinated list of words to exclude')\
                              .grid(row=lastRow+1,column=0, sticky=W, columnspan=2)
@@ -2112,11 +2112,18 @@ class MatchingInput(Tkinter.Frame):
                self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varNexcl[i]).grid(row=i+2+lastRow,column=0, sticky=W)
                lastRow2=lastRow+len(self.excludedWords)+2
         self.NewExcl=StringVar()   
-        self.AddExcl=Entry(self.nameW,textvariable=self.NewExcl).grid(row=lastRow2,column=0, columnspan=2)
+        self.AddExcl=Entry(self.nameW,textvariable=self.NewExcl).grid(row=lastRow2,column=1, columnspan=2)
+        
+        if self.ReportType.get()==2:
+            vcmd = self.master.register(self.validate)
+            self.fbBrandID=StringVar()
+            self.FBLabel=Label(self.nameW,text="Enter Facebook Brand Page ID").grid(row=lastRow2+1,column=0,sticky=W)
+            self.FBEntry=Entry(self.nameW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.fbBrandID).grid(row=lastRow2+1,column=1,sticky=W)
+            global bpgid
+            bpgid=self.fbBrandID.get()
         
         
-        
-        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda:self.AddMore()).grid(row=lastRow2+1,column=0, columnspan=2 ,pady=(20,0))
+        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda:self.AddMore()).grid(row=lastRow2+2,column=0, columnspan=2 ,pady=(20,0))
         
 #        self.AddMoreButton.wait_variable(wait)
         

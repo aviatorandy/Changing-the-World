@@ -2106,6 +2106,9 @@ class MatchingInput(Tkinter.Frame):
         self.ignoreLabel=Label(self.nameW,text='Ignore').grid(row=1,column=3,sticky=W)
         self.excludeLabel=Label(self.nameW,text='Exclude').grid(row=1,column=4,sticky=W)
         self.noneLabel=Label(self.nameW,text='None').grid(row=1,column=5,sticky=W)
+
+        
+       
         
         self.varN = dict()                     
         i=1
@@ -2126,11 +2129,25 @@ class MatchingInput(Tkinter.Frame):
          
         self.lastRow2=self.lastRow
         self.MoreVarN = dict()
+        
+        
+        if self.ReportType.get()==2:
+            vcmd = self.master.register(self.validate)
+            self.fbBrandID=StringVar()
+            self.FBLabel=Label(self.nameW,text="Enter Facebook Brand Page ID")
+            self.FBEntry=Entry(self.nameW,validate="key", validatecommand=(vcmd, '%P'),textvariable=self.fbBrandID)
+            self.FBLabel.grid(row=self.lastRow2+1,column=0,sticky=W)
+            self.FBEntry.grid(row=self.lastRow2+1,column=1,sticky=W)
+            global bpgid
+            bpgid=self.fbBrandID.get()
+            
+            
         self.another=Button(self.nameW,text="Add Another",command=lambda:self.addBox())
-        self.another.grid(row=self.lastRow2+1+self.count,column=0, columnspan=2 ,pady=(20,0))
+        self.another.grid(row=self.lastRow2+2+self.count,column=0, columnspan=2 ,pady=(20,0))
         
         self.AddMoreButton=Button(self.nameW,text="Done",command=lambda:self.AddMore())
-        self.AddMoreButton.grid(row=self.lastRow2+1+self.count,column=1, columnspan=2 ,pady=(20,0))
+        self.AddMoreButton.grid(row=self.lastRow2+2+self.count,column=1, columnspan=2 ,pady=(20,0))
+
         
         
             
@@ -2156,8 +2173,11 @@ class MatchingInput(Tkinter.Frame):
         self.moveButtons()
         
     def moveButtons(self):
-        self.another.grid(row=self.lastRow+(self.count)+1,column=0, columnspan=2 ,pady=(20,0))
-        self.AddMoreButton.grid(row=self.lastRow+(self.count)+1,column=1, columnspan=2 ,pady=(20,0))
+        self.another.grid(row=self.lastRow+(self.count)+2,column=0, columnspan=2 ,pady=(20,0))
+        self.AddMoreButton.grid(row=self.lastRow+(self.count)+2,column=1, columnspan=2 ,pady=(20,0))
+        if self.ReportType.get()==2:
+            self.FBLabel.grid(row=self.lastRow2+1,column=0,sticky=W)
+            self.FBEntry.grid(row=self.lastRow2+1,column=1,sticky=W)
         
 #Checks if input is a number
     def validate(self, new_text):

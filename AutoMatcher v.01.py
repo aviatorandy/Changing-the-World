@@ -30,6 +30,8 @@ import collections
 import csv
 import operator
 import json
+from collections import OrderedDict
+import ast
 
 
 warnings.simplefilter("ignore", UserWarning)
@@ -863,8 +865,7 @@ def suggestmatch(df, IndustryType):
     
     df['External ID']=df['External ID'].map(lambda x: x.lstrip('\''))
     
-    print bpgid
-    print type(bpgid)
+
     #Normal Type
     if IndustryType == '0':        
         #Applies Match rules based on new columns.
@@ -1025,6 +1026,7 @@ def suggestmatch(df, IndustryType):
 
 def calculateTotalScore(df):
     global reportType
+    
 
     #GET ALL THE SCORE THEN GIVE THEM WEIGHTING THEN CREATE A NEW TOTAL SCORE COLUMN    
     if reportType == 2:
@@ -2020,130 +2022,143 @@ class MatchingInput(Tkinter.Frame):
 #            for i in self.NewName.get().split(","):
 #                businessNames.append(cleanName(i)) 
 
-        matchingNames=[]
-        for i,name in enumerate(self.queriedNames):
-            if self.varN[i].get():
-                matchingNames.append(cleanName(name))
-        if self.NewName.get() != "":
-            for name in self.NewName.get().split(","):
-                matchingNames.append(cleanName(name)) 
-        businessNameMatch=1
-        businessNames=list(set(businessNames))
-        businessNames=matchingNames
+        self.nameW.destroy()
+        self.WordsAlt=[]
+        self.WordsMust=[]
+        self.WordsIgnore=[]
+        self.WordsExclude=[]
+
+        for x,v in self.varN.iteritems():
+            self.Words[x] = self.varN[x].get()
         
-        exclude=[]
-      #  for i,name in enumerate(self.excludedWords):
-   #         if self.varNexcl[i].get():
-     #           exclude.append(cleanName(name))
-     #   if self.NewExcl.get() != "":
-    #        for name in self.NewExcl.get().split(","):
-    #            exclude.append(cleanName(name)) 
+        for i in range(len(self.moreWords)):
+            self.Words[self.moreWords[i].get()] = self.MoreVarN[i].get()
         
-        exclude=list(set(exclude))
+            
+            
+        for key,value in self.varN.iteritems():
+            if value==0:
+                self.WordsMust.append(cleanName(key))
+            elif value==1:
+                self.WordsAlt.append(cleanName(key))
+            elif value==2:
+                self.WordsIgnore.append(cleanName(key))
+            elif value==3:
+                self.WordsExclude.append(cleanName(key))
+        
+        self.PreviousWords.loc[self.indexVal,'Account_ID']=self.bid
+        self.PreviousWords.loc[self.indexVal,'Words']=str(self.Words)
         try:
-            self.PreviousWords.loc[self.bid,'Account_ID']=self.bid
-            self.PreviousWords.loc[self.bid,'Match_Names']=businessNames
-            self.PreviousWords.loc[self.bid,'Excluded_Words']=exclude
-            self.PreviousWords.to_csv("J:\zAutomatcherData\GoodBadWords.csv", encoding='utf-8',index=False)
+            self.PreviousWords.to_csv("J:\zAutomatcherData\Words.csv",index=False)
         except:
             pass
         
-       # businessNames.append(cleanName(NewName))
-        #AddNameBox.delete(0, END)
-        self.nameW.destroy()
-       # self.namesWindow(businessNames)
+        businessNameMatch=1
+
  
   #Prints out current business names, asks for additional names  
     def namesWindow(self,busNames):
         global businessNames
         global businessNameMatch
-        
-        self.queriedNames=businessNames
-        self.excludedWords=""
-        try:
-                self.PreviousWords=pd.read_csv("J:\zAutomatcherData\GoodBadWords.csv", encoding ='utf-8')
-                self.PreviousWords=self.PreviousWords.set_index('Account_ID')
-                self.bid=int(self.bid)
-                if (self.bid) in self.PreviousWords.index.values:
-                    self.queriedNames.append((self.PreviousWords.at[self.bid,'Match_Names']))
-                    self.excludedWords=(self.PreviousWords.at[self.bid,'Excluded_Words'])
-                    print type(self.queriedNames)
-                    print type(self.excludedWords)
-                    print (self.queriedNames)
-                    print (self.excludedWords)
-                    
-        except:
-                pass
+        self.all_entries=[]
+        self.Words={}
+        self.moreWords={}
+        self.moreWordValues=[]
+        self.count=0
 
+       
         
         
-        self.complete=BooleanVar()
-        self.complete=False
+        for name in busNames:
+            self.Words[name]=1
+        
+        try:
+            self.PreviousWords=pd.read_csv("J:\zAutomatcherData\Words.csv")
+            self.bid=int(self.bid)
+            self.PreviousWords['Account_ID'].astype(np.int64)
+            self.PreviousWords['Words']=self.PreviousWords['Words'].map(ast.literal_eval)
+            self.indexVal=-1
+            self.indexVal=int(self.PreviousWords[self.PreviousWords['Account_ID'] == int(self.bid)].index.values)
+
+        except:
+              pass
+        
+        if self.indexVal>-1:
+            self.Words.update(self.PreviousWords.at[self.indexVal,'Words'])
+        else:
+             self.indexVal=self.PreviousWords.shape[0]
+   
+       
         self.nameW=Toplevel()
         self.nameW.protocol("WM_DELETE_WINDOW", self._delete_window) 
         self.nameW.minsize(width=300, height=200)
         
         
-        self.NameIntro=Label(self.nameW,text='Select which names to match to, and/or add your own comma delinated list of names to match to')\
-                             .grid(row=0,column=0, sticky=W, columnspan=2)
+        self.NameIntro=Label(self.nameW,text='Select how each word or String should be used in matching.'+\
+                             'Options:\nMust Have:All listings must have have the complete String to be matched.'+\
+                             '\nAlt Names:Good words to match to, but not mandatory.'+\
+                             '\nIgnore:Common words that should be ignored from both Location Name and Listing Name and not considered in matching'+\
+                             '\nExclude:If words exist in Listing Name, it will be anti-matched')\
+                             .grid(row=0,column=0, sticky=W, columnspan=5)
+        
+        self.mustHaveLabel=Label(self.nameW,text='Must Have').grid(row=1,column=1,sticky=W)
+        self.altWordLabel=Label(self.nameW,text='Alt Word').grid(row=1,column=2,sticky=W)
+        self.ignoreLabel=Label(self.nameW,text='Ignore').grid(row=1,column=3,sticky=W)
+        self.excludeLabel=Label(self.nameW,text='Exclude').grid(row=1,column=4,sticky=W)
+        self.noneLabel=Label(self.nameW,text='None').grid(row=1,column=5,sticky=W)
+        
         self.varN = dict()                     
-       # self.matchList=[0]*len(self.queriedNames)
-       
-        self.queriedNames=list(set(self.queriedNames))
-
-        for i,name in enumerate(self.queriedNames):
-           self.varN[i]=IntVar()
-           self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varN[i]).grid(row=i+1,column=0, sticky=W)
-        lastRow=len(self.queriedNames)+2
-        self.NewName=StringVar()   
-        self.AddName=Entry(self.nameW,textvariable=self.NewName).grid(row=lastRow,column=0, columnspan=2)
-        
-        self.exclNameIntro=Label(self.nameW,text='Select which words to exclude, and/or add your own comma delinated list of words to exclude')\
-                             .grid(row=lastRow+1,column=0, sticky=W, columnspan=2)
-        self.varNexcl = dict()                     
-       # self.matchList=[0]*len(self.queriedNames)
-       
-       
-        lastRow2=lastRow+2
-
-        if len(self.excludedWords)>0:
-            for i,name in enumerate(self.excludedWords.split(',')):
-               self.varNexcl[i]=IntVar()
-               self.checkBox=Checkbutton(self.nameW, text=name, variable=self.varNexcl[i]).grid(row=i+2+lastRow,column=0, sticky=W)
-               lastRow2=lastRow+len(self.excludedWords)+2
-        self.NewExcl=StringVar()   
-        self.AddExcl=Entry(self.nameW,textvariable=self.NewExcl).grid(row=lastRow2,column=0, columnspan=2)
-        
-        
-        
-        self.AddMoreButton=Button(self.nameW,text="Next",command=lambda:self.AddMore()).grid(row=lastRow2+1,column=0, columnspan=2 ,pady=(20,0))
-        
-#        self.AddMoreButton.wait_variable(wait)
-        
-        
-#        self.busNameMatch=IntVar()
-#        self.busNameMatch.set(-1)
-#        self.busMatchLabel=Label(self.nameW,text="Do you want to match to generic business names?").grid(row=0,column=0, sticky=W, columnspan=2)
-#        self.yesMatch=Radiobutton(self.nameW,text="Yes, match to business names", variable=self.busNameMatch , value=1).grid(row=1,column=0,pady=(0,20),sticky=W)
-#        self.noMatch=Radiobutton(self.nameW,text="No, do not match to business names", variable=self.busNameMatch ,value=0).grid(row=1,column=1,pady=(0,20),sticky=E)
-#        self.CurrentNameLabel=Label(self.nameW,text="Current Business Names:\n"+ ", ".join([str(i) for i in businessNames]) ).grid(row=10,column=0, columnspan=2)
-#        self.AddMoreLabel=Label(self.nameW,text="If needed, enter comma separated list of additional business names to match to:").grid(row=11,column=0, columnspan=2)
-#        
-    #    self.Done=Button(self.nameW,text="No more names needed",command= lambda: [self.AddMore() if self.busNameMatch.get() >-1 else self.busNameMatch.set(-1)]).grid(row=13,column=1, sticky=W)  
-  
-
-     
-
-
-
-
-
-
-
-
-
-
+        i=1
+        for key,value in self.Words.iteritems():
+           
+           self.varN[key]=IntVar()
+           self.varN[key].set(value)
+           self.WordLabel=Label(self.nameW,text=key).grid(row=i+1,column=0,sticky=W)
+           self.mustHave=Radiobutton(self.nameW,  variable=self.varN[key],value=0).grid(row=i+1,column=1, sticky=W)
+           self.altWord=Radiobutton(self.nameW,  variable=self.varN[key],value=1).grid(row=i+1,column=2, sticky=W)
+           self.ignore=Radiobutton(self.nameW,  variable=self.varN[key],value=2).grid(row=i+1,column=3, sticky=W)
+           self.excludeWord=Radiobutton(self.nameW,variable=self.varN[key],value=3).grid(row=i+1,column=4, sticky=W)
+           self.NoneWord=Radiobutton(self.nameW,  variable=self.varN[key],value=4).grid(row=i+1,column=5, sticky=W)
+           i+=1
     
+               
+        self.lastRow=len(self.Words)+2
+         
+        self.lastRow2=self.lastRow
+        self.MoreVarN = dict()
+        self.another=Button(self.nameW,text="Add Another",command=lambda:self.addBox())
+        self.another.grid(row=self.lastRow2+1+self.count,column=0, columnspan=2 ,pady=(20,0))
+        
+        self.AddMoreButton=Button(self.nameW,text="Done",command=lambda:self.AddMore())
+        self.AddMoreButton.grid(row=self.lastRow2+1+self.count,column=1, columnspan=2 ,pady=(20,0))
+        
+        
+            
+     
+    def addBox(self):
+
+        self.moreWords[len(self.all_entries)]=StringVar()
+        
+        self.MoreVarN[len(self.all_entries)]=IntVar()
+        self.MoreVarN[len(self.all_entries)].set(4)
+        ent = Entry(self.nameW, textvariable=self.moreWords[len(self.all_entries)]).grid(row=self.lastRow+len(self.all_entries),column=0,sticky=W)
+        self.MoreMustHave=Radiobutton(self.nameW,  variable=self.MoreVarN[len(self.all_entries)],value=0).grid(row=self.lastRow+len(self.all_entries),column=1, sticky=W)
+        self.MoreAltWord=Radiobutton(self.nameW, variable=self.MoreVarN[len(self.all_entries)],value=1).grid(row=self.lastRow+len(self.all_entries),column=2, sticky=W)
+        self.MoreIgnore=Radiobutton(self.nameW,  variable=self.MoreVarN[len(self.all_entries)],value=2).grid(row=self.lastRow+len(self.all_entries),column=3, sticky=W)
+        self.MoreExcludeWord=Radiobutton(self.nameW, variable=self.MoreVarN[len(self.all_entries)],value=3).grid(row=self.lastRow+len(self.all_entries),column=4, sticky=W)
+        self.MoreNone=Radiobutton(self.nameW,  variable=self.MoreVarN[len(self.all_entries)],value=4).grid(row=self.lastRow+len(self.all_entries),column=5, sticky=W)
+    
+        self.all_entries.append(ent)
+        
+        self.lastRow2=self.lastRow+len(self.all_entries)
+        self.count+=1
+        
+        self.moveButtons()
+        
+    def moveButtons(self):
+        self.another.grid(row=self.lastRow+(self.count)+1,column=0, columnspan=2 ,pady=(20,0))
+        self.AddMoreButton.grid(row=self.lastRow+(self.count)+1,column=1, columnspan=2 ,pady=(20,0))
+        
 #Checks if input is a number
     def validate(self, new_text):
         if not new_text: # the field is being cleared

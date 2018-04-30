@@ -2095,10 +2095,10 @@ class MatchingInput(Tkinter.Frame):
         
         
         self.NameIntro=Label(self.nameW,text='Select how each word or String should be used in matching.'+\
-                             'Options:\nMust Have:All listings must have have the complete String to be matched.'+\
-                             '\nAlt Names:Good words to match to, but not mandatory.'+\
-                             '\nIgnore:Common words that should be ignored from both Location Name and Listing Name and not considered in matching'+\
-                             '\nExclude:If words exist in Listing Name, it will be anti-matched')\
+                             'Options:\nMust Have: All listings must have have the complete String to be matched.'+\
+                             '\nAlt Names: Good words to match to, but not mandatory.'+\
+                             '\nIgnore: Common words that should be ignored from both Location Name and Listing Name and not considered in matching'+\
+                             '\nExclude: If words exist in Listing Name, it will be anti-matched\n')\
                              .grid(row=0,column=0, sticky=W, columnspan=5)
         
         self.mustHaveLabel=Label(self.nameW,text='Must Have').grid(row=1,column=1,sticky=W)

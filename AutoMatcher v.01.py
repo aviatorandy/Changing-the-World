@@ -188,7 +188,6 @@ def cleanAddress(address):
     .replace(" south "," s ")\
     .replace(" u s "," us ")\
     .replace(" u.s. "," us ")\
-    .replace("straße ","str ")\
     .replace("strasse ","str ")\
     .replace("str. ","str ")\
     .replace(" suite "," ste ")\
@@ -253,9 +252,11 @@ def cleanCity(city):
     
 #This function compares the names in the file
 def compareName(df, IndustryType, bid):
+
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName) 
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     df['No Name'] = df['Listing Name'].isnull()
+
 
    
     #Removes City name rom Listing name, if present
@@ -323,7 +324,7 @@ def compareName(df, IndustryType, bid):
             df['businessTokenSort'] =0
 
         #compares business names vs listing names on different comparison methods. Takes highest score
-            for bName in businessNames:
+            for bName in app.WordsAlt:
                     df['businessPartial']  = df.apply(lambda row: \
                         max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])),axis=1)
                     df['businessTokenSet'] = df.apply(lambda row: \
@@ -342,7 +343,24 @@ def compareName(df, IndustryType, bid):
             (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)         
                     
             df['Name Score'] = df[['businessPartial','businessTokenSet','businessTokenSort',"Token Set", "Partial Score", "Token sort"]].max(axis=1)
-            
+
+            try:
+                df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
+            except:
+                return
+            try: 
+                df['Words Alt'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsAlt))
+            except:
+                return
+            try:
+                df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
+            except:
+                return
+            try:                
+                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
+            except:
+                return
+
 #Removes extra columns          
             df = df.drop(['businessPartial','businessTokenSet','businessTokenSort','Token Set', 'Partial Score', 'Token sort'],axis=1)         
   
@@ -506,7 +524,7 @@ def compareName(df, IndustryType, bid):
             df['businessTokenSort'] = 0
 
         #compares business names vs listing names on different comparison methods. Takes highest score
-            for bName in businessNames:
+            for bName in app.wordsAlt:
                     df['businessPartial']  = df.apply(lambda row: \
                         max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])),axis=1)
                     df['businessTokenSet'] = df.apply(lambda row: \
@@ -585,7 +603,7 @@ def compareName(df, IndustryType, bid):
             df['businessTokenSort'] = 0
         #Compares location name to listing name on different methods. Takes highest score             
 
-            for bName in businessNames:
+            for bName in app.wordsAlt:
                     df['businessPartial']  = df.apply(lambda row: \
                         max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])),axis=1)
                     df['businessTokenSet'] = df.apply(lambda row: \
@@ -839,13 +857,12 @@ def suggestmatch(df, IndustryType):
     liveSuppress = 'No Match - Live Suppress'
     matchText = 'Match Suggested'
     noName = 'No Match - Name'
+    noNameExc = 'No Match - Excluded'
     noMatch = 'No Match'
     checkBrand = "Check - No Loc Brand" 
     noAddress = 'No Match - Phone/Address'
     checkMissing = 'Check No Name/Address'
-
     checkMissingName = 'Check No Name'
-
     checkAuto = 'Check - Excl Auto Words'     
     check = 'Check Name'
     noSpecialty = 'No Match - Specialty'
@@ -872,6 +889,7 @@ def suggestmatch(df, IndustryType):
         print "Normal Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
+            else noNameExc if x['Words Exclude']\
                 else noFBMatch if x['External ID'] in bpgid \
                     else userMatch if x['User Match'] == 1 \
                         else checkMissing if (x['No Name'])\
@@ -2023,8 +2041,8 @@ class MatchingInput(Tkinter.Frame):
 #                businessNames.append(cleanName(i)) 
 
         self.nameW.destroy()
-        self.WordsAlt=[]
         self.WordsMust=[]
+        self.WordsAlt=[]
         self.WordsIgnore=[]
         self.WordsExclude=[]
 
@@ -2034,17 +2052,20 @@ class MatchingInput(Tkinter.Frame):
         for i in range(len(self.moreWords)):
             self.Words[self.moreWords[i].get()] = self.MoreVarN[i].get()
         
-            
-            
         for key,value in self.varN.iteritems():
-            if value==0:
+            if value.get()==0:
                 self.WordsMust.append(cleanName(key))
-            elif value==1:
+            elif value.get()==1:
                 self.WordsAlt.append(cleanName(key))
-            elif value==2:
+            elif value.get()==2:
                 self.WordsIgnore.append(cleanName(key))
-            elif value==3:
+            elif value.get()==3:
                 self.WordsExclude.append(cleanName(key))
+
+        print self.WordsMust
+        print self.WordsAlt
+        print self.WordsIgnore
+        print self.WordsExclude
         
         self.PreviousWords.loc[self.indexVal,'Account_ID']=self.bid
         self.PreviousWords.loc[self.indexVal,'Words']=str(self.Words)
@@ -2094,11 +2115,11 @@ class MatchingInput(Tkinter.Frame):
         self.nameW.minsize(width=300, height=200)
         
         
-        self.NameIntro=Label(self.nameW,text='Select how each word or String should be used in matching.'+\
-                             'Options:\nMust Have: All listings must have have the complete String to be matched.'+\
-                             '\nAlt Names: Good words to match to, but not mandatory.'+\
-                             '\nIgnore: Common words that should be ignored from both Location Name and Listing Name and not considered in matching'+\
-                             '\nExclude: If words exist in Listing Name, it will be anti-matched\n')\
+        self.NameIntro=Label(self.nameW,text='Select how each word should be used in matching.'+\
+                             '\nOptions:\n\nMust Have: All listings must have have the word to be matched.'+\
+                             '\n\nAlt Names: Good words to match to, but not mandatory.'+\
+                             '\n\nIgnore: Common words that should be ignored from both Location  and Listing Name. This word will be disregarded in matching'+\
+                             '\n\nExclude: If these words exist in Listing Name, it will be anti-matched\n')\
                              .grid(row=0,column=0, sticky=W, columnspan=5)
         
         self.mustHaveLabel=Label(self.nameW,text='Must Have').grid(row=1,column=1,sticky=W)
@@ -2107,9 +2128,6 @@ class MatchingInput(Tkinter.Frame):
         self.excludeLabel=Label(self.nameW,text='Exclude').grid(row=1,column=4,sticky=W)
         self.noneLabel=Label(self.nameW,text='None').grid(row=1,column=5,sticky=W)
 
-        
-       
-        
         self.varN = dict()                     
         i=1
         for key,value in self.Words.iteritems():

@@ -1042,10 +1042,9 @@ def suggestmatch(df, IndustryType):
                                             else checkMissing if x['No Address']\
                                                 else noAddress if x['Address Match'] == False\
                                                 else noMatch, axis=1)
-
-        #we might want to move where this lives.
-
-    df['Robot Suggestion'] = df.apply(lambda x: 'No Match - People Name' if x['ExtraPeopleNamesInListing'] else x['Robot Suggestion'], axis=1)
+    
+        #we might want to move where this lives.        
+            
     df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
     df['Match \n1 = yes, 0 = no'] = ""

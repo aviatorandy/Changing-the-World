@@ -828,7 +828,7 @@ def calculateDistance(row):
     #When running facilities, checks for specialty match, or excludes doctor words
 def calculateDoctorMatch(df):
 
-    commonDoctorWords = ['md', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'gp', 'dpm']
+    commonDoctorWords = ['md', ',pa', ', pa', 'dr.', ',do', 'np', 'phys.', 'lpn', ',rn', ', rn', 'dds', 'cnm', 'mph', 'phd', 'gp', 'dpm']
 #Reads doctor specialty doc
     excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na=False)
     doctorSpecialty = excelFile.parse('Specialty')
@@ -867,7 +867,7 @@ def calculateDoctorMatch(df):
 
                 else:
                     if listingNameSpecialties:
-                        specialties.append("Match-Specialty")
+                        specialties.append("No Match-Specialty")
                     elif not listingNameSpecialties:
                         specialties.append("Check-Generic")
 
@@ -877,7 +877,7 @@ def calculateDoctorMatch(df):
 
     df['Specialty Match'] = specialties
 
-    #df['Biz Name Match'] = df['Cleaned Listing Name'].apply(lambda x: True if any(item in x for item in businessNames) else False)
+    df['Biz Name Match'] = df['Cleaned Listing Name'].apply(lambda x: True if any(item in x for item in businessNames) else False)
 
 
 
@@ -1044,6 +1044,9 @@ def suggestmatch(df, IndustryType):
     #Healthcare Facilities
     elif IndustryType == '4':
         print "HC Facility Matching"
+        
+        df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 90 else (2 if 90 > x['Name Score'] >= 76 else 0), axis=1)
+
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
                 else noNameExc if x['Words Exclude']\
@@ -1051,14 +1054,15 @@ def suggestmatch(df, IndustryType):
                         else userMatch if x['User Match'] == 1 \
                             else noSpecialty if x['Specialty Match'][0:2] == 'No' \
                                 else checkMissing if (x['No Name'] or x['No Address'])\
-                                else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
-                                      else (check if x['Name Match'] == 2 \
-                                      else (noName if x['Name Match'] == 0 \
-                                      else (noAddress if not x['Address Match'] else 'uh oh'))))\
-                                      if x['Specialty Match'][0:5] == 'Match' else \
-                                      ('Check Name and Specialty' if x['Name Match'] == 2 \
-                                      else (noName if x['Name Match'] == 0 \
-                                      else (noAddress if not x['Address Match'] else 'uh oh')))), axis=1)
+                                    else ((matchText if (x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])) or \
+                                          ((x['Biz Name Match'] == True and x['Specialty Match'][0:5] == 'Match') and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])) \
+                                          else (check if x['Name Match'] == 2 \
+                                          else (noName if x['Name Match'] == 0 \
+                                          else (noAddress if not x['Address Match'] else 'uh oh'))))\
+                                          if x['Specialty Match'][0:5] == 'Match' else \
+                                          ('Check Name and Specialty' if x['Name Match'] == 2 \
+                                          else (noName if x['Name Match'] == 0 \
+                                          else (noAddress if not x['Address Match'] else 'uh oh')))), axis=1)
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)

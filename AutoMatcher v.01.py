@@ -381,6 +381,23 @@ def compareName(df, IndustryType, bid):
 
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
 
+            try:
+                df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
+            except:
+                return
+            try:
+                df['Words Alt'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsAlt))
+            except:
+                return
+            try:
+                df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
+            except:
+                return
+            try:
+                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
+            except:
+                return
+            
             df = df.drop(["Token Set", "Partial Score", "Token sort"], axis=1)
 
     #Auto Name Matching
@@ -598,6 +615,7 @@ def compareName(df, IndustryType, bid):
     #Industry International/Healthcare Facility
     else:
         print "Other Naming"
+        print businessNameMatch 
         if businessNameMatch == 1:
             df['businessPartial'] = 0
             df['businessTokenSet'] = 0
@@ -625,7 +643,26 @@ def compareName(df, IndustryType, bid):
 
             df['Name Score'] = df[['businessPartial', 'businessTokenSet', 'businessTokenSort', "Token Set", "Partial Score", "Token sort"]].max(axis=1)
 
+            try:
+                df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
+            except:
+                return
+            try:
+                df['Words Alt'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsAlt))
+            except:
+                return
+            try:
+                df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
+            except:
+                return
+            try:
+                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
+            except:
+                return
+
             df = df.drop(['businessPartial', 'businessTokenSet', 'businessTokenSort', "Token Set", "Partial Score", "Token sort"], axis=1)
+        
+
         else:
         #Compares  location name to listing name on different methods. Takes highest score
 
@@ -643,8 +680,25 @@ def compareName(df, IndustryType, bid):
 
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
 
-            df = df.drop(["Token Set", "Partial Score", "Token sort"], axis=1)
+            try:
+                df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
+            except:
+                return
+            try:
+                df['Words Alt'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsAlt))
+            except:
+                return
+            try:
+                df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
+            except:
+                return
+            try:
+                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
+            except:
+                return
 
+            df = df.drop(["Token Set", "Partial Score", "Token sort"], axis=1)
+            
 #If claimed, give score
 def compareStatus(df):
     df['Claimed Score'] = df.apply(lambda x: 100 if x['Advertiser/Claimed'] == "Claimed" else 0, axis=1)
@@ -823,6 +877,9 @@ def calculateDoctorMatch(df):
 
     df['Specialty Match'] = specialties
 
+    #df['Biz Name Match'] = df['Cleaned Listing Name'].apply(lambda x: True if any(item in x for item in businessNames) else False)
+
+
 
 
 #Main function to run through comparisons
@@ -989,18 +1046,19 @@ def suggestmatch(df, IndustryType):
         print "HC Facility Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
             else liveSuppress if x['Live Suppress'] == 1 \
-                else noFBMatch if x['External ID'] in bpgid \
-                    else userMatch if x['User Match'] == 1 \
-                        else noSpecialty if x['Specialty Match'][0:2] == 'No' \
-                            else checkMissing if (x['No Name'] or x['No Address'])\
-                            else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
-                                  else (check if x['Name Match'] == 2 \
-                                  else (noName if x['Name Match'] == 0 \
-                                  else (noAddress if not x['Address Match'] else 'uh oh'))))\
-                                  if x['Specialty Match'][0:5] == 'Match' else \
-                                  ('Check Name and Specialty' if x['Name Match'] == 2 \
-                                  else (noName if x['Name Match'] == 0 \
-                                  else (noAddress if not x['Address Match'] else 'uh oh')))), axis=1)
+                else noNameExc if x['Words Exclude']\
+                    else noFBMatch if x['External ID'] in bpgid \
+                        else userMatch if x['User Match'] == 1 \
+                            else noSpecialty if x['Specialty Match'][0:2] == 'No' \
+                                else checkMissing if (x['No Name'] or x['No Address'])\
+                                else((matchText if x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])\
+                                      else (check if x['Name Match'] == 2 \
+                                      else (noName if x['Name Match'] == 0 \
+                                      else (noAddress if not x['Address Match'] else 'uh oh'))))\
+                                      if x['Specialty Match'][0:5] == 'Match' else \
+                                      ('Check Name and Specialty' if x['Name Match'] == 2 \
+                                      else (noName if x['Name Match'] == 0 \
+                                      else (noAddress if not x['Address Match'] else 'uh oh')))), axis=1)
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -2085,8 +2143,10 @@ class MatchingInput(Tkinter.Frame):
             self.PreviousWords.to_csv("J:\zAutomatcherData\Words.csv", index=False)
         except:
             pass
-
-        businessNameMatch = 1
+        if len(self.WordsAlt) > 0:        
+            businessNameMatch = 1
+        else:
+            businessNameMatch = 0
 
 
   #Prints out current business names, asks for additional names

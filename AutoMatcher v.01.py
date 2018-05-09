@@ -253,11 +253,10 @@ def cleanCity(city):
 
 #This function compares the names in the file
 def compareName(df, IndustryType, bid):
-
+    
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName)
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     df['No Name'] = df['Listing Name'].isnull()
-
 
 
     #Removes City name rom Listing name, if present
@@ -280,12 +279,18 @@ def compareName(df, IndustryType, bid):
     global namesComplete
     global businessNameMatch
 
-
     print 'See popup!'
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)
 
+    if app.WordsIgnore:    
+        [x.lower() for x in app.WordsIgnore]
+        df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
+         
+        for words in app.WordsIgnore:
+            df['Cleaned Location Name'] = df['Cleaned Location Name'].apply(lambda x: x.replace(words, "").strip())          
+            df['Cleaned Listing Name'] = df['Cleaned Listing Name'].apply(lambda x: x.replace(words, "").strip())
 
     #Should this be here, or only for some industries?
     df['ListPeopleNames'] = np.empty((len(df), 0)).tolist()
@@ -360,11 +365,6 @@ def compareName(df, IndustryType, bid):
             else:
                 df['Words Must'] = ""
 
-            if app.WordsIgnore:
-                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
-            else:
-                df['Must Ignore'] = ""
-
 
             #Removes extra columns
             df = df.drop(['businessPartial', 'businessTokenSet', 'businessTokenSort', 'Token Set', 'Partial Score', 'Token sort'], axis=1)
@@ -399,11 +399,6 @@ def compareName(df, IndustryType, bid):
                 df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
             else:
                 df['Words Must'] = ""
-
-            if app.WordsIgnore:
-                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
-            else:
-                df['Must Ignore'] = ""
             
             df = df.drop(["Token Set", "Partial Score", "Token sort"], axis=1)
 
@@ -665,11 +660,6 @@ def compareName(df, IndustryType, bid):
             else:
                 df['Words Must'] = ""
 
-            if app.WordsIgnore:
-                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
-            else:
-                df['Must Ignore'] = ""
-
             df = df.drop(['businessPartial', 'businessTokenSet', 'businessTokenSort', "Token Set", "Partial Score", "Token sort"], axis=1)
         
 
@@ -704,11 +694,6 @@ def compareName(df, IndustryType, bid):
                 df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
             else:
                 df['Words Must'] = ""
-
-            if app.WordsIgnore:
-                df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
-            else:
-                df['Must Ignore'] = ""
                 
             df = df.drop(["Token Set", "Partial Score", "Token sort"], axis=1)
             

@@ -1891,7 +1891,7 @@ class MatchingInput(Tkinter.Frame):
 
                 #Needs logic if certain things exist
                 claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
-                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] <> 0)]
+                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
                 print "mixing mixing"
                 if claimedFBDF.shape[0] > 0:
 

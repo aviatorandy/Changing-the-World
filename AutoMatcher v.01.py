@@ -461,14 +461,14 @@ def compareName(df, IndustryType, bid):
 
         HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", "tribute"\
         "americas best value", "ascend", "autograph", "baymont", "best western",\
-        "cambria", "canadas best value", "candlewood", "clarion", "conrad", "comfort inn", "elyton hotel"\
+        "cambria", "canadas best value", "country inn", "park inn", "cassa", "candlewood", "clarion", "conrad", "comfort inn", "elyton hotel"\
         "comfort suites", "delta", "country hearth", "courtyard", "crowne plaza", "curio",\
         "casa monica", "days inn", "grand residence", "doubletree", "econo lodge", "econolodge", "edition", "element",\
         "embassy suites", "even", "fairfield inn", "four points", "garden inn", "gaylord", "renaissance"\
         "hampton inn", "hilton garden inn", "holiday inn", "homewood suites", "howard johnson", "hyatt",\
         "indigo", "intercontinental", "jameson", "jw marriott", "la quinta", "le meridien",\
         "le méridien", "lexington", "luxury collection", "protea", "mainstay", "marriott executive", \
-        "microtel", "motel 6", "palace inn", "premier inn", "quality inn",\
+        "microtel", "motel 6", "palace inn", "rezidor", "radisson" "premier inn", "quality inn",\
         "quality suites", "ramada", "red roof", "renaissance", "residence inn", "bulgari", "ritz carlton", "protea"\
         "rodeway", "sheraton", "signature Inn", "sleep inn", "springhill", "st regis",\
         "st. regis", "starwood", "staybridge", "studio 6", "super 8", "towneplace",\
@@ -913,9 +913,12 @@ def suggestmatch(df, IndustryType):
     df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 70 else (2 if 70 > x['Name Score'] >= 60 else 0), axis=1)
     df['Geocode Match'] = df.apply(lambda x: True if x['Distance (M)'] <= 200 else False, axis=1)
     df['Phone or Address Match'] = df.apply(lambda x: x['Phone Match'] or x['Address Match'], axis=1)
-    df['FB Error'] = df.apply(lambda x: x['Listing URL'] == x['Sync URL'] and x['Advertiser/Claimed'] == 'Claimed'\
-    and x['Live Sync'] == 0 and x['Live Suppress'] == 0, axis= 1)
-    
+    if 'Sync URL' in df.columns:
+        df['FB Error'] = df.apply(lambda x: x['Listing URL'] == x['Sync URL'] and x['Advertiser/Claimed'] == 'Claimed'\
+        and x['Live Sync'] == 0 and x['Live Suppress'] == 0, axis= 1)
+    else:
+        df['FB Error'] == False
+
     liveSync = 'No Match - Live Sync'
     liveSuppress = 'No Match - Live Suppress'
     matchText = 'Match Suggested'
@@ -2199,8 +2202,8 @@ class MatchingInput(Tkinter.Frame):
 
 
         self.NameIntro = Label(self.nameW, text='Select how each word should be used in matching.'+\
-                             '\nOptions:\n\nMust Have: All listings must have have the word to be matched.'+\
-                             '\n\nAlt Names: Good words to match to, but not mandatory.'+\
+                             '\nOptions:\n\nMust Have: All listings must have the word to be matched.'+\
+                             '\n\nAlt Words: Good words to match to, but not mandatory.'+\
                              '\n\nIgnore: Common words that should be ignored from both Location  and Listing Name. This word will be disregarded in matching'+\
                              '\n\nExclude: If these words exist in Listing Name, it will be anti-matched\n')\
                              .grid(row=0, column=0, sticky=W, columnspan=5)

@@ -384,9 +384,6 @@ def compareName(df, IndustryType, bid):
             df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
 
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
-
-            print app.WordsExclude
-            print type(app.WordsExclude)
             
             if app.WordsExclude:
                 df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
@@ -1910,7 +1907,7 @@ class MatchingInput(Tkinter.Frame):
 
                 #Needs logic if certain things exist
                 claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
-                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
+                                        & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] <> 0)]
                 print "mixing mixing"
                 if claimedFBDF.shape[0] > 0:
 

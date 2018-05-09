@@ -828,7 +828,7 @@ def calculateDistance(row):
     #When running facilities, checks for specialty match, or excludes doctor words
 def calculateDoctorMatch(df):
 
-    commonDoctorWords = ['md', ',pa', ', pa', 'dr.', ',do', 'np', 'phys.', 'lpn', ',rn', ', rn', 'dds', 'cnm', 'mph', 'phd', 'gp', 'dpm']
+    commonDoctorWords = ['md', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'od', 'gp', 'dpm', 'gift', 'cafe', 'café']
 #Reads doctor specialty doc
     excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na=False)
     doctorSpecialty = excelFile.parse('Specialty')
@@ -838,6 +838,8 @@ def calculateDoctorMatch(df):
 
     specialties = []
 
+    df['Bad Facility'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(word in x.split() for word in commonDoctorWords) else 0)
+
     for index, row in df.iterrows():
 
         locationNameSpecialties = None
@@ -845,35 +847,32 @@ def calculateDoctorMatch(df):
         locationName = (" " + str(row['Cleaned Location Name']) + " ").lower()
 
         listingName = (" " + str(row['Cleaned Listing Name']) + " ").lower()
-
+    
+        
    #If matches to physician titles, antimatch
-        if any([x for x in commonDoctorWords if x in listingName]):
-            specialties.append("No Match - Doctor")
+        if row['Bad Facility'] == 1:
+            specialties.append("No Match - Bad Facility")
         else:
-            if any([x for x in ['Gift Shop', 'Cafe'] if x in listingName]):
-                specialties.append("No Match - Excluded")
-            else:
-                locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
-                listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
+            locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
+            listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
 
 #Compares specialty, with synonyms from location to listing. if same, match, if different, antimatch
-                if locationNameSpecialties:
-                    if not listingNameSpecialties:
-                        specialties.append("Check-Generic")
-                    elif [locationNameSpecialties & listingNameSpecialties][0]:
-                        specialties.append("Match-Specialty")
-                    else:
-                        specialties.append("No Match-Specialty")
-
+            if locationNameSpecialties:
+                if not listingNameSpecialties:
+                    specialties.append("Check-Generic")
+                elif [locationNameSpecialties & listingNameSpecialties][0]:
+                    specialties.append("Match-Specialty")
                 else:
-                    if listingNameSpecialties:
-                        specialties.append("No Match-Specialty")
-                    elif not listingNameSpecialties:
-                        specialties.append("Check-Generic")
+                    specialties.append("No Match-Specialty")
+            else:
+                if listingNameSpecialties:
+                    specialties.append("No Match-Specialty")
+                elif not listingNameSpecialties:
+                    specialties.append("Check-Generic")
 
-               #this else seems out of place, but not sure where this goes.
-                    else:
-                        specialties.append("Check")
+           #this else seems out of place, but not sure where this goes.
+                else:
+                    specialties.append("Check")
 
     df['Specialty Match'] = specialties
 

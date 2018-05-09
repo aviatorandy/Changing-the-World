@@ -95,7 +95,7 @@ class NameDenormalizerWithOriginal(object):
             return default
 
 
-#This function cleans the names
+#This function cleans the names 
 def cleanName(name):
     try:
         name = name.strip().lower()
@@ -238,19 +238,6 @@ def cleanCity(city):
         city = ""
     return city
 
-#==============================================================================
-#      #If name is blank, fills in last part of URL
-#     for index,row in df.iterrows():
-#
-#         if row['Listing Name'] == None and row['Listing URL']!=None:
-#             df.loc[index,'Cleaned Listing Name'] = cleanName(row['Listing URL'].split('/')[-1])
-#             df.loc[index,'No Name'] = 'URL for name'
-#         elif row['Listing Name'] == None:
-#             df.loc[index,'No Name'] = 'No Name'
-#
-#
-#==============================================================================
-
 #This function compares the names in the file
 def compareName(df, IndustryType, bid):
     
@@ -280,10 +267,12 @@ def compareName(df, IndustryType, bid):
     global businessNameMatch
 
     print 'See popup!'
+    
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)
 
+    #If the Words Ignore Array is not empty do the following
     if app.WordsIgnore:    
         [x.lower() for x in app.WordsIgnore]
         df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
@@ -319,8 +308,9 @@ def compareName(df, IndustryType, bid):
     df['ExtraPeopleNamesInListing'] = df['ListPeopleNamesNotInLoc'].apply(lambda x: len(x) > 0)
 
 
-#start of comparisons, broken out by industry
-    #Normal Industry
+#Start of comparisons, broken out by industry
+ 
+   #Normal Industry
     if IndustryType == "0":
         print "Normal Naming"
         if businessNameMatch == 1:
@@ -349,7 +339,8 @@ def compareName(df, IndustryType, bid):
                 (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
         
             df['Name Score'] = df[['businessPartial', 'businessTokenSet', 'businessTokenSort', "Token Set", "Partial Score", "Token sort"]].max(axis=1)
-        
+
+            #Creates Columns of Arrays 
             if app.WordsExclude:
                 df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
             else:
@@ -750,19 +741,11 @@ def compareAddress(df, IndustryType):
 
         return
 
-
    #All other industries
     else:
 
         df['Cleaned Input Address'] = df['Location Address'].apply(cleanAddress)
         df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
-
-        #This is for the future when we have to parse out
-#        df['Input Street Number Score'] = df.apply(lambda row: \
-#                                            [int(s) for s in row['Cleaned Input Address'].split() if s.isdigit()][:1], axis =1)
-#        df['Listing Street Number Score'] = df.apply(lambda row: \
-#                                            [int(s) for s in row['Cleaned Listing Address'].split() if s.isdigit()][:1], axis =1)
-#
 
         df['Address Score'] = df.apply(lambda row: fuzz.token_set_ratio\
             (row['Cleaned Input Address'], row['Cleaned Listing Address']), axis=1)
@@ -1161,7 +1144,7 @@ def calculatePLStatus1(row, templateType, keepMatchNPL, BrandPageID, BrandPageVa
     return "Sync"
 
 
-       #If Listing ID is matched to more than one location
+#If Listing ID is matched to more than one location
 def ExternalID_De_Dupe(df):
     df = df.sort_values(['Match', 'Listing ID', 'Total Score'], ascending=[True, True, True])
 #    print df['Match']
@@ -1171,9 +1154,7 @@ def ExternalID_De_Dupe(df):
         if index < df.shape[0]-1:
             if row['Match'] == 1 and df.iloc[index+1]['Match'] == 1:
                 if row['Listing ID'] == df.iloc[index+1]['Listing ID']:
-#                    row['Match'] = 0
                     df.set_value(index, 'Match', 0)
-#    print df['Match']
     return df
 
 
@@ -1540,7 +1521,6 @@ def getBusIDfromLoc(locationID):
         busID = pd.read_sql(SQL_BusIDQuery, con=Yext_OPS_DB)['business_id'][0]
     except:
         print "Connect to SDM!"
-#        busID = "Dog"
         sys.exit()
 
     return busID
@@ -1892,6 +1872,7 @@ class MatchingInput(Tkinter.Frame):
 #                publisherNames = publisherNames.reset_index()
                 businessName = busName
 
+                checkedDF['Advertiser/Claimed'] = checkedDF['Advertiser/Claimed'].astype(str)
                 #Needs logic if certain things exist
                 claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
                                         & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
@@ -2251,10 +2232,6 @@ class MatchingInput(Tkinter.Frame):
 
         self.AddMoreButton = Button(self.nameW, text="Done", command=lambda: self.AddMore())
         self.AddMoreButton.grid(row=self.lastRow2+2+self.count, column=1, columnspan=2, pady=(20, 0))
-
-
-
-
 
     def addBox(self):
 

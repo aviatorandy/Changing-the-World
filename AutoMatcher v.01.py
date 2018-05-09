@@ -535,7 +535,7 @@ def compareName(df, IndustryType, bid):
             df['businessTokenSort'] = 0
 
         #compares business names vs listing names on different comparison methods. Takes highest score
-            for bName in app.wordsAlt:
+            for bName in app.WordsAlt:
                 df['businessPartial'] = df.apply(lambda row: \
                     max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])), axis=1)
                 df['businessTokenSet'] = df.apply(lambda row: \
@@ -615,7 +615,7 @@ def compareName(df, IndustryType, bid):
             df['businessTokenSort'] = 0
         #Compares location name to listing name on different methods. Takes highest score
 
-            for bName in app.wordsAlt:
+            for bName in app.WordsAlt:
                 df['businessPartial'] = df.apply(lambda row: \
                     max(row['businessPartial'], fuzz.partial_ratio(bName, row['Cleaned Listing Name'])), axis=1)
                 df['businessTokenSet'] = df.apply(lambda row: \

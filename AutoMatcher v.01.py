@@ -1894,7 +1894,7 @@ class MatchingInput(Tkinter.Frame):
                                         & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
                 print "mixing mixing"
                 if claimedFBDF.shape[0] > 0:
-
+                    print "there are claimed FB pages! be sure to review them!"
 
                     filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
                                                " Suppression Approval File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")

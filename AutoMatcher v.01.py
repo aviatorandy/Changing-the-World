@@ -1191,6 +1191,13 @@ def readMatchedFile(xlsFile):
 
 #main runtime function
 def main(df, IndustryType, bid):
+    try:
+        inputFilePath= os.path.expanduser("J:\zAutomatcherData\InputFiles\\"+ \
+                                               os.getenv('username')+ " - " + getBusName(bid)+" InputFile "+ str(date.today().strftime("%Y-%m-%d")) \
+                                                + " " + str(time.strftime("%H.%M.%S")) +".csv")
+        df.to_csv(inputFilePath, sheet_name="Data", encoding='utf-8', index=False)
+    except:
+        pass
     row = 0
     if IndustryType == '3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'
@@ -1717,7 +1724,9 @@ class MatchingInput(Tkinter.Frame):
 
     #Initial window
     def __init__(self, master):
-
+        global timeInput1
+        timeInput1=time.time()
+        
 
         root.protocol("WM_DELETE_WINDOW", self._delete_window)
         Tkinter.Frame.__init__(self, master, padx=10, pady=10)
@@ -1965,8 +1974,16 @@ class MatchingInput(Tkinter.Frame):
             print t0
             t1 = time.time()
             print t1
-            print t1-t0
-       #remove this once we do something here
+            global timeInput1
+            global timeInput1End
+            global timeInput2
+            global timeInput2End
+
+            
+            
+            print 'full run time: ' + str(t1-t0)
+            print 'code run time: '+str(t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2))
+                 #remove this once we do something here
 
             #Gets user input for how to set up matcher
     def initialSettingsWindow(self):
@@ -2035,6 +2052,8 @@ class MatchingInput(Tkinter.Frame):
                 df['User Match'] = df['User Match'].apply(lambda x: 1 if x == 1 else 0)
             else:
                 df['User Match'] = False
+            global timeInput1End            
+            timeInput1End=time.time()
             main(df, str(self.IndustryType.get()), bid)
         #SQL
         elif self.dataInput.get() == 2:
@@ -2066,7 +2085,7 @@ class MatchingInput(Tkinter.Frame):
             if self.ReportType.get() == 2:
                 self.FBEntry = Entry(self.detailsW, validate="key", validatecommand=(vcmd, '%P'), textvariable=self.fbBrandID).grid(row=9, column=1, sticky=W)
 
-
+            timeInput1End=time.time()
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=10, column=1, sticky=W)
 
 
@@ -2105,6 +2124,9 @@ class MatchingInput(Tkinter.Frame):
 #                businessNames.append(cleanName(i))
 
         self.nameW.destroy()
+        global timeInput2End
+        timeInput2End=time.time()
+        
         self.WordsMust = []
         self.WordsAlt = []
         self.WordsIgnore = []
@@ -2115,8 +2137,13 @@ class MatchingInput(Tkinter.Frame):
 
         for i in range(len(self.moreWords)):
             self.Words[self.moreWords[i].get()] = self.MoreVarN[i].get()
-
+          
+        for x,v in self.moreWords.iteritems():
+ 
+            self.varN[v.get()] = self.MoreVarN[x]
+        
         for key, value in self.varN.iteritems():
+
             if value.get() == 0:
                 self.WordsMust.append(cleanName(key))
             elif value.get() == 1:
@@ -2126,10 +2153,6 @@ class MatchingInput(Tkinter.Frame):
             elif value.get() == 3:
                 self.WordsExclude.append(cleanName(key))
 
-        print self.WordsMust
-        print self.WordsAlt
-        print self.WordsIgnore
-        print self.WordsExclude
 
         self.PreviousWords.loc[self.indexVal, 'Account_ID'] = self.bid
         self.PreviousWords.loc[self.indexVal, 'Words'] = str(self.Words)
@@ -2152,7 +2175,9 @@ class MatchingInput(Tkinter.Frame):
         self.moreWords = {}
         self.moreWordValues = []
         self.count = 0
-
+        
+        global timeInput2
+        timeInput2=time.time()
 
 
 
@@ -2277,8 +2302,17 @@ class MatchingInput(Tkinter.Frame):
         t1 = time.time()
         print "start: "+datetime.datetime.fromtimestamp(t0).strftime('%Y-%m-%d %H:%M:%S')
         print "end: "+ datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
-        print str(t1-t0)+" seconds"
+               
+       
+        global timeInput1
+        global timeInput1End
+        global timeInput2
+        global timeInput2End
+        
 
+        
+        print 'full run time: ' + str(t1-t0)
+        print 'code run time: '+str(t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2))
 
 
         if part == 1:
@@ -2290,8 +2324,12 @@ class MatchingInput(Tkinter.Frame):
               #     self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
               #          str(df.shape[0]),str(checks))))
               #  stats.close()
+              
+                fullRunTime=t1-t0
+                codeRunTime=t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2)
+                
                 currentStats.loc[len(currentStats)] = [os.getenv('username'), self.bid, getBusName(\
-                    self.bid), self.IndustryType.get(), self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'), t1-t0,\
+                    self.bid), self.IndustryType.get(), self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'), fullRunTime,codeRunTime,\
                         df.shape[0], checks]
 
                 currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8', index=False)

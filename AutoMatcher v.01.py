@@ -886,7 +886,6 @@ def compareData(df, IndustryType, bid):
 
 #This function provides a suggested match based on certain name/address thresholds
 def suggestmatch(df, IndustryType):
-    robotmatch = []
     global reportType
 
     #if FB then create new column
@@ -900,7 +899,7 @@ def suggestmatch(df, IndustryType):
         df['FB Error'] = df.apply(lambda x: x['Listing URL'] == x['Sync URL'] and x['Advertiser/Claimed'] == 'Claimed'\
         and x['Live Sync'] == 0 and x['Live Suppress'] == 0, axis= 1)
     else:
-        df['FB Error'] == False
+        df['FB Error'] = False
 
     liveSync = 'No Match - Live Sync'
     liveSuppress = 'No Match - Live Suppress'

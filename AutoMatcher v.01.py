@@ -809,7 +809,7 @@ def calculateDistance(row):
     #When running facilities, checks for specialty match, or excludes doctor words
 def calculateDoctorMatch(df):
 
-    commonDoctorWords = ['md', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'od', 'gp', 'dpm', 'gift', 'cafe', 'café']
+    commonDoctorWords = ['md', 'm.d.', 'd.o.', 'ph.d', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'od', 'gp', 'dpm', 'gift', 'cafe', 'café']
 #Reads doctor specialty doc
     excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na=False)
     doctorSpecialty = excelFile.parse('Specialty')
@@ -819,7 +819,7 @@ def calculateDoctorMatch(df):
 
     specialties = []
 
-    df['Bad Facility'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(word in x.split() for word in commonDoctorWords) else 0)
+    df['Doctor Term'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(word in x.split() for word in commonDoctorWords) else 0)
 
     for index, row in df.iterrows():
 
@@ -831,8 +831,8 @@ def calculateDoctorMatch(df):
     
         
    #If matches to physician titles, antimatch
-        if row['Bad Facility'] == 1:
-            specialties.append("No Match - Bad Facility")
+        if row['Doctor Term'] == 1:
+            specialties.append("No Match - Doctor Term")
         else:
             locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
             listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
@@ -840,16 +840,16 @@ def calculateDoctorMatch(df):
 #Compares specialty, with synonyms from location to listing. if same, match, if different, antimatch
             if locationNameSpecialties:
                 if not listingNameSpecialties:
-                    specialties.append("Check-Generic")
+                    specialties.append("Check - Generic")
                 elif [locationNameSpecialties & listingNameSpecialties][0]:
-                    specialties.append("Match-Specialty")
+                    specialties.append("Match - Specialty")
                 else:
-                    specialties.append("No Match-Specialty")
+                    specialties.append("No Match - Specialty")
             else:
                 if listingNameSpecialties:
                     specialties.append("No Match-Specialty")
                 elif not listingNameSpecialties:
-                    specialties.append("Check-Generic")
+                    specialties.append("Check - Generic")
 
            #this else seems out of place, but not sure where this goes.
                 else:
@@ -915,7 +915,7 @@ def suggestmatch(df, IndustryType):
     noMatchFBDupeError = 'No Match - FB Dupe Error'
     checkAuto = 'Check - Excl Auto Words'
     check = 'Check Name'
-    noSpecialty = 'No Match - Specialty'
+    noSpecialty = 'No Match - Doctor or Specialty Mismatch'
     checkSpecialty = 'Check Doctor/Specialty'
     #npimatch = 'Match Suggested - NPI'
     clusternpimatch = 'Match Suggested - Cluster NPI'
@@ -1046,11 +1046,11 @@ def suggestmatch(df, IndustryType):
                                                   ((x['Biz Name Match'] == True and x['Specialty Match'][0:5] == 'Match') and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])) \
                                                   else (check if x['Name Match'] == 2 \
                                                   else (noName if x['Name Match'] == 0 \
-                                                  else (noAddress if not x['Address Match'] else 'uh oh'))))\
+                                                  else (noAddress if not x['Address Match'] else 'Matched Suggested'))))\
                                                   if x['Specialty Match'][0:5] == 'Match' else \
                                                   ('Check Name and Specialty' if x['Name Match'] == 2 \
                                                   else (noName if x['Name Match'] == 0 \
-                                                  else (noAddress if not x['Address Match'] else 'uh oh')))), axis=1)
+                                                  else (noAddress if not x['Address Match'] else 'Match Suggested')))), axis=1)
 
         df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)

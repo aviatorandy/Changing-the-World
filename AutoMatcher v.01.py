@@ -1762,6 +1762,7 @@ class MatchingInput(Tkinter.Frame):
             if self.ReportType.get() == 2:
                 df = df.merge(pullFBManualMatches(','.join(map(str, df['Listing ID']))), on=['Listing ID'], how='left')
                 df['User Match'] = df['User Match'].apply(lambda x: 1 if x == 1 else 0)
+                df['User Match'] = df.apply(lambda x: 1 if x['User Match'] == True and x['SQL PL Status'] == 'Sync' else 0, axis = 1)
             else:
                 df['User Match'] = False
             main(df, str(self.IndustryType.get()), bid)

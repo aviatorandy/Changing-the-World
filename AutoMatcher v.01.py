@@ -95,7 +95,7 @@ class NameDenormalizerWithOriginal(object):
             return default
 
 
-#This function cleans the names 
+#This function cleans the names
 def cleanName(name):
     try:
         name = name.strip().lower()
@@ -240,7 +240,7 @@ def cleanCity(city):
 
 #This function compares the names in the file
 def compareName(df, IndustryType, bid):
-    
+
     df['Cleaned Location Name'] = df['Location Name'].apply(cleanName)
     df['Cleaned Listing Name'] = df['Listing Name'].apply(cleanName)
     df['No Name'] = df['Listing Name'].isnull()
@@ -266,18 +266,18 @@ def compareName(df, IndustryType, bid):
     global businessNameMatch
 
     print 'See popup!'
-    
+
     #calls Tkinter input window for more business names. Waits for it to complete
     app.namesWindow(businessNames)
     app.wait_window(app.nameW)
 
     #If the Words Ignore Array is not empty do the following
-    if app.WordsIgnore:    
+    if app.WordsIgnore:
         [x.lower() for x in app.WordsIgnore]
         df['Must Ignore'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsIgnore))
-         
+
         for words in app.WordsIgnore:
-            df['Cleaned Location Name'] = df['Cleaned Location Name'].apply(lambda x: x.replace(words, "").strip())          
+            df['Cleaned Location Name'] = df['Cleaned Location Name'].apply(lambda x: x.replace(words, "").strip())
             df['Cleaned Listing Name'] = df['Cleaned Listing Name'].apply(lambda x: x.replace(words, "").strip())
 
     #Should this be here, or only for some industries?
@@ -308,9 +308,10 @@ def compareName(df, IndustryType, bid):
 
 
 #Start of comparisons, broken out by industry
- 
+
    #Normal Industry/Healthcare Facility/International
-    if IndustryType == "0" or "4" or "5" or "6":
+#    if IndustryType == "0" or "4" or "5" or "6":
+    if IndustryType in('0', '4', '5', '6'):
         print "Normal Naming"
         if businessNameMatch == 1:
 
@@ -326,20 +327,20 @@ def compareName(df, IndustryType, bid):
                     max(row['businessTokenSet'], fuzz.token_set_ratio(bName, row['Cleaned Listing Name'])), axis=1)
                 df['businessTokenSort'] = df.apply(lambda row:\
                     max(row['businessTokenSort'], fuzz.token_sort_ratio(bName, row['Cleaned Listing Name'])), axis=1)
-                
+
             #Compares location name to listing name on different methods. Takes highest score
             df['Token Set'] = df.apply(lambda row: fuzz.token_set_ratio\
                     (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
-        
+
             df['Partial Score'] = df.apply(lambda row: fuzz.partial_ratio\
                 (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
-        
+
             df['Token sort'] = df.apply(lambda row: fuzz.token_sort_ratio\
                 (row['Cleaned Location Name'], row['Cleaned Listing Name']), axis=1)
-        
+
             df['Name Score'] = df[['businessPartial', 'businessTokenSet', 'businessTokenSort', "Token Set", "Partial Score", "Token sort"]].max(axis=1)
 
-            #Creates Columns of Arrays 
+            #Creates Columns of Arrays
             if app.WordsExclude:
                 df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
             else:
@@ -374,7 +375,7 @@ def compareName(df, IndustryType, bid):
             df['Name Score Mean'] = df[["Token Set", "Partial Score", "Token sort"]].mean(axis=1)
 
             df['Name Score'] = df[["Token Set", "Partial Score", "Token sort"]].max(axis=1)
-            
+
             if app.WordsExclude:
                 df['Words Exclude'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsExclude))
             else:
@@ -389,7 +390,7 @@ def compareName(df, IndustryType, bid):
                 df['Words Must'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in app.WordsMust))
             else:
                 df['Words Must'] = ""
-            
+
             df = df.drop(["Token Set", "Partial Score", "Token sort"], axis=1)
 
     #Auto Name Matching
@@ -517,14 +518,14 @@ def compareAddress(df, IndustryType):
     df['No Address'] = df['Listing Address'].isnull()
 
     df['Combined Location Address'] = df['Location Address'].apply(cleanAddress)\
-                        +' ' + df['Location Address 2'].apply(cleanAddress) 
+                        +' ' + df['Location Address 2'].apply(cleanAddress)
     df['Combined Listing Address'] = df['Listing Address'].apply(cleanAddress)\
-                        +' '+df['Location Address 2'].apply(cleanAddress) 
+                        +' '+df['Location Address 2'].apply(cleanAddress)
 
     df['Cleaned Location Address'] = df['Location Address'].apply(cleanAddress)
     df['Cleaned Listing Address'] = df['Listing Address'].apply(cleanAddress)
-                        
-                        
+
+
     #Compares addresses on different comparison methods. Takes max.
     #International['ar'] = International.apply(lambda row: fuzz.ratio(row['Cleaned Input Address'],\
     #                                             row['Cleaned Listing Address']), axis=1)
@@ -539,7 +540,7 @@ def compareAddress(df, IndustryType):
 
     df['Address Score'] = df.apply(lambda row: fuzz.token_set_ratio\
         (row['Cleaned Location Address'], row['Cleaned Listing Address']) if row['Country'] == "US" else fuzz.token_set_ratio\
-        (row['Combined Location Address'], row['Combined Listing Address']) , axis=1)
+        (row['Combined Location Address'], row['Combined Listing Address']), axis=1)
 
 
 #This function compares the cities in the file
@@ -599,7 +600,7 @@ def calculateDistance(row):
     #When running facilities, checks for specialty match, or excludes doctor words
 def calculateDoctorMatch(df):
 
-    commonDoctorWords = ['md', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'od', 'gp', 'dpm', 'gift', 'cafe', 'café']
+    commonDoctorWords = ['md', 'm.d.', 'd.o.', 'ph.d', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'od', 'gp', 'dpm', 'gift', 'cafe', 'café']
 #Reads doctor specialty doc
     excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na=False)
     doctorSpecialty = excelFile.parse('Specialty')
@@ -609,7 +610,7 @@ def calculateDoctorMatch(df):
 
     specialties = []
 
-    df['Bad Facility'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(word in x.split() for word in commonDoctorWords) else 0)
+    df['Doctor Term'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(word in x.split() for word in commonDoctorWords) else 0)
 
     for index, row in df.iterrows():
 
@@ -618,11 +619,11 @@ def calculateDoctorMatch(df):
         locationName = (" " + str(row['Cleaned Location Name']) + " ").lower()
 
         listingName = (" " + str(row['Cleaned Listing Name']) + " ").lower()
-    
-        
+
+
    #If matches to physician titles, antimatch
-        if row['Bad Facility'] == 1:
-            specialties.append("No Match - Bad Facility")
+        if row['Doctor Term'] == 1:
+            specialties.append("No Match - Doctor Term")
         else:
             locationNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in locationName])
             listingNameSpecialties = set([tuple(group) for group in doctorSpecialty for specialty in group if specialty in listingName])
@@ -630,16 +631,16 @@ def calculateDoctorMatch(df):
 #Compares specialty, with synonyms from location to listing. if same, match, if different, antimatch
             if locationNameSpecialties:
                 if not listingNameSpecialties:
-                    specialties.append("Check-Generic")
+                    specialties.append("Check - Generic")
                 elif [locationNameSpecialties & listingNameSpecialties][0]:
-                    specialties.append("Match-Specialty")
+                    specialties.append("Match - Specialty")
                 else:
-                    specialties.append("No Match-Specialty")
+                    specialties.append("No Match - Specialty")
             else:
                 if listingNameSpecialties:
-                    specialties.append("No Match-Specialty")
+                    specialties.append("No Match - Specialty")
                 elif not listingNameSpecialties:
-                    specialties.append("Check-Generic")
+                    specialties.append("Check - Generic")
 
            #this else seems out of place, but not sure where this goes.
                 else:
@@ -687,7 +688,7 @@ def suggestmatch(df, IndustryType):
     df['Phone or Address Match'] = df.apply(lambda x: x['Phone Match'] or x['Address Match'], axis=1)
     if 'Sync URL' in df.columns:
         df['FB Error'] = df.apply(lambda x: x['Listing URL'] == x['Sync URL'] and x['Advertiser/Claimed'] == 'Claimed'\
-        and x['Live Sync'] == 0 and x['Live Suppress'] == 0, axis= 1)
+        and x['Live Sync'] == 0 and x['Live Suppress'] == 0, axis=1)
     else:
         df['FB Error'] = False
 
@@ -704,7 +705,8 @@ def suggestmatch(df, IndustryType):
     noMatchFBDupeError = 'No Match - FB Dupe Error'
     checkAuto = 'Check - Excl Auto Words'
     check = 'Check Name'
-    noSpecialty = 'No Match - Specialty'
+    noSpecialty = 'No Match - Doctor or Specialty Mismatch'
+    checkSpecialty = 'Check Doctor/Specialty'
     #npimatch = 'Match Suggested - NPI'
     clusternpimatch = 'Match Suggested - Cluster NPI'
     clusternpimismatch = 'Check Name - Cluster Pub'
@@ -721,7 +723,8 @@ def suggestmatch(df, IndustryType):
     df['External ID'] = df['External ID'].map(lambda x: x.lstrip('\''))
 
     #Normal/Agent/International Type
-    if IndustryType == '0' or '5'or '6':
+#    if IndustryType == '0' or '5' or '6':
+    if IndustryType in ('0', '5', '6'):
         #Applies Match rules based on new columns.
         print "Normal Matching"
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
@@ -731,11 +734,12 @@ def suggestmatch(df, IndustryType):
                     else noMustMatch if x['Words Must'] == False \
                         else noFBMatch if x['External ID'] in bpgid \
                             else userMatch if x['User Match'] == 1 \
-                                    else checkMissing if (x['No Name'])\
-                                        else noName if x['Name Match'] == 0\
-                                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                                else matchText if x['Name Match'] == 1\
-                                                    and x['Address Match'] == True or x['Phone Match'] == True\
+                                else checkMissing if (x['No Name'])\
+                                    else noName if x['Name Match'] == 0\
+                                        else matchText if x['Name Match'] == 1\
+                                            and (x['Address Match'] == True or x['Phone Match'] == True)\
+                                                else 'No Match - People Name' if x['ExtraPeopleNamesInListing']\
+                                                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
                                                         else checkMissing if x['No Address']\
                                                             else noAddress if x['Address Match'] == False\
                                                                 else noMatch, axis=1)
@@ -753,12 +757,14 @@ def suggestmatch(df, IndustryType):
                                 else checkBrand if x['Brand Name'] == None\
                                     else diffBrand if x['Other Brand Check'] == True\
                                         else noName if x['Name Match'] == 0 \
-                                            else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)\
-                                                else matchText if x['Name Match'] == 1 \
-                                                    and x['Address Match'] == True or x['Phone Match'] == True\
+                                            else matchText if x['Name Match'] == 1\
+                                                and (x['Address Match'] == True or x['Phone Match'] == True)\
+#                                                   else 'No Match - People Name' if x['ExtraPeopleNamesInListing']\
+                                                    else check if x['Name Match'] == 2 and (x['Address Match'] == True or x['Phone Match'] == True)
                                                         else checkMissing if x['No Address']\
                                                             else noAddress if x['Address Match'] == False\
                                                                 else noMatch, axis=1)
+
 
     #Hotel Type
     #Need to Add Name Score taking the max of the brand
@@ -803,7 +809,7 @@ def suggestmatch(df, IndustryType):
     #Healthcare Facilities
     elif IndustryType == '4':
         print "HC Facility Matching"
-        
+
         df['Name Match'] = df.apply(lambda x: 1 if x['Name Score'] >= 90 else (2 if 90 > x['Name Score'] >= 76 else 0), axis=1)
 
         df['Robot Suggestion'] = df.apply(lambda x: liveSync if x['Live Sync'] == 1 \
@@ -817,16 +823,17 @@ def suggestmatch(df, IndustryType):
                                         else checkMissing if (x['No Name'] or x['No Address'])\
                                             else ((matchText if (x['Name Match'] == 1 and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])) or \
                                                   ((x['Biz Name Match'] == True and x['Specialty Match'][0:5] == 'Match') and (x['Phone Match'] or x['Address Match'] or x['Geocode Match'])) \
+                                                  else 'No Match - People Name' if x['ExtraPeopleNamesInListing']\
                                                   else (check if x['Name Match'] == 2 \
                                                   else (noName if x['Name Match'] == 0 \
-                                                  else (noAddress if not x['Address Match'] else 'uh oh'))))\
+                                                  else (noAddress if not x['Address Match'] else 'Matched Suggested'))))\
                                                   if x['Specialty Match'][0:5] == 'Match' else \
                                                   ('Check Name and Specialty' if x['Name Match'] == 2 \
                                                   else (noName if x['Name Match'] == 0 \
-                                                  else (noAddress if not x['Address Match'] else 'uh oh')))), axis=1)
+                                                        else (noAddress if not x['Address Match'] else 'Match Suggested')))), axis=1)
 
 
-    #df['Robot Suggestion'] = df.apply(lambda x: 'No Match - People Name' if x['ExtraPeopleNamesInListing'] else x['Robot Suggestion'], axis=1)            
+    #df['Robot Suggestion'] = df.apply(lambda x: 'No Match - People Name' if x['ExtraPeopleNamesInListing'] else x['Robot Suggestion'], axis=1)
 
     df['Name Match'] = df.apply(lambda x: True if x['Name Match'] == 1 \
                     else ('Check' if x['Name Match'] == 2 else False), axis=1)
@@ -898,7 +905,7 @@ def readFile(xlsFile):
         df = pd.read_csv(xlsFile, encoding='utf-8')
     else:
         raise Exception('What kind of file did you give me, bro?')
-        sys.exit()
+        sys.exit("Quitting program")
 
     #Finds Business ID
     bid = getBusIDfromLoc(df.loc[0, 'Location ID'])
@@ -920,6 +927,13 @@ def readMatchedFile(xlsFile):
 
 #main runtime function
 def main(df, IndustryType, bid):
+    try:
+        inputFilePath = os.path.expanduser("J:\zAutomatcherData\InputFiles\\"+ \
+                                               os.getenv('username')+ " - " + getBusName(bid)+" InputFile "+ str(date.today().strftime("%Y-%m-%d")) \
+                                                + " " + str(time.strftime("%H.%M.%S")) +".csv")
+        df.to_csv(inputFilePath, sheet_name="Data", encoding='utf-8', index=False)
+    except:
+        pass
     row = 0
     if IndustryType == '3':
     #Gets Providers First and Last name. Saves to column 'Provider Name'
@@ -992,7 +1006,7 @@ def main(df, IndustryType, bid):
 
     worksheet.set_row(0, 45)
 
-    #worksheet.set_column(Lat , LastPostDate, None, None, {'hidden': 1})
+    #worksheet.set_column(Lat, LastPostDate, None, None, {'hidden': 1})
     worksheet.set_column(0, namecol-1, None, None, {'hidden': 1})
 #    worksheet.set_column(0, namecol-1, None, None, {'collapsed': 1})
     #worksheet.set_column(lastcol+2, lastcol+3, None, None, {'hidden': 1})
@@ -1447,6 +1461,8 @@ class MatchingInput(Tkinter.Frame):
     #Initial window
     def __init__(self, master):
 
+        global timeInput1
+        timeInput1 = time.time()
 
         root.protocol("WM_DELETE_WINDOW", self._delete_window)
         Tkinter.Frame.__init__(self, master, padx=10, pady=10)
@@ -1505,7 +1521,7 @@ class MatchingInput(Tkinter.Frame):
         allChecksComplete = True
 
         for index, row in checkedDF.iterrows():
-            if  ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
+            if ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
                 allChecksComplete = False
 
 #Exits if manual review incomplete
@@ -1522,7 +1538,7 @@ class MatchingInput(Tkinter.Frame):
             busID = getBusIDfromLoc(checkedDF.loc[0, 'Location ID'])
             busName = getBusName(busID)
 
-            print 'checking live sync'
+            print 'Checking live sync...'
             if self.ReportType.get() == 1:
                 googleLiveIDs = GoogleIDs(busID)
                 googleLiveIDs = googleLiveIDs.reset_index()
@@ -1533,7 +1549,7 @@ class MatchingInput(Tkinter.Frame):
             checkedDF['Match'] = checkedDF.apply(lambda x: 0 if x['Live Suppress'] == 1 else x['Match'], axis=1)
 
 
-            print "External ID deduping\n"
+            print "External ID Deduping...\n"
 
             checkedDF = ExternalID_De_Dupe(checkedDF)
 
@@ -1549,7 +1565,7 @@ class MatchingInput(Tkinter.Frame):
 
             #Total Score at the top
             checkedDF = checkedDF.sort_values(['Location ID', 'Publisher ID', 'Match', 'Total Score']\
-                                                              , ascending=[True, True, False, False])
+                                              , ascending=[True, True, False, False])
             checkedDF = checkedDF.reset_index(drop=True)
 
             #If Listings Type
@@ -1570,7 +1586,7 @@ class MatchingInput(Tkinter.Frame):
 
 
             #EXTERNAL ID DEDUPE
-            print "Creating Upload Overrides\n"
+            print "Creating Upload Overrides...\n"
 
             #checkedDF=calculateTotalScore(checkedDF)
             uploadDF = checkedDF[['Publisher ID', 'Location ID', 'Listing ID', 'override', 'PL Status']]
@@ -1583,7 +1599,7 @@ class MatchingInput(Tkinter.Frame):
 
 #            If Suppression Type
             if self.ReportType.get() == 1:
-                print "Creating Suppression Report"
+                print "Creating Suppression Report..."
 
 
                 suppRepDF = checkedDF[checkedDF['PL Status'] == 'Suppress']
@@ -1694,8 +1710,15 @@ class MatchingInput(Tkinter.Frame):
             print t0
             t1 = time.time()
             print t1
-            print t1-t0
-       #remove this once we do something here
+            global timeInput1
+            global timeInput1End
+            global timeInput2
+            global timeInput2End
+
+            print 'full run time: ' + str(t1-t0)
+            print 'code run time: '+str(t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2))
+                 #remove this once we do something here
+
 
             #Gets user input for how to set up matcher
     def initialSettingsWindow(self):
@@ -1762,9 +1785,11 @@ class MatchingInput(Tkinter.Frame):
             if self.ReportType.get() == 2:
                 df = df.merge(pullFBManualMatches(','.join(map(str, df['Listing ID']))), on=['Listing ID'], how='left')
                 df['User Match'] = df['User Match'].apply(lambda x: 1 if x == 1 else 0)
-                df['User Match'] = df.apply(lambda x: 1 if x['User Match'] == True and x['SQL PL Status'] == 'Sync' else 0, axis = 1)
+                df['User Match'] = df.apply(lambda x: 1 if x['User Match'] == True and x['SQL PL Status'] == 'Sync' else 0, axis=1)
             else:
                 df['User Match'] = False
+            global timeInput1End
+            timeInput1End = time.time()
             main(df, str(self.IndustryType.get()), bid)
         #SQL
         elif self.dataInput.get() == 2:
@@ -1796,7 +1821,7 @@ class MatchingInput(Tkinter.Frame):
             if self.ReportType.get() == 2:
                 self.FBEntry = Entry(self.detailsW, validate="key", validatecommand=(vcmd, '%P'), textvariable=self.fbBrandID).grid(row=9, column=1, sticky=W)
 
-
+            timeInput1End = time.time()
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=10, column=1, sticky=W)
 
 
@@ -1835,6 +1860,9 @@ class MatchingInput(Tkinter.Frame):
 #                businessNames.append(cleanName(i))
 
         self.nameW.destroy()
+        global timeInput2End
+        timeInput2End = time.time()
+
         self.WordsMust = []
         self.WordsAlt = []
         self.WordsIgnore = []
@@ -1846,6 +1874,9 @@ class MatchingInput(Tkinter.Frame):
         for i in range(len(self.moreWords)):
             self.Words[self.moreWords[i].get()] = self.MoreVarN[i].get()
 
+        for x, v in self.moreWords.iteritems():
+            self.varN[v.get()] = self.MoreVarN[x]
+
         for key, value in self.varN.iteritems():
             if value.get() == 0:
                 self.WordsMust.append(cleanName(key))
@@ -1856,18 +1887,13 @@ class MatchingInput(Tkinter.Frame):
             elif value.get() == 3:
                 self.WordsExclude.append(cleanName(key))
 
-        print self.WordsMust
-        print self.WordsAlt
-        print self.WordsIgnore
-        print self.WordsExclude
-
         self.PreviousWords.loc[self.indexVal, 'Account_ID'] = self.bid
         self.PreviousWords.loc[self.indexVal, 'Words'] = str(self.Words)
         try:
             self.PreviousWords.to_csv("J:\zAutomatcherData\Words.csv", index=False)
         except:
             pass
-        if len(self.WordsAlt) > 0:        
+        if len(self.WordsAlt) > 0:
             businessNameMatch = 1
         else:
             businessNameMatch = 0
@@ -1882,6 +1908,9 @@ class MatchingInput(Tkinter.Frame):
         self.moreWords = {}
         self.moreWordValues = []
         self.count = 0
+
+        global timeInput2
+        timeInput2 = time.time()
 
         for name in busNames:
             self.Words[name] = 1
@@ -2006,7 +2035,15 @@ class MatchingInput(Tkinter.Frame):
         t1 = time.time()
         print "start: "+datetime.datetime.fromtimestamp(t0).strftime('%Y-%m-%d %H:%M:%S')
         print "end: "+ datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')
-        print str(t1-t0)+" seconds"
+
+        global timeInput1
+        global timeInput1End
+        global timeInput2
+        global timeInput2End
+
+        print 'full run time: ' + str(t1-t0)
+        print 'code run time: '+str(t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2))
+
 
 
 
@@ -2019,9 +2056,13 @@ class MatchingInput(Tkinter.Frame):
               #     self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
               #          str(df.shape[0]),str(checks))))
               #  stats.close()
+
+                fullRunTime = t1-t0
+                codeRunTime = t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2)
+
                 currentStats.loc[len(currentStats)] = [os.getenv('username'), self.bid, getBusName(\
-                    self.bid), self.IndustryType.get(), self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'), t1-t0,\
-                        df.shape[0], checks]
+                    self.bid), self.IndustryType.get(), self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'), fullRunTime, codeRunTime,\
+                    df.shape[0], checks]
 
                 currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8', index=False)
             except:

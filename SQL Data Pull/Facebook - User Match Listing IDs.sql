@@ -3,4 +3,5 @@ from matches.matches m
 where m.source = 'Yext' 
 and m.listing_id in (@listingid) 
 and (m.powerlisting = "Sync" 
-and m.matchType = "Match");
+and m.matchType = "Match")
+group by m.listing_id

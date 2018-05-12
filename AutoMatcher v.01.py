@@ -39,6 +39,8 @@ warnings.simplefilter("ignore", UserWarning)
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
 
 
+
+
 class NameDenormalizer(object):
     def __init__(self, filename='names.csv'):
         filename = filename or 'names.csv'
@@ -905,7 +907,7 @@ def readFile(xlsFile):
         df = pd.read_csv(xlsFile, encoding='utf-8')
     else:
         raise Exception('What kind of file did you give me, bro?')
-        sys.exit("Quitting program")
+#        sys.exit("Quitting program")
 
     #Finds Business ID
     bid = getBusIDfromLoc(df.loc[0, 'Location ID'])
@@ -929,7 +931,7 @@ def readMatchedFile(xlsFile):
 def main(df, IndustryType, bid):
     try:
         inputFilePath = os.path.expanduser("J:\zAutomatcherData\InputFiles\\"+ \
-                                               os.getenv('username')+ " - " + getBusName(bid)+" InputFile "+ str(date.today().strftime("%Y-%m-%d")) \
+                                               os.getenv('username')+ " - " + re.sub(r'[\\/*?:"<>|]', "", getBusName(bid)) +" InputFile "+ str(date.today().strftime("%Y-%m-%d")) \
                                                 + " " + str(time.strftime("%H.%M.%S")) +".csv")
         df.to_csv(inputFilePath, sheet_name="Data", encoding='utf-8', index=False)
     except:
@@ -1339,7 +1341,7 @@ def matchingQuestions(df):
 #saves down upload linkages file
 def writeUploadFile(df):
     filePath = os.path.expanduser("~\Documents\Python Scripts\\"+ \
-                                   getBusName(getBusIDfromLoc(df.loc[0, 'locationId']))+\
+                                   re.sub(r'[\\/*?:"<>|]', "", getBusName(getBusIDfromLoc(df.loc[0, 'locationId'])))+\
                                    " Upload Linkages "+ str(date.today().strftime("%Y-%m-%d")) \
                                     + " " + str(time.strftime("%H.%M.%S")) +".csv")
 
@@ -1615,19 +1617,20 @@ class MatchingInput(Tkinter.Frame):
 
 #                publisherNames = publisherNames.reset_index()
                 businessName = busName
+                businessNameClean = re.sub(r'[\\/*?:"<>|]', "", businessName)
 
                 checkedDF['Advertiser/Claimed'] = checkedDF['Advertiser/Claimed'].astype(str)
                 #Needs logic if certain things exist
                 claimedFBDF = checkedDF[(checkedDF['PL Status'] == 'Suppress')\
                                         & (checkedDF['Publisher'] == 'Facebook') & (checkedDF['Advertiser/Claimed'] == 'Claimed')]
-                print "mixing mixing"
+                print "mixing... mixing..."
                 if claimedFBDF.shape[0] > 0:
-                    print "there are claimed FB pages! be sure to review them!"
+                    print "There are claimed FB pages! Be sure to review them!"
 
-                    filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
+                    filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessNameClean +\
                                                " Suppression Approval File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
                 else:
-                    filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
+                    filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessNameClean +\
                                                " Suppression Summary File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
                 suppwriter = pd.ExcelWriter(filePath, engine='xlsxwriter')
@@ -1677,7 +1680,7 @@ class MatchingInput(Tkinter.Frame):
                                             'Last Post Date', 'Publisher ID', 'Publisher']]
 
 
-                fullFilePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessName+\
+                fullFilePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessNameClean+\
                                                " Full Suppression Details "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
                 reportWriter = pd.ExcelWriter(fullFilePath, engine='xlsxwriter')
@@ -1775,6 +1778,8 @@ class MatchingInput(Tkinter.Frame):
     def detailsWindow(self):
         self.settingWindow.destroy()
         global reportType
+        global timeInput1End
+        timeInput1End = time.time()
         reportType = self.ReportType.get()
         #File pull
         if self.dataInput.get() == 1:
@@ -1788,8 +1793,6 @@ class MatchingInput(Tkinter.Frame):
                 df['User Match'] = df.apply(lambda x: 1 if x['User Match'] == True and x['SQL PL Status'] == 'Sync' else 0, axis=1)
             else:
                 df['User Match'] = False
-            global timeInput1End
-            timeInput1End = time.time()
             main(df, str(self.IndustryType.get()), bid)
         #SQL
         elif self.dataInput.get() == 2:
@@ -1809,7 +1812,6 @@ class MatchingInput(Tkinter.Frame):
             if self.ReportType.get() == 2:
                 self.FBLabel = Label(self.detailsW, text="Enter Facebook Brand Page ID").grid(row=9, column=0, sticky=W)
 
-
             self.bizID = StringVar()
             self.folderID = StringVar()
             self.labelID = StringVar()
@@ -1823,7 +1825,6 @@ class MatchingInput(Tkinter.Frame):
 
             timeInput1End = time.time()
             self.pullButton = Button(self.detailsW, text="Pull Data", command=self.pullSQLRun).grid(row=10, column=1, sticky=W)
-
 
 
 #Runs SQl Pull
@@ -1915,24 +1916,19 @@ class MatchingInput(Tkinter.Frame):
         for name in busNames:
             self.Words[name] = 1
 
-        #Need to fix indexVal stuff below. It was erroring out so I put a bunch of try statements and it works for the time being
-        try:
             self.PreviousWords = pd.read_csv("J:\zAutomatcherData\Words.csv")
             self.bid = int(self.bid)
             self.PreviousWords['Account_ID'].astype(np.int64)
-            self.PreviousWords['Words'] = self.PreviousWords['Words'].map(ast.literal_eval)
             self.indexVal = -1
-            self.indexVal = int(self.PreviousWords[self.PreviousWords['Account_ID'] == int(self.bid)].index.values)
-        except:
-            pass
+            try:
+                self.indexVal = int(self.PreviousWords[self.PreviousWords['Account_ID'] == int(self.bid)].index.values)
+            except:
+                self.indexVal = -1
 
-        try:
             if self.indexVal > -1:
-                self.Words.update(self.PreviousWords.at[self.indexVal, 'Words'])
+                self.Words.update(ast.literal_eval(self.PreviousWords.at[self.indexVal, 'Words']))
             else:
                 self.indexVal = self.PreviousWords.shape[0]
-        except:
-            self.indexVal = self.PreviousWords.shape[0]
 
         self.nameW = Toplevel()
         self.nameW.protocol("WM_DELETE_WINDOW", self._delete_window)
@@ -2041,10 +2037,9 @@ class MatchingInput(Tkinter.Frame):
         global timeInput2
         global timeInput2End
 
+
         print 'full run time: ' + str(t1-t0)
-        print 'code run time: '+str(t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2))
-
-
+        print 'code run time: ' + str(t1-t0-(timeInput1End-timeInput1)-(timeInput2End-timeInput2))
 
 
         if part == 1:

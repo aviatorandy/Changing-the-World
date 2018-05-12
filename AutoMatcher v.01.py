@@ -34,11 +34,8 @@ import MySQLdb
 #import json
 
 
-
 warnings.simplefilter("ignore", UserWarning)
 warnings.filterwarnings('ignore', category=MySQLdb.Warning)
-
-
 
 
 class NameDenormalizer(object):
@@ -399,11 +396,11 @@ def compareName(df, IndustryType, bid):
     elif IndustryType == "1":
         print "Auto Naming"
 
-        CarCheck = ["svc", "service", "parts", "part", "body", "collision", \
+        carCheck = ["svc", "service", "parts", "part", "body", "collision", \
                     "clln", "body shop", "used", "usado", "pre-owned"]
 
         #Match to Sales and Services and New and Used
-        CarBrands = ['gm', 'general motors', 'gmc', 'buick', 'cadillac', 'chevrolet', 'chevy', 'pontiac', \
+        carBrands = ['gm', 'general motors', 'gmc', 'buick', 'cadillac', 'chevrolet', 'chevy', 'pontiac', \
         'oldsmobile', 'olds mobile', 'pntc', 'geo', 'hummer', 'saturn', \
         'corvette', 'vette', 'corvet', 'acura', 'alfa', 'aston martin', \
         'audi', 'enterprise rent', 'hertz', 'bentley', 'bmw', 'bugatti', 'chrysler', \
@@ -413,21 +410,21 @@ def compareName(df, IndustryType, bid):
         'plymouth', 'porsche', 'rover', 'royce', 'saab', 'saturn', 'scion', 'subaru', \
         'suzuki', 'suzuki', 'toyota', 'volkswagen', 'vw', 'volvo']
 
-        #If anything in CarBrands is not the Brand it is bad
+        #If anything in carBrands is not the Brand it is bad
 
         #This identifies the actual car brand name within the string
-        df['Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in CarBrands if brand in name.split()), None))
+        df['Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in carBrands if brand in name.split()), None))
 
         df['Removed Brand'] = df.apply(lambda x: x['Cleaned Listing Name'] if x['Brand Name'] == None\
                 else x['Cleaned Listing Name'].replace(x['Brand Name'], "") if x['Brand Name'] in x['Cleaned Listing Name'] \
                                     else "", axis=1)
 
         df['Other Brand Check'] = df.apply(lambda x: False if x['Brand Name'] is None \
-                                                else True if any(brand in x['Removed Brand'] for brand in CarBrands)\
+                                                else True if any(brand in x['Removed Brand'] for brand in carBrands)\
                                                         else False, axis=1)
 
         #This puts certain listings into Checks based off of commonly excluded Auto words
-        df['Car Excl Word Check'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in CarCheck))
+        df['Car Excl Word Check'] = df['Cleaned Listing Name'].apply(lambda x: any(item in x for item in carCheck))
 
 
         df['Name Score'] = df.apply(lambda row: \
@@ -439,7 +436,7 @@ def compareName(df, IndustryType, bid):
     #Industry Hotel
     elif IndustryType == "2":
         print "Hotel Naming"
-        BadHotel = ["optimeyes", "bakery", "grill", "bar", "starbucks", "electric", "wedding", "gym",\
+        badHotel = ["optimeyes", "bakery", "grill", "bar", "starbucks", "electric", "wedding", "gym",\
                      "pool", "restaurant", "bistro", "academy", "cafe", "salon",\
                      "5ten20", "lab", "rental", "car", "body", "fitness", "swim", "hertz", "steak",\
                      "sip", "zone", "alarm", "limestone", "catering", "room", "âme", "massage", "trivium",\
@@ -452,7 +449,7 @@ def compareName(df, IndustryType, bid):
                      "tent", "eno", "copper", "coffee", "leisure", "charter", "me", "ticketmaster",\
                      "swampers", "journeys", "friend", "orchards", "mandara", "camp", "broughtons"]
 
-        HotelBrands = ["ac hotel", "aloft", "america's best", "moxy", "tribute"\
+        hotelBrands = ["ac hotel", "aloft", "america's best", "moxy", "tribute"\
         "americas best value", "ascend", "autograph", "baymont", "best western",\
         "cambria", "canadas best value", "country inn", "park inn", "cassa", "candlewood", "clarion", "conrad", "comfort inn", "elyton hotel"\
         "comfort suites", "delta", "country hearth", "courtyard", "crowne plaza", "curio",\
@@ -471,11 +468,11 @@ def compareName(df, IndustryType, bid):
 
         #This identifies the actual car brand name within the string
 
-        df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x.split() for item in BadHotel) else 0)
-        df['Hotel Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in HotelBrands if brand in name), None))
+        df['Not Hotel'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x.split() for item in badHotel) else 0)
+        df['Hotel Brand Name'] = df['Cleaned Location Name'].apply(lambda name: next((brand for brand in hotelBrands if brand in name), None))
 
         #If hotel brand exists in listing name,is a hotel.
-        df['Other Hotel Match'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x for item in HotelBrands) else 0)
+        df['Other Hotel Match'] = df['Cleaned Listing Name'].apply(lambda x: 1 if any(item in x for item in hotelBrands) else 0)
 
         df['Name Score'] = df.apply(lambda row: \
          fuzz.token_set_ratio(row['Cleaned Location Name'], row['Cleaned Listing Name']) if pd.isnull(row['Hotel Brand Name']) else\
@@ -604,7 +601,7 @@ def calculateDoctorMatch(df):
 
     commonDoctorWords = ['md', 'm.d.', 'd.o.', 'ph.d', 'pa', 'dr', 'do', 'np', 'phys', 'lpn', 'rn', 'dds', 'cnm', 'mph', 'phd', 'od', 'gp', 'dpm', 'gift', 'cafe', 'café']
 #Reads doctor specialty doc
-    excelFile = pd.ExcelFile("~\Documents\Changing-the-World\SpecialtyDoctorMatching.xlsx", keep_default_na=False)
+    excelFile = pd.ExcelFile("~\\Documents\\Changing-the-World\\SpecialtyDoctorMatching.xlsx", keep_default_na=False)
     doctorSpecialty = excelFile.parse('Specialty')
     doctorSpecialty = doctorSpecialty.fillna("yext123")
     doctorSpecialty = doctorSpecialty.applymap(lambda x: x.lower())
@@ -708,7 +705,7 @@ def suggestmatch(df, IndustryType):
     checkAuto = 'Check - Excl Auto Words'
     check = 'Check Name'
     noSpecialty = 'No Match - Doctor or Specialty Mismatch'
-    checkSpecialty = 'Check Doctor/Specialty'
+#    checkSpecialty = 'Check Doctor/Specialty'
     #npimatch = 'Match Suggested - NPI'
     clusternpimatch = 'Match Suggested - Cluster NPI'
     clusternpimismatch = 'Check Name - Cluster Pub'
@@ -858,27 +855,27 @@ def calculateTotalScore(df):
 
     #FB Brand page anti match - NEED TO DO
 
-#Calculates Match vs Anti-Match. Will need to take in FB page ID
-def calculatePLStatus1(row, templateType, keepMatchNPL, BrandPageID, BrandPageVanity):
-    #Antimatch any auto-anti-matched
-    if row['Match Status'] == 1: return "Anti-Match"
-
-    #Antimatch any Brand Page on ID or vanity
-    for x in BrandPageID:
-        if unicode(x) in row['Listing URL']: return "Anti-Match"
-    for x in BrandPageID:
-        if unicode(x) in row['External ID']: return "Anti-Match"
-    for x in BrandPageVanity:
-        if row['Listing URL'] == "https://www.facebook.com/" + unicode(x): return "Anti-Match"
-    for x in BrandPageVanity:
-        if row['Listing URL'] == "https://www.facebook.com/" + unicode(x) + "/": return "Anti-Match"
-
-    #If Suppression Template: 0 score = Anti-Match, All other = Suppress
-    if templateType == 2:
-        if row['Score'] == 0: return "Anti-Match"
-        else: return "Suppress"
-
-    return "Sync"
+##Calculates Match vs Anti-Match. Will need to take in FB page ID
+#def calculatePLStatus1(row, templateType, keepMatchNPL, BrandPageID, BrandPageVanity):
+#    #Antimatch any auto-anti-matched
+#    if row['Match Status'] == 1: return "Anti-Match"
+#
+#    #Antimatch any Brand Page on ID or vanity
+#    for x in BrandPageID:
+#        if unicode(x) in row['Listing URL']: return "Anti-Match"
+#    for x in BrandPageID:
+#        if unicode(x) in row['External ID']: return "Anti-Match"
+#    for x in BrandPageVanity:
+#        if row['Listing URL'] == "https://www.facebook.com/" + unicode(x): return "Anti-Match"
+#    for x in BrandPageVanity:
+#        if row['Listing URL'] == "https://www.facebook.com/" + unicode(x) + "/": return "Anti-Match"
+#
+#    #If Suppression Template: 0 score = Anti-Match, All other = Suppress
+#    if templateType == 2:
+#        if row['Score'] == 0: return "Anti-Match"
+#        else: return "Suppress"
+#
+#    return "Sync"
 
 
 #If Listing ID is matched to more than one location
@@ -930,7 +927,7 @@ def readMatchedFile(xlsFile):
 #main runtime function
 def main(df, IndustryType, bid):
     try:
-        inputFilePath = os.path.expanduser("J:\zAutomatcherData\InputFiles\\"+ \
+        inputFilePath = os.path.expanduser("J:\\zAutomatcherData\\InputFiles\\"+ \
                                                os.getenv('username')+ " - " + re.sub(r'[\\/*?:"<>|]', "", getBusName(bid)) +" InputFile "+ str(date.today().strftime("%Y-%m-%d")) \
                                                 + " " + str(time.strftime("%H.%M.%S")) +".csv")
         df.to_csv(inputFilePath, sheet_name="Data", encoding='utf-8', index=False)
@@ -953,7 +950,7 @@ def main(df, IndustryType, bid):
     matchingNameQs = matchingQuestions(df)
 
 #Gets save file path
-    FilepathMatch = os.path.expanduser("~\Documents\Python Scripts\\"+ re.sub(r'[\\/*?:"<>|]', "", getBusName(bid)) +\
+    FilepathMatch = os.path.expanduser("~\\Documents\\Python Scripts\\"+ re.sub(r'[\\/*?:"<>|]', "", getBusName(bid)) +\
     " AutoMatcher Output "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
 #Reorders relevant columns to end
@@ -1001,8 +998,8 @@ def main(df, IndustryType, bid):
     addresscol = df.columns.get_loc("Location Address")
     robotcol = df.columns.get_loc("Robot Suggestion")
     lastgencol = df.columns.get_loc("Match \n1 = yes, 0 = no")
-    Lat = df.columns.get_loc("Listing Latitude")
-    LastPostDate = df.columns.get_loc("Listing Latitude")
+#    Lat = df.columns.get_loc("Listing Latitude")
+#    LastPostDate = df.columns.get_loc("Listing Latitude")
     nameMatchCol = df.columns.get_loc("Name Match")
     geocodeMatchCol = df.columns.get_loc("Geocode Match")
 
@@ -1340,7 +1337,7 @@ def matchingQuestions(df):
 
 #saves down upload linkages file
 def writeUploadFile(df):
-    filePath = os.path.expanduser("~\Documents\Python Scripts\\"+ \
+    filePath = os.path.expanduser("~\\Documents\\Python Scripts\\"+ \
                                    re.sub(r'[\\/*?:"<>|]', "", getBusName(getBusIDfromLoc(df.loc[0, 'locationId'])))+\
                                    " Upload Linkages "+ str(date.today().strftime("%Y-%m-%d")) \
                                     + " " + str(time.strftime("%H.%M.%S")) +".csv")
@@ -1523,7 +1520,7 @@ class MatchingInput(Tkinter.Frame):
         allChecksComplete = True
 
         for index, row in checkedDF.iterrows():
-            if ('Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no']))):
+            if 'Check' in row['Robot Suggestion'] and (isnan(row['Match \n1 = yes, 0 = no'])):
                 allChecksComplete = False
 
 #Exits if manual review incomplete
@@ -1581,7 +1578,7 @@ class MatchingInput(Tkinter.Frame):
                         else:
                             pass
 
-            completeCopyFilePath = os.path.expanduser("J:\zAutomatcherData\CheckedFiles\\"+ \
+            completeCopyFilePath = os.path.expanduser("J:\\zAutomatcherData\\CheckedFiles\\"+ \
                                                os.getenv('username')+ " - " + busName+" Data "+ str(date.today().strftime("%Y-%m-%d")) \
                                                 + " " + str(time.strftime("%H.%M.%S")) +".csv")
             checkedDF.to_csv(completeCopyFilePath, sheet_name="Data", encoding='utf-8', index=False)
@@ -1627,10 +1624,10 @@ class MatchingInput(Tkinter.Frame):
                 if claimedFBDF.shape[0] > 0:
                     print "There are claimed FB pages! Be sure to review them!"
 
-                    filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessNameClean +\
+                    filePath = os.path.expanduser("~\\Documents\\Python Scripts\\" + businessNameClean +\
                                                " Suppression Approval File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
                 else:
-                    filePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessNameClean +\
+                    filePath = os.path.expanduser("~\\Documents\\Python Scripts\\" + businessNameClean +\
                                                " Suppression Summary File "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
                 suppwriter = pd.ExcelWriter(filePath, engine='xlsxwriter')
@@ -1666,7 +1663,7 @@ class MatchingInput(Tkinter.Frame):
 
                 xlApp = win32com.client.Dispatch("Excel.Application")
                 SuppFile = xlApp.Workbooks.Open(filePath)
-                toolkit = os.path.expanduser("~\Documents\entops\Templates and Macros\EntOpsMacroToolkit.xlam")
+                toolkit = os.path.expanduser("~\\Documents\\entops\\Templates and Macros\\EntOpsMacroToolkit.xlam")
                 a = xlApp.Application.Run('\''+toolkit+"\'!AutoMatcherSuppressionReport.Run_Suppression_Report")
 
                 reportDF = checkedDF[checkedDF['PL Status'] == 'Suppress']
@@ -1680,7 +1677,7 @@ class MatchingInput(Tkinter.Frame):
                                             'Last Post Date', 'Publisher ID', 'Publisher']]
 
 
-                fullFilePath = os.path.expanduser("~\Documents\Python Scripts\\" + businessNameClean+\
+                fullFilePath = os.path.expanduser("~\\Documents\\Python Scripts\\" + businessNameClean+\
                                                " Full Suppression Details "+ str(date.today().strftime("%Y-%m-%d")) + " " + str(time.strftime("%H.%M.%S")) +".xlsx")
 
                 reportWriter = pd.ExcelWriter(fullFilePath, engine='xlsxwriter')
@@ -1705,7 +1702,7 @@ class MatchingInput(Tkinter.Frame):
 
                 xlApp1 = win32com.client.Dispatch("Excel.Application")
                 reportFile = xlApp1.Workbooks.Open(fullFilePath)
-                toolkit = os.path.expanduser("~\Documents\entops\Templates and Macros\EntOpsMacroToolkit.xlam")
+                toolkit = os.path.expanduser("~\\Documents\\entops\\Templates and Macros\\EntOpsMacroToolkit.xlam")
                 a = xlApp.Application.Run('\''+toolkit+"\'!AutoMatcherSuppressionReport.Run_Suppression_Report")
 
             print "Writing to File"
@@ -1891,7 +1888,7 @@ class MatchingInput(Tkinter.Frame):
         self.PreviousWords.loc[self.indexVal, 'Account_ID'] = self.bid
         self.PreviousWords.loc[self.indexVal, 'Words'] = str(self.Words)
         try:
-            self.PreviousWords.to_csv("J:\zAutomatcherData\Words.csv", index=False)
+            self.PreviousWords.to_csv("J:\\zAutomatcherData\\Words.csv", index=False)
         except:
             pass
         if len(self.WordsAlt) > 0:
@@ -1916,7 +1913,7 @@ class MatchingInput(Tkinter.Frame):
         for name in busNames:
             self.Words[name] = 1
 
-            self.PreviousWords = pd.read_csv("J:\zAutomatcherData\Words.csv")
+            self.PreviousWords = pd.read_csv("J:\\zAutomatcherData\\Words.csv")
             self.bid = int(self.bid)
             self.PreviousWords['Account_ID'].astype(np.int64)
             self.indexVal = -1
@@ -2044,8 +2041,8 @@ class MatchingInput(Tkinter.Frame):
 
         if part == 1:
             try:
-                currentStats = pd.read_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8')
-              #  stats=open("J:\zAutomatcherData\Part1Stats.csv",'a')
+                currentStats = pd.read_csv("J:\\zAutomatcherData\\Part1Stats.csv", encoding='utf-8')
+              #  stats=open("J:\\zAutomatcherData\\Part1Stats.csv",'a')
                 checks = len(df[df['Robot Suggestion'].str.contains('Check')])
                 #stats.write(','.join((os.getenv('username'),str(self.bizID.get()),str(getBusName(\
               #     self.bizID.get())),str(self.IndustryType.get()),str(datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S')),str(t1-t0),\
@@ -2059,7 +2056,7 @@ class MatchingInput(Tkinter.Frame):
                     self.bid), self.IndustryType.get(), self.ReportType.get(), self.dataInput.get(), datetime.datetime.fromtimestamp(t1).strftime('%Y-%m-%d %H:%M:%S'), fullRunTime, codeRunTime,\
                     df.shape[0], checks]
 
-                currentStats.to_csv("J:\zAutomatcherData\Part1Stats.csv", encoding='utf-8', index=False)
+                currentStats.to_csv("J:\\zAutomatcherData\\Part1Stats.csv", encoding='utf-8', index=False)
             except:
                 pass
 

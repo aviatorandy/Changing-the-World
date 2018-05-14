@@ -1913,19 +1913,19 @@ class MatchingInput(Tkinter.Frame):
         for name in busNames:
             self.Words[name] = 1
 
-            self.PreviousWords = pd.read_csv("J:\\zAutomatcherData\\Words.csv")
-            self.bid = int(self.bid)
-            self.PreviousWords['Account_ID'].astype(np.int64)
+        self.PreviousWords = pd.read_csv("J:\\zAutomatcherData\\Words.csv")
+        self.bid = int(self.bid)
+        self.PreviousWords['Account_ID'].astype(np.int64)
+        self.indexVal = -1
+        try:
+            self.indexVal = int(self.PreviousWords[self.PreviousWords['Account_ID'] == int(self.bid)].index.values)
+        except:
             self.indexVal = -1
-            try:
-                self.indexVal = int(self.PreviousWords[self.PreviousWords['Account_ID'] == int(self.bid)].index.values)
-            except:
-                self.indexVal = -1
 
-            if self.indexVal > -1:
-                self.Words.update(ast.literal_eval(self.PreviousWords.at[self.indexVal, 'Words']))
-            else:
-                self.indexVal = self.PreviousWords.shape[0]
+        if self.indexVal > -1:
+            self.Words.update(ast.literal_eval(self.PreviousWords.at[self.indexVal, 'Words']))
+        else:
+            self.indexVal = self.PreviousWords.shape[0]
 
         self.nameW = Toplevel()
         self.nameW.protocol("WM_DELETE_WINDOW", self._delete_window)
